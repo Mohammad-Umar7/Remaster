@@ -21,7 +21,7 @@ You walk in first person through eight short rooms. Each room has one note from 
 4. **Screen Wrap** - use the 1989 bug to get behind a gate.
 5. **Sprite Flicker** - two groups of planks take turns existing. You can hear the beat.
 6. **Three Seconds Late** - the old game is three seconds ahead: it shows each laser before the remake fires it.
-7. **One-Way Planks** - old planks snap after one step, so plan the route before you walk it.
+7. **One-Way Maze** - old planks snap after one step. Three ways in, one true route, and every dead end is final, so solve the maze in the old game before you walk it.
 8. **Ship It** - the unfinished floor deletes itself behind you. Run.
 
 The soundtrack is one tune in two arrangements. It starts as a chip tune, and every room you clear adds a "remastered" instrument, so finishing the game finishes its soundtrack.

@@ -106,6 +106,7 @@ public class GameManager : MonoBehaviour
     int lastTileX = -99, lastTileR = -99;
     bool firstBridge, firstFake, firstWrap, firstCoin, firstSlime, firstFall, firstBreak, firstFlicker, firstLaser, chipFoot;
     int hitStopId;
+    bool[] hasOneUse;
     static readonly string[] LayerNames = { "drums", "bass", "strings", "bells" };
 
     void Awake()
@@ -157,6 +158,11 @@ public class GameManager : MonoBehaviour
             if (Maps.Defs[i].lasers != null) rs[i].hotUntil = new float[Maps.Defs[i].lasers.Length];
             totalCoins += rooms[i].coins.Count;
         }
+        hasOneUse = new bool[rooms.Length];
+        for (int i = 0; i < rooms.Length; i++)
+            for (int r = 0; r < Maps.H; r++)
+                for (int x = 0; x < Maps.W; x++)
+                    if (rooms[i].IsOneUse(x, r)) hasOneUse[i] = true;
 
         world = new World3D();
         world.Build(rooms);
@@ -371,6 +377,7 @@ public class GameManager : MonoBehaviour
         TickFlicker(room, s);
         TickPlanks(room, s, dt);
         TickLasers(room, s, dt);
+        CheckStranded(room, s, dt);
     }
 
     void EnterRoom(int i, bool forward)
@@ -527,8 +534,65 @@ public class GameManager : MonoBehaviour
                 sound.PlayAt("plank_break", c, 0.9f, 0.06f);
                 fx.Puff(c + Vector3.up * 0.1f, Pal.A(Pal.Magenta, 0.9f), 0.9f, 0.5f);
                 pixel.AddFx("poof", 3, 0.3f, new Vector2(x + 0.5f, r + 0.5f), room.index);
-                if (!firstBreak) { firstBreak = true; hud.Popup("It snapped behind you. Old planks hold ONE step: plan the route.", 3.8f); }
+                if (!firstBreak) { firstBreak = true; hud.Popup("It snapped behind you. No going back: solve the maze in the old game first.", 4.2f); }
             }
+    }
+
+    // ------------------------------------------------------------------ nobody gets soft-locked in the maze
+    float strandClock, strandTimer;
+    bool strandWarned;
+
+    /// <summary>Is there still a way from this tile to the exit over planks that have not snapped?</summary>
+    bool ExitReachable(Room room, RoomState s, int x0, int r0)
+    {
+        var seen = new bool[Maps.W, Maps.H];
+        var q = new Queue<Vector2Int>();
+        q.Enqueue(new Vector2Int(x0, r0)); seen[x0, r0] = true;
+        int[] dx = { 0, 1, 0, -1 }, dr = { -1, 0, 1, 0 };
+        while (q.Count > 0)
+        {
+            var c = q.Dequeue();
+            if (c == room.exit) return true;
+            for (int i = 0; i < 4; i++)
+            {
+                int nx = c.x + dx[i], nr = c.y + dr[i];
+                if (room.def.wrap) { if (nx < 0) nx = Maps.W - 1; else if (nx >= Maps.W) nx = 0; }
+                if (!room.In(nx, nr) || seen[nx, nr] || !room.TruthWalkable(nx, nr)) continue;
+                if (s.broken[nx, nr] || s.breakIn[nx, nr] > 0f || s.rowCrumble[nr] >= 2f) continue;
+                seen[nx, nr] = true;
+                q.Enqueue(new Vector2Int(nx, nr));
+            }
+        }
+        return false;
+    }
+
+    /// <summary>
+    /// One-use planks can leave you with no way forward. On a plank that is a dead end: you are told.
+    /// Standing safely on real floor with every route gone would be a silent soft-lock, so the room resets itself.
+    /// </summary>
+    void CheckStranded(Room room, RoomState s, float dt)
+    {
+        if (!hasOneUse[room.index]) return;
+        strandClock += dt;
+        if (strandClock < 0.35f) return;
+        float step = strandClock; strandClock = 0f;
+        if (!room.In(tileX, tileR) || !IsSolidNow(room.index, tileX, tileR)) return;
+        if (ExitReachable(room, s, tileX, tileR)) { strandWarned = false; strandTimer = 0f; return; }
+        if (room.IsOneUse(tileX, tileR))
+        {
+            if (!strandWarned) { strandWarned = true; hud.Popup("Dead end. Step off the plank to try the maze again.", 3.6f); }
+        }
+        else
+        {
+            if (!strandWarned) { strandWarned = true; hud.Popup("No route left. The old game resets the room...", 2.2f); }
+            strandTimer += step;
+            if (strandTimer >= 1.7f)
+            {
+                strandTimer = 0f; strandWarned = false;
+                Respawn(cur, true);
+                sound.Play("respawn", 0.6f);
+            }
+        }
     }
 
     /// <summary>Lasers: the old game is three seconds ahead. It shows the line first; the remake fires it late.</summary>

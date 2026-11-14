@@ -219,20 +219,25 @@ public static class Maps
         },
         new RoomDef
         {
-            title = "ONE-WAY PLANKS",
+            // A real maze. Planks sit on a lattice (junctions on odd columns and even rows) so corridors only
+            // ever touch at junctions. Three ways in from the start floor (columns 1, 5 and 9); only the one
+            // at column 9 reaches the single exit plank at (6,2), and it has to wind right, up, left, down,
+            // left and up to get there. Because planks snap behind you, every dead end is final.
+            // Two coins lie on the true route; the third is bait at the end of a dead end.
+            title = "ONE-WAY MAZE",
             todo = "plank durability",
-            note = "TODO: plank durability.\nOld planks break after\nONE step. Plan ahead.",
+            note = "TODO: plank durability.\nPlanks snap after ONE\nstep. Solve the maze!",
             finish = 0.32f, needBridge = true,
             rows = new[]
             {
                 "######X######",
-                "#...........#",
-                "#~~~~~~~o~o~#",
-                "#~ookoo~o~k~#",
-                "#~o~~~ooooo~#",
-                "#~ooooo~o~o~#",
-                "#~o~~~o~ook~#",
-                "#~o~~~o~~~o~#",
+                "#~~~~~.~~~~~#",
+                "#ooo~~oo~ook#",
+                "#~~o~~~o~o~o#",
+                "#o~ooo~ook~o#",
+                "#o~~~o~~~~~o#",
+                "#ook~o~ooooo#",
+                "#o~~~o~~~o~~#",
                 "#....N......#",
                 "#...........#",
                 "######S######",
@@ -466,6 +471,24 @@ public static class MapValidator
                     foreach (int x in v.cols) if (x < 1 || x > Maps.W - 2) { sb.AppendLine("FAIL room " + (i + 1) + ": laser column " + x + " is outside the room"); ok = false; }
                     if (v.t < 0f || v.t >= d.laserPeriod) { sb.AppendLine("FAIL room " + (i + 1) + ": laser time " + v.t + " is outside the loop"); ok = false; }
                 }
+            // a one-use room must be a maze: its quickest route has to turn several times on the planks,
+            // so there is never a straight ladder from the door to the exit
+            bool anyOneUse = false;
+            for (int r = 0; r < Maps.H; r++) for (int x = 0; x < Maps.W; x++) if (room.IsOneUse(x, r)) anyOneUse = true;
+            if (anyOneUse)
+            {
+                int turns = 0;
+                var pts = new List<Vector2Int> { from };
+                foreach (var st in full) pts.Add(st.tile);
+                for (int k = 1; k < pts.Count - 1; k++)
+                {
+                    if (!room.IsOneUse(pts[k].x, pts[k].y)) continue;
+                    Vector2Int a = pts[k] - pts[k - 1], b = pts[k + 1] - pts[k];
+                    if (a != b) turns++;
+                }
+                if (turns < 5) { sb.AppendLine("FAIL room " + (i + 1) + ": the plank maze is too direct (only " + turns + " turns on the quickest route)"); ok = false; }
+                else sb.AppendLine("room " + (i + 1) + ": plank maze quickest route has " + turns + " turns");
+            }
             if (needsBridge != d.needBridge || needsFake != d.needFake || needsWrap != d.needWrap)
             {
                 sb.AppendLine("FAIL room " + (i + 1) + ": trick requirements differ from the design (bridge " + needsBridge + "/" + d.needBridge + ", fake " + needsFake + "/" + d.needFake + ", wrap " + needsWrap + "/" + d.needWrap + ")");

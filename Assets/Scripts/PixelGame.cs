@@ -263,6 +263,13 @@ public class PixelGame
                 {
                     int frame = ((int)(clock * 7f + x) % 4) + 1;
                     int bob = ((int)(clock * 3f + x * 0.5f) % 2 == 0) ? 0 : -1;
+                    if (Room.IsBridgeCh(ch))
+                    {
+                        // a yellow coin on yellow planks disappears: give it a dark plate to sit on
+                        int cx = ox + x * T, cy = oy + r * T;
+                        scr.Fill(cx + 3, cy + 2, 10, 12, Pal.K);
+                        scr.Fill(cx + 2, cy + 3, 12, 10, Pal.K);
+                    }
                     scr.Blit(PixelArt.Get("coin_" + frame), ox + x * T, oy + r * T + bob);
                 }
             }

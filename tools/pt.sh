@@ -11,12 +11,25 @@ C="unity command --caller plugin --skill unity-cli --project-path $P"
 cmd="$1"; shift
 case "$cmd" in
   start)
-    unity recompile --project-path "$P" --format json 2>/dev/null | python -c "
+    # the Editor can be busy (importing, leaving play mode) for a moment: retry a few times before giving up
+    ok=0
+    for attempt in 1 2 3 4; do
+      unity status --until-ready --project-path "$P" --format json >/dev/null 2>&1
+      unity recompile --project-path "$P" --format json 2>/dev/null | python -c "
 import sys,json
-d=json.load(sys.stdin)['data']
+env=json.load(sys.stdin)
+d=env.get('data')
+if d is None:
+    print('recompile not ready:', [e.get('code') for e in env.get('errors',[])]); sys.exit(2)
 print('compile errors:', d['summary']['errors'], 'warnings:', d['summary']['warnings'])
 for e in d['errors'][:20]: print('  ', e)
-sys.exit(1 if d['summary']['errors'] else 0)" || exit 1
+sys.exit(1 if d['summary']['errors'] else 0)"
+      rc=$?
+      if [ $rc -eq 0 ]; then ok=1; break; fi
+      if [ $rc -eq 1 ]; then exit 1; fi
+      sleep 3
+    done
+    [ $ok -eq 1 ] || exit 1
     unity status --until-ready --project-path "$P" --format json >/dev/null 2>&1
     $C script eval "UnityEditor.EditorPrefs.SetString(\"RemasterArgs\", \"$1\"); return MapValidator.RunAll().Split('\\n')[0];" 2>&1 | tail -1 | cut -f3
     $C console clear >/dev/null 2>&1
