@@ -67,8 +67,14 @@ Levels are set by loudness, not by peak: each sound is placed a fixed number of 
 | room_tone.wav | 1 | 6.000 | -30.0 | -41.5 | -50.5 | -31.3 | Seamless 6 s loop of a quiet PC fan (intro / ending). |
 | yawn_whoosh.wav | 1 | 1.797 | -3.0 | -20.2 | -14.3 | +4.9 | Pulled into the screen: rising whoosh that cuts. |
 | alarm.wav | 1 | 1.600 | -15.6 | -22.2 | -16.2 | +3.0 | Alarm clock: four beeps then a pause (ending). |
+| laser_old.wav | 1 | 0.160 | -6.4 | -19.9 | -18.2 | +1.0 | The old game's laser: chip pew, heard 3 s before the real beam. |
+| laser_fire.wav | 1 | 0.340 | -4.6 | -15.5 | -14.2 | +5.0 | The remake's laser beam firing (3 s after the old game showed it). |
+| flick_a.wav | 1 | 0.110 | -8.8 | -20.3 | -20.2 | -1.0 | Flicker planks: group A appears (higher note). |
+| flick_b.wav | 1 | 0.110 | -7.5 | -19.2 | -20.2 | -1.0 | Flicker planks: group B appears (lower note). |
+| flick_warn.wav | 1 | 0.035 | -9.0 | -25.4 | -30.1 | -11.0 | Tick before the flicker planks swap. |
+| plank_break.wav | 1 | 0.202 | -3.0 | -19.3 | -19.4 | -0.2 | A one-use plank snaps after you step off it. |
 
-Held at a peak cap (so a little under their loudness target): jingle_boot, jingle_room, jingle_win, ui_move, gate, step_paper_1, step_paper_4, key_1, key_2, key_3, yawn_whoosh.
+Held at a peak cap (so a little under their loudness target): jingle_boot, jingle_room, jingle_win, ui_move, gate, step_paper_1, step_paper_4, key_1, key_2, key_3, yawn_whoosh, flick_warn, plank_break.
 
 ## Loop points
 

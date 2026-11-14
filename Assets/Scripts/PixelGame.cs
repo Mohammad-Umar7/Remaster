@@ -122,6 +122,75 @@ public class PixelGame
         scr.TextCentered("STILL RUNNING...", PixelScreen.W / 2, 120, Pal.W);
     }
 
+    static bool Horizontal(Room room, int x, int r)
+    {
+        bool lr = (room.In(x - 1, r) && room.TruthWalkable(x - 1, r)) || (room.In(x + 1, r) && room.TruthWalkable(x + 1, r));
+        bool ud = (room.In(x, r - 1) && room.TruthWalkable(x, r - 1)) || (room.In(x, r + 1) && room.TruthWalkable(x, r + 1));
+        return lr && !ud;
+    }
+
+    static string PitSprite(Room room, RoomState rsx, int x, int r)
+    {
+        bool floorAbove = r > 0 && room.TruthWalkable(x, r - 1) && !room.IsBridge(x, r - 1) && rsx.rowCrumble[r - 1] < 2f;
+        bool wallAbove = r > 0 && Room.IsRealWallCh(room.c[x, r - 1]);
+        return (floorAbove || wallAbove) ? "pit_edge" : "pit";
+    }
+
+    /// <summary>
+    /// The old game is three seconds ahead of the remake. When it fires a laser you see the flash here,
+    /// then the line stays as moving red dashes that thicken and blink until the 3D world catches up.
+    /// </summary>
+    void DrawLasers(GameManager gm, Room room, int ox, int oy)
+    {
+        var vols = room.def.lasers;
+        if (vols == null) return;
+        var st = gm.rs[room.index];
+        // column beams stop at the safe-zone line (the entry rows are a place to stand and watch)
+        int x0 = ox + T, x1 = ox + T * (Maps.W - 1), y0 = oy + T, y1 = oy + T * Maps.LaserLobbyRow;
+        bool anyCols = false;
+        // emitters sit at both ends of every line
+        for (int i = 0; i < vols.Length; i++)
+        {
+            foreach (int r in vols[i].rows) { Node(x0 - 6, oy + r * T + 5); Node(x1 + 1, oy + r * T + 5); }
+            foreach (int x in vols[i].cols) { Node(ox + x * T + 5, y0 - 6); Node(ox + x * T + 5, y1 - 3); anyCols = true; }
+        }
+        if (anyCols)
+            for (int px = x0; px < x1; px += 2) scr.Pixel(px, y1, Pal.T);
+        int scroll = (int)(clock * 46f);
+        for (int i = 0; i < vols.Length; i++)
+        {
+            float cd = gm.LaserCountdown(room, st, vols[i]);
+            if (cd > Maps.LaserLead) continue;
+            float since = Maps.LaserLead - cd;
+            bool flash = since < 0.26f;                                     // the old game's own shot
+            bool urgent = cd < 0.75f;
+            if (!flash && urgent && ((int)(clock * 18f)) % 2 == 0) continue; // blink right before the remake fires
+            int thick = flash ? 8 : (urgent ? 6 : (cd < 1.7f ? 4 : 2));
+            Color32 col = flash ? Pal.W : (urgent ? Pal.Y : Pal.R);
+            foreach (int r in vols[i].rows)
+            {
+                int y = oy + r * T + 8 - thick / 2;
+                for (int px = x0; px < x1; px++)
+                    if (flash || ((px + scroll) % 6) < 3) scr.Fill(px, y, 1, thick, col);
+                if (flash) { scr.Fill(x0, y - 1, x1 - x0, 1, Pal.R); scr.Fill(x0, y + thick, x1 - x0, 1, Pal.R); }
+            }
+            foreach (int x in vols[i].cols)
+            {
+                int cx = ox + x * T + 8 - thick / 2;
+                for (int py = y0; py < y1; py++)
+                    if (flash || ((py + scroll) % 6) < 3) scr.Fill(cx, py, thick, 1, col);
+                if (flash) { scr.Fill(cx - 1, y0, 1, y1 - y0, Pal.R); scr.Fill(cx + thick, y0, 1, y1 - y0, Pal.R); }
+            }
+        }
+    }
+
+    void Node(int x, int y)
+    {
+        scr.Fill(x, y, 6, 6, Pal.K);
+        scr.Fill(x + 1, y + 1, 4, 4, Pal.R);
+        scr.Pixel(x + 2, y + 2, Pal.W);
+    }
+
     string TileSprite(GameManager gm, Room room, int x, int r)
     {
         char ch = room.c[x, r];
@@ -151,10 +220,25 @@ public class PixelGame
                 }
             case 'B':
             case 'c':
+                return Horizontal(room, x, r) ? "bridge_h" : "bridge_v";
+            case 'o':
+            case 'k':
                 {
-                    bool lr = (room.In(x - 1, r) && room.TruthWalkable(x - 1, r)) || (room.In(x + 1, r) && room.TruthWalkable(x + 1, r));
-                    bool ud = (room.In(x, r - 1) && room.TruthWalkable(x, r - 1)) || (room.In(x, r + 1) && room.TruthWalkable(x, r + 1));
-                    return (lr && !ud) ? "bridge_h" : "bridge_v";
+                    // one-use plank: cracked, shaking when it is about to snap, a hole once it has
+                    if (rsx.broken[x, r]) return PitSprite(room, rsx, x, r);
+                    if (rsx.breakIn[x, r] > 0f) return "crumble_2";
+                    return Horizontal(room, x, r) ? "plank_h" : "plank_v";
+                }
+            case 'a':
+            case 'b':
+                {
+                    // flicker plank: solid in its group's turn, a dotted ghost otherwise, blinking just before it goes
+                    float period = room.def.flickerPeriod;
+                    bool solid = room.FlickerSolidAt(ch, rsx.clock);
+                    float left = period - (rsx.clock % period);
+                    bool blink = solid && left < 0.62f && ((int)(clock * 14f)) % 2 == 0;
+                    if (solid && !blink) return "flick_" + ch + (Horizontal(room, x, r) ? "_h" : "_v");
+                    return "ghost_" + ch;
                 }
             default:
                 return ((x * 7 + r * 13) % 5 < 3) ? "floor_a" : "floor_b";
@@ -175,7 +259,7 @@ public class PixelGame
                 char ch = room.c[x, r];
                 if (st.rowCrumble[r] >= 2f) continue;
                 if (ch == 'N') scr.Blit(PixelArt.Get("note"), ox + x * T, oy + r * T - 1);
-                if ((ch == 'C' || ch == 'c') && !st.coinTaken[x, r])
+                if (Room.IsCoinCh(ch) && !st.coinTaken[x, r] && !st.broken[x, r])
                 {
                     int frame = ((int)(clock * 7f + x) % 4) + 1;
                     int bob = ((int)(clock * 3f + x * 0.5f) % 2 == 0) ? 0 : -1;
@@ -184,6 +268,8 @@ public class PixelGame
             }
 
         if (!entities) return;
+
+        DrawLasers(gm, room, ox, oy);
 
         // screen-wrap rows get blinking arrows at the edges
         if (room.def.wrap && ((int)(clock * 3f)) % 2 == 0)

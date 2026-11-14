@@ -10,6 +10,8 @@ using UnityEngine;
 ///   G  gate, real                     .  floor
 ///   ~  pit                            B  bridge that only exists in the old game (invisible in 3D, solid)
 ///   c  coin on such a bridge          C  coin on floor               (coins exist only in the old game)
+///   o  one-use plank: breaks after you step off it       k  one-use plank with a coin
+///   a  flicker plank, group A         b  flicker plank, group B      (the groups take turns existing)
 ///   N  dev note signpost (floor)      S  start doorway (bottom)      X  exit doorway (top)
 /// </summary>
 public class SlimeDef
@@ -25,16 +27,36 @@ public class SlimeDef
     }
 }
 
+/// <summary>A set of laser lines that fire together, at <see cref="t"/> seconds into the room's loop.</summary>
+public class LaserVolley
+{
+    public float t;
+    public int[] rows, cols;
+    public LaserVolley(float t, int[] rows, int[] cols) { this.t = t; this.rows = rows ?? new int[0]; this.cols = cols ?? new int[0]; }
+    public bool Hits(int x, int r)
+    {
+        for (int i = 0; i < rows.Length; i++) if (rows[i] == r) return true;
+        // column beams stop at the safe-zone line, so the entry area is a place to stand and read the pattern
+        if (r < Maps.LaserLobbyRow)
+            for (int i = 0; i < cols.Length; i++) if (cols[i] == x) return true;
+        return false;
+    }
+}
+
 public class RoomDef
 {
     public string title;
-    public string todo;         // checklist line on the TODO pad
+    public string todo;         // short label
     public string note;         // the dev's sticky note for this room
     public string[] rows;
     public bool wrap;
     public bool deleteWave;
     public float finish = 0.7f; // how much of the 3D room looks finished (cosmetic)
     public SlimeDef[] slimes = new SlimeDef[0];
+    public float flickerPeriod = 2.3f;      // seconds each flicker group stays solid
+    public LaserVolley[] lasers;            // null when the room has no lasers
+    public float laserPeriod = 12f;         // length of the laser loop in seconds
+    public bool needBridge, needFake, needWrap;   // what the map checker expects the room to require
 }
 
 public static class Maps
@@ -44,6 +66,11 @@ public static class Maps
     public const int CorridorTiles = 3;
     public const float CorridorRise = 1.5f;
     public const float WallHeight = 3.2f;
+    public const float LaserLead = 3.0f;    // the old game shows a laser this long before the remake fires it
+    public const float LaserHot = 0.35f;    // how long a fired beam can hurt
+    public const int LaserLobbyRow = 8;     // rows from here down are never hit by column beams
+
+    static int[] L(params int[] v) { return v; }
 
     public static readonly RoomDef[] Defs =
     {
@@ -52,7 +79,7 @@ public static class Maps
             title = "THE MISSING BRIDGE",
             todo = "model the bridge",
             note = "TODO: model the bridge.\nCollision already works!\n(check the old game  -->)",
-            finish = 0.92f,
+            finish = 0.92f, needBridge = true,
             rows = new[]
             {
                 "######X######",
@@ -73,7 +100,7 @@ public static class Maps
             title = "PLACEHOLDER WALL",
             todo = "give walls collision",
             note = "TODO: some walls are\nonly decoration.\nNo collision yet.",
-            finish = 0.85f,
+            finish = 0.85f, needFake = true,
             rows = new[]
             {
                 "######X######",
@@ -94,7 +121,7 @@ public static class Maps
             title = "UNMODELLED ENEMIES",
             todo = "model the slimes",
             note = "TODO: model the slimes.\nThey only exist in the\nold game. They still bite.",
-            finish = 0.6f,
+            finish = 0.6f, needBridge = true,
             slimes = new[]
             {
                 new SlimeDef(1.45f, 0.55f, 6,6, 10,6, 10,7, 6,7),
@@ -120,7 +147,7 @@ public static class Maps
             title = "SCREEN WRAP",
             todo = "fix screen wrap (won't)",
             note = "KNOWN BUG since 1989:\nexit LEFT, appear RIGHT.\nWON'T FIX.",
-            wrap = true,
+            wrap = true, needWrap = true,
             finish = 0.5f,
             rows = new[]
             {
@@ -139,12 +166,86 @@ public static class Maps
         },
         new RoomDef
         {
+            title = "SPRITE FLICKER",
+            todo = "fix sprite flicker",
+            note = "BUG: sprite flicker.\nSome planks only exist\nhalf the time. Listen!",
+            finish = 0.45f, needBridge = true,
+            flickerPeriod = 2.3f,
+            rows = new[]
+            {
+                "######X######",
+                "#.........C.#",
+                "#Cbb.bb.~~~~#",
+                "#~~~a~~~~~~~#",
+                "#~~~a~~~~~~~#",
+                "#~~~.bb.aaC~#",
+                "#~~~~~~a~~~~#",
+                "#~~~~~~a~~~~#",
+                "#....N......#",
+                "#...........#",
+                "######S######",
+            }
+        },
+        new RoomDef
+        {
+            title = "THREE SECONDS LATE",
+            todo = "fix the 3 second lag",
+            note = "TODO: fix 3 second lag.\nThe old game is AHEAD:\nit shows lasers first.",
+            finish = 0.4f,
+            laserPeriod = 12f,
+            lasers = new[]
+            {
+                new LaserVolley(0.5f,  L(7, 5, 3, 1), null),
+                new LaserVolley(2.5f,  L(6, 4, 2), null),
+                new LaserVolley(4.5f,  null, L(2, 4, 6, 8, 10)),
+                new LaserVolley(6.5f,  null, L(1, 3, 5, 7, 9, 11)),
+                new LaserVolley(8.5f,  L(7, 4, 1), L(3, 6, 9)),
+                new LaserVolley(10.5f, L(6, 3), L(5, 7)),
+            },
+            rows = new[]
+            {
+                "######X######",
+                "#...........#",
+                "#...........#",
+                "#..C.....C..#",
+                "#...........#",
+                "#.....C.....#",
+                "#...........#",
+                "#...........#",
+                "#....N......#",
+                "#...........#",
+                "######S######",
+            }
+        },
+        new RoomDef
+        {
+            title = "ONE-WAY PLANKS",
+            todo = "plank durability",
+            note = "TODO: plank durability.\nOld planks break after\nONE step. Plan ahead.",
+            finish = 0.32f, needBridge = true,
+            rows = new[]
+            {
+                "######X######",
+                "#...........#",
+                "#~~~~~~~o~o~#",
+                "#~ookoo~o~k~#",
+                "#~o~~~ooooo~#",
+                "#~ooooo~o~o~#",
+                "#~o~~~o~ook~#",
+                "#~o~~~o~~~o~#",
+                "#....N......#",
+                "#...........#",
+                "######S######",
+            }
+        },
+        new RoomDef
+        {
             title = "SHIP IT",
             todo = "ship it",
             note = "FIXME: unfinished floor\ngets deleted. RUN!\nExit = BUILD & RUN.",
             wrap = true,
             deleteWave = true,
-            finish = 0.25f,
+            finish = 0.25f, needBridge = true, needFake = true, needWrap = true,
             rows = new[]
             {
                 "#########X###",
@@ -187,7 +288,7 @@ public class Room
                 if (ch == 'S') start = new Vector2Int(x, r);
                 if (ch == 'X') exit = new Vector2Int(x, r);
                 if (ch == 'N') noteTile = new Vector2Int(x, r);
-                if (ch == 'C' || ch == 'c') coins.Add(new Vector2Int(x, r));
+                if (IsCoinCh(ch)) coins.Add(new Vector2Int(x, r));
             }
         }
     }
@@ -203,11 +304,15 @@ public class Room
 
     public static bool IsRealWallCh(char ch) { return ch == '#' || ch == 'W' || ch == 'G'; }
     public static bool IsFakeCh(char ch) { return ch == 'F' || ch == 'f'; }
-    public static bool IsBridgeCh(char ch) { return ch == 'B' || ch == 'c'; }
+    public static bool IsOneUseCh(char ch) { return ch == 'o' || ch == 'k'; }
+    public static bool IsFlickerCh(char ch) { return ch == 'a' || ch == 'b'; }
+    /// <summary>Anything that exists only in the old game: plain, one-use and flicker planks.</summary>
+    public static bool IsBridgeCh(char ch) { return ch == 'B' || ch == 'c' || IsOneUseCh(ch) || IsFlickerCh(ch); }
     public static bool IsPitCh(char ch) { return ch == '~'; }
     public static bool IsFancyCh(char ch) { return ch == 'W' || ch == 'F'; }
+    public static bool IsCoinCh(char ch) { return ch == 'C' || ch == 'c' || ch == 'k'; }
 
-    /// <summary>What the OLD GAME says you can walk on. This is the real collision.</summary>
+    /// <summary>What the OLD GAME says you can walk on (ignoring planks that are currently gone).</summary>
     public bool TruthWalkable(int x, int r)
     {
         if (!In(x, r)) return false;
@@ -215,8 +320,13 @@ public class Room
         return !(IsRealWallCh(ch) || IsPitCh(ch));
     }
     public bool IsBridge(int x, int r) { return In(x, r) && IsBridgeCh(c[x, r]); }
+    public bool IsOneUse(int x, int r) { return In(x, r) && IsOneUseCh(c[x, r]); }
+    public bool IsFlicker(int x, int r) { return In(x, r) && IsFlickerCh(c[x, r]); }
+    /// <summary>Planks whose solidity changes while you play (they get their own collider).</summary>
+    public bool IsDynamic(int x, int r) { return In(x, r) && (IsOneUseCh(c[x, r]) || IsFlickerCh(c[x, r])); }
     public bool IsFake(int x, int r) { return In(x, r) && IsFakeCh(c[x, r]); }
     public bool IsPit(int x, int r) { return In(x, r) && IsPitCh(c[x, r]); }
+    public bool HasCoin(int x, int r) { return In(x, r) && IsCoinCh(c[x, r]); }
     public bool IsRealWall(int x, int r) { return !In(x, r) || IsRealWallCh(c[x, r]); }
     /// <summary>What the 3D REMAKE draws as a wall (real or fake).</summary>
     public bool Looks3DWall(int x, int r) { return In(x, r) && (IsRealWallCh(c[x, r]) || IsFakeCh(c[x, r])); }
@@ -226,6 +336,13 @@ public class Room
         if (!In(x, r)) return false;
         char ch = c[x, r];
         return ch == '.' || ch == 'C' || ch == 'N' || ch == 'S' || ch == 'X' || IsFakeCh(ch);
+    }
+
+    /// <summary>Is flicker group <paramref name="ch"/> solid at this room-clock time?</summary>
+    public bool FlickerSolidAt(char ch, float clock)
+    {
+        int phase = Mathf.FloorToInt(Mathf.Max(0f, clock) / def.flickerPeriod) % 2;
+        return (ch == 'a') == (phase == 0);
     }
 
     public Vector3 TileCenter(int x, int r)
@@ -254,7 +371,7 @@ public class Room
 
     public Vector2Int SpawnTile => new Vector2Int(start.x, start.y - 1);
 
-    // ---------- path finding (used by the validator and the test autopilot) ----------
+    // ---------- path finding (used by the map checker) ----------
     public struct Step { public Vector2Int tile; public bool wrapped; }
 
     public List<Step> FindPath(Vector2Int from, Vector2Int to, bool allowBridge = true, bool allowFake = true, bool allowWrap = true)
@@ -342,25 +459,19 @@ public static class MapValidator
             foreach (var s in d.slimes)
                 foreach (var p in s.loop)
                     if (!room.TruthWalkable(p.x, p.y)) { sb.AppendLine("FAIL room " + (i + 1) + ": slime waypoint " + p + " is not walkable"); ok = false; }
-            sb.AppendLine("room " + (i + 1) + " '" + d.title + "': path " + full.Count + " steps, needsBridge=" + needsBridge + " needsFake=" + needsFake + " needsWrap=" + needsWrap + " coins=" + coinsReach);
-        }
-        // expectations per room: which trick each one must require
-        bool[] wantBridge = { true, false, true, false, true };
-        bool[] wantFake = { false, true, false, false, true };
-        bool[] wantWrap = { false, false, false, true, true };
-        for (int i = 0; i < Maps.Defs.Length && i < 5; i++)
-        {
-            var room = new Room(Maps.Defs[i], i);
-            var from = room.SpawnTile;
-            if (room.FindPath(from, room.exit) == null) continue;
-            bool nb = room.FindPath(from, room.exit, false, true, true) == null;
-            bool nf = room.FindPath(from, room.exit, true, false, true) == null;
-            bool nw = room.FindPath(from, room.exit, true, true, false) == null;
-            if (nb != wantBridge[i] || nf != wantFake[i] || nw != wantWrap[i])
+            if (d.lasers != null)
+                foreach (var v in d.lasers)
+                {
+                    foreach (int r in v.rows) if (r < 1 || r > Maps.H - 2) { sb.AppendLine("FAIL room " + (i + 1) + ": laser row " + r + " is outside the room"); ok = false; }
+                    foreach (int x in v.cols) if (x < 1 || x > Maps.W - 2) { sb.AppendLine("FAIL room " + (i + 1) + ": laser column " + x + " is outside the room"); ok = false; }
+                    if (v.t < 0f || v.t >= d.laserPeriod) { sb.AppendLine("FAIL room " + (i + 1) + ": laser time " + v.t + " is outside the loop"); ok = false; }
+                }
+            if (needsBridge != d.needBridge || needsFake != d.needFake || needsWrap != d.needWrap)
             {
-                sb.AppendLine("FAIL room " + (i + 1) + ": trick requirements differ from the design (bridge " + nb + "/" + wantBridge[i] + ", fake " + nf + "/" + wantFake[i] + ", wrap " + nw + "/" + wantWrap[i] + ")");
+                sb.AppendLine("FAIL room " + (i + 1) + ": trick requirements differ from the design (bridge " + needsBridge + "/" + d.needBridge + ", fake " + needsFake + "/" + d.needFake + ", wrap " + needsWrap + "/" + d.needWrap + ")");
                 ok = false;
             }
+            sb.AppendLine("room " + (i + 1) + " '" + d.title + "': path " + full.Count + " steps, needsBridge=" + needsBridge + " needsFake=" + needsFake + " needsWrap=" + needsWrap + " coins=" + coinsReach);
         }
         sb.Insert(0, ok ? "MAPS OK\n" : "MAPS HAVE PROBLEMS\n");
         return sb.ToString();

@@ -25,6 +25,63 @@ public static class PixelArt
         var ta = Resources.Load<TextAsset>("pixelart");
         if (ta != null) Parse(ta.text);
         loadedCount = sprites.Count;
+        Derive();
+    }
+
+    static bool Same(Color32 a, Color32 b) { return a.r == b.r && a.g == b.g && a.b == b.b && a.a == b.a; }
+
+    static PSprite Clone(PSprite s)
+    {
+        var c = new PSprite { w = s.w, h = s.h, px = new Color32[s.px.Length] };
+        System.Array.Copy(s.px, c.px, s.px.Length);
+        return c;
+    }
+
+    static PSprite Recolored(PSprite s, Color32 fromA, Color32 toA, Color32 fromB, Color32 toB)
+    {
+        var c = Clone(s);
+        for (int i = 0; i < c.px.Length; i++)
+        {
+            if (Same(c.px[i], fromA)) c.px[i] = toA;
+            else if (Same(c.px[i], fromB)) c.px[i] = toB;
+        }
+        return c;
+    }
+
+    /// <summary>
+    /// The newer plank types are drawn from the hand-made bridge sprites, so they stay in the same style:
+    /// one-use planks are cracked, flicker planks are tinted per group and have a dotted "ghost" when gone.
+    /// </summary>
+    static void Derive()
+    {
+        if (!sprites.ContainsKey("bridge_v") || !sprites.ContainsKey("bridge_h") || !sprites.ContainsKey("pit")) return;
+        int[] crack = { 4,1, 5,2, 5,3, 6,4, 7,5, 7,6, 8,7, 9,8, 9,9, 10,10, 11,11, 11,12, 12,13, 6,7, 5,8, 4,9, 10,6, 11,5 };
+        foreach (string o in new[] { "v", "h" })
+        {
+            var b = sprites["bridge_" + o];
+            var plank = Clone(b);
+            for (int i = 0; i < crack.Length; i += 2)
+            {
+                int x = crack[i], y = crack[i + 1];
+                if (x < plank.w && y < plank.h) plank.px[y * plank.w + x] = Pal.K;
+            }
+            sprites["plank_" + o] = plank;
+            sprites["flick_a_" + o] = Recolored(b, Pal.Y, Pal.T, Pal.R, Pal.W);
+            sprites["flick_b_" + o] = Recolored(b, Pal.Y, Pal.R, Pal.R, Pal.Y);
+        }
+        foreach (string g in new[] { "a", "b" })
+        {
+            Color32 col = g == "a" ? Pal.T : Pal.R;
+            var ghost = Clone(sprites["pit"]);
+            for (int y = 1; y < ghost.h - 1; y++)
+                for (int x = 1; x < ghost.w - 1; x++)
+                {
+                    bool edge = x == 1 || y == 1 || x == ghost.w - 2 || y == ghost.h - 2;
+                    if (edge && (x + y) % 2 == 0) ghost.px[y * ghost.w + x] = col;
+                }
+            ghost.px[7 * ghost.w + 7] = col; ghost.px[8 * ghost.w + 8] = col;
+            sprites["ghost_" + g] = ghost;
+        }
     }
 
     static void Parse(string text)

@@ -115,8 +115,9 @@ public class Hud : MonoBehaviour
         Raw(ru, TexLib.underline, Pal.Ink);
 
         // checkpoints: one box per room, ticked as you clear them
-        checkRow = Box("Checkpoints", pu, new Vector2(0, 1), new Vector2(0, 1), new Vector2(40, -108), new Vector2(520, 48));
-        var crBack = Rect("Back", checkRow, Vector2.zero, Vector2.one, new Vector2(-10, -4), new Vector2(-150, 4));
+        int roomCount = Maps.Defs.Length;
+        checkRow = Box("Checkpoints", pu, new Vector2(0, 1), new Vector2(0, 1), new Vector2(40, -108), new Vector2(104 + roomCount * 44 + 10, 48));
+        var crBack = Rect("Back", checkRow, Vector2.zero, Vector2.one, new Vector2(-10, -4), new Vector2(4, 4));
         Img(crBack, TexLib.panelSprite, Pal.A(Pal.Paper, 0.92f), true);
         int n = Maps.Defs.Length;
         todoBoxes = new RawImage[n]; todoChecks = new RawImage[n]; todoNums = new Text[n];
@@ -124,7 +125,7 @@ public class Hud : MonoBehaviour
         Txt(lbl, "rooms", 28, Pal.Ink, TextAnchor.MiddleLeft);
         for (int i = 0; i < n; i++)
         {
-            float x = 110f + i * 50f;
+            float x = 112f + i * 44f;
             var bx = Box("Box" + i, checkRow, new Vector2(0, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(x, 0), new Vector2(34, 34));
             todoBoxes[i] = Raw(bx, TexLib.box, Pal.Ink);
             var nm = Rect("Num", bx, Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
@@ -250,7 +251,7 @@ public class Hud : MonoBehaviour
         var h = Box("H", card, new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(0, -34), new Vector2(740, 110));
         Txt(h, "coffee break", 92, Pal.Ink, TextAnchor.MiddleCenter, TexLib.title);
         var b = Box("B", card, new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(0, 40), new Vector2(700, 320));
-        var bt = Txt(b, "<b>Esc</b>   back to work\n<b>R</b>   restart this room\n<b>Tab</b>   resize the old game\n<b>1 - 5</b>   jump to a room\n<b>Q</b>   quit to the title", 40, Pal.Ink, TextAnchor.MiddleCenter);
+        var bt = Txt(b, "<b>Esc</b>   back to work\n<b>R</b>   restart this room\n<b>Tab</b>   resize the old game\n<b>1 - 8</b>   jump to a room\n<b>Q</b>   quit to the title", 40, Pal.Ink, TextAnchor.MiddleCenter);
         bt.lineSpacing = 1.05f;
         card.gameObject.AddComponent<Boil>().degrees = 0.3f;
     }
@@ -389,9 +390,9 @@ public class Hud : MonoBehaviour
     {
         resultsUi.SetActive(true);
         string rank;
-        if (coins >= total && time < 150f) rank = "S";
-        else if (coins >= total - 3 && time < 240f) rank = "A";
-        else if (time < 420f) rank = "B";
+        if (coins >= total && time < 330f) rank = "S";
+        else if (coins >= total - 5 && time < 540f) rank = "A";
+        else if (time < 840f) rank = "B";
         else rank = "C";
         resRank.text = rank;
         Color rc = rank == "S" ? Pal.Hex("d19a00") : (rank == "A" ? (Color)Pal.Red : (Color)Pal.Purple);
@@ -402,7 +403,7 @@ public class Hud : MonoBehaviour
             "fell off        <b>" + falls + "x</b>\n" +
             "slime bites   <b>" + hits + "x</b>\n" +
             "<size=32><color=#6a6280>soundtrack: fully remastered</color></size>";
-        resFoot.text = "<b>Enter</b>  play again        <b>1 - 5</b>  jump to a room\n" +
+        resFoot.text = "<b>Enter</b>  play again\n" +
                        "SHIFT Game Jam 2026   ·   everything made during the jam   ·   see CREDITS";
     }
 

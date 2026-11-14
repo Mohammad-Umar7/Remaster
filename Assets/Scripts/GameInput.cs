@@ -123,7 +123,7 @@ public static class GameInput
         get { var m = Ms; return m != null && m.leftButton.wasPressedThisFrame; }
     }
 
-    /// <summary>Returns 1..5 when a room-jump number key was pressed this frame, else 0.</summary>
+    /// <summary>Returns 1..9 when a room-jump number key was pressed this frame, else 0.</summary>
     public static int NumberPressed
     {
         get
@@ -135,6 +135,10 @@ public static class GameInput
             if (k.digit3Key.wasPressedThisFrame) return 3;
             if (k.digit4Key.wasPressedThisFrame) return 4;
             if (k.digit5Key.wasPressedThisFrame) return 5;
+            if (k.digit6Key.wasPressedThisFrame) return 6;
+            if (k.digit7Key.wasPressedThisFrame) return 7;
+            if (k.digit8Key.wasPressedThisFrame) return 8;
+            if (k.digit9Key.wasPressedThisFrame) return 9;
             return 0;
         }
     }

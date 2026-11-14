@@ -67,6 +67,44 @@ public class Fx : MonoBehaviour
         m.life = m.maxLife = life; m.grow = 1.6f; m.color = color; m.billboard = true;
     }
 
+    class BeamFx { public GameObject go, core; public float life, maxLife; public Vector3 size; }
+    readonly List<BeamFx> beams = new List<BeamFx>();
+    readonly List<BeamFx> spareBeams = new List<BeamFx>();
+
+    GameObject BeamPart(Color c)
+    {
+        var g = new GameObject("beam");
+        g.transform.SetParent(transform, false);
+        g.AddComponent<MeshFilter>().sharedMesh = TexLib.Cube;
+        var mr = g.AddComponent<MeshRenderer>();
+        mr.sharedMaterial = TexLib.Mat(c, 2, 1f);
+        mr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+        mr.receiveShadows = false;
+        return g;
+    }
+
+    /// <summary>A laser beam: a fat red bar with a white core that thins out and vanishes.</summary>
+    public void Beam(Vector3 center, Vector3 size, float life)
+    {
+        BeamFx b;
+        if (spareBeams.Count > 0) { b = spareBeams[spareBeams.Count - 1]; spareBeams.RemoveAt(spareBeams.Count - 1); b.go.SetActive(true); b.core.SetActive(true); }
+        else { b = new BeamFx(); b.go = BeamPart(Pal.Red); b.core = BeamPart(Pal.White); }
+        b.go.transform.position = center; b.core.transform.position = center;
+        b.size = size; b.life = b.maxLife = life;
+        beams.Add(b);
+        ScaleBeam(b, 1f);
+    }
+
+    void ScaleBeam(BeamFx b, float k)
+    {
+        // the long axis stays, the thickness pulses then shrinks
+        float thick = Mathf.Lerp(0.15f, 1.5f, k);
+        Vector3 s = b.size, c = b.size;
+        if (s.x > s.z) { s.y *= thick; s.z *= thick; c.y *= thick * 0.4f; c.z *= thick * 0.4f; c.x += 0.02f; }
+        else { s.y *= thick; s.x *= thick; c.y *= thick * 0.4f; c.x *= thick * 0.4f; c.z += 0.02f; }
+        b.go.transform.localScale = s; b.core.transform.localScale = c * 1.001f;
+    }
+
     public void RevealBridge(List<Renderer> rds)
     {
         if (rds == null) return;
@@ -93,6 +131,13 @@ public class Fx : MonoBehaviour
                 Vector3 toCam = cam.position - m.go.transform.position;
                 if (toCam.sqrMagnitude > 0.001f) m.go.transform.rotation = Quaternion.FromToRotation(Vector3.up, toCam.normalized);
             }
+        }
+        for (int i = beams.Count - 1; i >= 0; i--)
+        {
+            var b = beams[i];
+            b.life -= dt;
+            if (b.life <= 0f) { b.go.SetActive(false); b.core.SetActive(false); beams.RemoveAt(i); spareBeams.Add(b); continue; }
+            ScaleBeam(b, b.life / b.maxLife);
         }
         for (int i = reveals.Count - 1; i >= 0; i--)
         {

@@ -19,9 +19,9 @@ Deadline: **Sunday 15 November 2026, 14:45**, on the jam's itch.io page. Late en
 >
 > Bridges you never modelled are invisible but solid. Fancy walls you added are only decoration. Slimes and coins exist only in the old game. And the 1989 screen-wrap bug still works.
 >
-> Five short rooms, about five minutes. Every room you clear adds a remastered instrument to the chip-tune soundtrack.
+> Eight short rooms, about ten minutes: invisible bridges, fake walls, slimes only the old game can see, the screen-wrap bug, flickering planks, lasers the old game shows three seconds early, planks that snap after one step, and a floor that deletes itself. Clearing rooms adds remastered instruments to the chip-tune soundtrack.
 >
-> **Controls:** WASD move, mouse look, Shift run, Tab resize the old-game window, Esc pause. In the pause menu: R restarts the room, 1 to 5 jump to a room.
+> **Controls:** WASD move, mouse look, Shift run, Tab resize the old-game window, Esc pause. In the pause menu: R restarts the room, 1 to 8 jump to a room.
 
 ## The 3-minute slot
 
@@ -34,8 +34,8 @@ Deadline: **Sunday 15 November 2026, 14:45**, on the jam's itch.io page. Late en
 1. Press a key. Let the 8-second opening play (desk, falling asleep, pulled into the monitor).
 2. Room 1: point at the pixel window ("there is a bridge here"), then walk across thin air. The bridge is sketched in under your feet.
 3. Press **Esc, then 2**: walk straight through the fancy wall.
-4. Press **Esc, then 4**: walk off the left edge and appear behind the gate.
-5. If there is time, **Esc, then 5**: run from the deleting floor.
+4. Press **Esc, then 6**: stand in the safe zone, point at the red lines in the old game, and let the lasers fire three seconds later.
+5. If there is time, **Esc, then 4** (walk off the left edge, appear behind the gate) or **Esc, then 8** (run from the deleting floor).
 
 **Scoring (1 min)** - answer questions. Useful facts:
 - Theme: two worlds on screen at once, and you must trust the one that looks worse.

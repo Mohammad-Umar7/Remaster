@@ -954,6 +954,50 @@ def sfx_tile_delete():
     return finish(lp(vals[idx], 9000.0) * expdecay(n, 0.035, 1.0), out_ms=10.0)
 
 
+def sfx_laser_old():
+    """The OLD game's laser: a tiny chip 'pew'. You hear it three seconds before the real one."""
+    n = int(0.16 * SR)
+    f = glide(1500.0, 420.0, n)
+    return finish(osc_pulse(f, 0.25) * expdecay(n, 0.05, 1.0), out_ms=10.0)
+
+
+def sfx_laser_fire():
+    """The REMAKE's laser, three seconds late: a fat cartoon zap (falling saw, a square on top, a crackle)."""
+    n = int(0.34 * SR)
+    t = np.arange(n) / SR
+    f = glide(1100.0, 110.0, n) * (1.0 + 0.05 * np.sin(2 * np.pi * 37.0 * t))
+    x = osc_saw(f, fc=2600.0) * ramp_out(ramp_in(np.ones(n), 1.5), 120.0)
+    x = x + 0.5 * osc_pulse(glide(2200.0, 300.0, n), 0.5, soft=5000.0) * expdecay(n, 0.07, 1.0)
+    m = int(0.09 * SR)
+    x[:m] += 0.5 * sh_noise(m, 9000.0, rng('laser_fire')) * expdecay(m, 0.03, 1.0)
+    return finish(x, out_ms=25.0)
+
+
+def sfx_flick(note):
+    """A flicker plank group switching on: one soft round note. Two pitches for the two groups,
+    so the rhythm of the room can be heard as well as seen."""
+    n = int(0.11 * SR)
+    return finish(osc_tri(const(hz(note), n), drive=0.6) * expdecay(n, 0.035, 1.5), out_ms=10.0)
+
+
+def sfx_flick_warn():
+    """Tick: the flicker planks are about to swap."""
+    n = int(0.035 * SR)
+    return finish(osc_pulse(const(hz('C7'), n), 0.125) * expdecay(n, 0.009, 0.8), out_ms=4.0)
+
+
+def sfx_plank_break():
+    """A one-use plank snaps behind you: a dry wooden crack and a little falling 'doop'."""
+    n = int(0.22 * SR)
+    crack = bp(white(n, rng('plank_break')), 700.0, 3800.0) * expdecay(n, 0.018, 0.5)
+    m = int(0.16 * SR)
+    doop = osc_tri(glide(520.0, 180.0, m), drive=0.8) * expdecay(m, 0.05, 1.0)
+    out = np.zeros(n)
+    out += crack
+    place(out, doop, 0.03, 0.6)
+    return finish(out, out_ms=15.0)
+
+
 def sfx_ui_move():
     n = int(0.050 * SR)
     return finish(osc_pulse(const(hz('G5'), n), 0.25) * expdecay(n, 0.018, 1.0), out_ms=5.0)
@@ -1182,6 +1226,12 @@ SOUNDS = [
     ('room_tone',       sfx_room_tone,   ('peak', -30.0), 'Seamless 6 s loop of a quiet PC fan (intro / ending).'),
     ('yawn_whoosh',     sfx_yawn_whoosh, 6.0, 'Pulled into the screen: rising whoosh that cuts.'),
     ('alarm',           sfx_alarm,       3.0, 'Alarm clock: four beeps then a pause (ending).'),
+    ('laser_old',       sfx_laser_old,   1.0, "The old game's laser: chip pew, heard 3 s before the real beam."),
+    ('laser_fire',      sfx_laser_fire,  5.0, "The remake's laser beam firing (3 s after the old game showed it)."),
+    ('flick_a',         lambda: sfx_flick('E6'), -1.0, 'Flicker planks: group A appears (higher note).'),
+    ('flick_b',         lambda: sfx_flick('A5'), -1.0, 'Flicker planks: group B appears (lower note).'),
+    ('flick_warn',      sfx_flick_warn,  -4.0, 'Tick before the flicker planks swap.'),
+    ('plank_break',     sfx_plank_break, 2.0, 'A one-use plank snaps after you step off it.'),
 ]
 SFX_PEAK_CEILING_DB = -3.0   # no sound effect peaks above this
 # Very short or very low sounds would need silly peaks to hit a loudness target; cap them.
@@ -1190,6 +1240,7 @@ SFX_PEAK_CAP = {
     'step_paper_1': -7.0, 'step_paper_2': -7.0, 'step_paper_3': -7.0, 'step_paper_4': -7.0,
     'step_chip_1': -8.0, 'step_chip_2': -8.0, 'ui_move': -8.0, 'tile_delete': -7.0,
     'slime_hop': -8.0, 'gate': -6.0,
+    'flick_a': -7.0, 'flick_b': -7.0, 'flick_warn': -9.0, 'laser_old': -6.0,
 }
 
 

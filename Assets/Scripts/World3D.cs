@@ -19,6 +19,8 @@ public class World3D
     // lookups for things that change while playing
     readonly Dictionary<int, List<GameObject>> floorVis = new Dictionary<int, List<GameObject>>();   // floor + skirt visuals per tile
     readonly Dictionary<int, List<Collider>> rowCols = new Dictionary<int, List<Collider>>();         // floor colliders per row
+    readonly Dictionary<int, Collider> tileCols = new Dictionary<int, Collider>();                      // planks that come and go
+    public const float LaserY = 1.0f;
     readonly Dictionary<int, List<Renderer>> bridgeVis = new Dictionary<int, List<Renderer>>();
     readonly Dictionary<int, List<Renderer>> fakeVis = new Dictionary<int, List<Renderer>>();
     MaterialPropertyBlock mpb;
@@ -240,7 +242,7 @@ public class World3D
             int runStart = -1;
             for (int x = 0; x <= Maps.W; x++)
             {
-                bool walk = x < Maps.W && room.TruthWalkable(x, r);
+                bool walk = x < Maps.W && room.TruthWalkable(x, r) && !room.IsDynamic(x, r);
                 if (walk && runStart < 0) runStart = x;
                 if (!walk && runStart >= 0)
                 {
@@ -265,6 +267,50 @@ public class World3D
                     Box(col, "cw_" + runStart + "_" + r, (a + b) * 0.5f + new Vector3(0, WH * 0.5f + 1f, 0), new Vector3(n * TS, WH + 2f, TS), null, true);
                     runStart = -1;
                 }
+            }
+        }
+
+        // planks that come and go (one-use, flicker) each get their own collider so they can switch off
+        for (int r = 0; r < Maps.H; r++)
+            for (int x = 0; x < Maps.W; x++)
+            {
+                if (!room.IsDynamic(x, r)) continue;
+                var go = Box(col, "ct_" + x + "_" + r, room.TileCenter(x, r) + new Vector3(0, -0.5f, 0), new Vector3(TS, 1.0f, TS), null, true);
+                tileCols[Key(ri, x, r)] = go.GetComponent<Collider>();
+            }
+
+        // laser emitters: little nodes on the walls at both ends of every line that can fire
+        if (room.def.lasers != null)
+        {
+            var rowsUsed = new HashSet<int>(); var colsUsed = new HashSet<int>();
+            foreach (var v in room.def.lasers) { foreach (int r in v.rows) rowsUsed.Add(r); foreach (int x in v.cols) colsUsed.Add(x); }
+            Material body = TexLib.Mat(Pal.Ink, 0, 0f), lens = TexLib.Mat(Pal.Red, 2, 0f);
+            foreach (int r in rowsUsed)
+            {
+                float z = room.TileCenter(0, r).z;
+                for (int s = 0; s < 2; s++)
+                {
+                    float x = s == 0 ? room.MinX + TS + 0.12f : room.MaxX - TS - 0.12f;
+                    Box(deco, "emitter", new Vector3(x, y + LaserY, z), new Vector3(0.26f, 0.36f, 0.36f), body);
+                    Box(deco, "lens", new Vector3(x + (s == 0 ? 0.12f : -0.12f), y + LaserY, z), new Vector3(0.08f, 0.2f, 0.2f), lens);
+                }
+            }
+            // column beams run from the far wall down to the safe-zone line; their near ends are plates in the floor
+            float zLine = room.TileCenter(0, Maps.LaserLobbyRow - 1).z - TS * 0.5f;
+            foreach (int x in colsUsed)
+            {
+                float cx = room.TileCenter(x, 0).x;
+                float zFar = room.MaxZ - TS - 0.12f;
+                Box(deco, "emitter", new Vector3(cx, y + LaserY, zFar), new Vector3(0.36f, 0.36f, 0.26f), body);
+                Box(deco, "lens", new Vector3(cx, y + LaserY, zFar - 0.12f), new Vector3(0.2f, 0.2f, 0.08f), lens);
+                Box(deco, "plate", new Vector3(cx, y + 0.03f, zLine), new Vector3(0.6f, 0.06f, 0.34f), body);
+                Box(deco, "lens", new Vector3(cx, y + 0.07f, zLine), new Vector3(0.34f, 0.05f, 0.16f), lens);
+            }
+            if (colsUsed.Count > 0)
+            {
+                Quad(deco, "safeline", TexLib.QuadUp, new Vector3((room.MinX + room.MaxX) * 0.5f, y + 0.025f, zLine), Quaternion.identity,
+                    new Vector3((Maps.W - 2) * TS, 1f, 0.14f), TexLib.DecalMat(TexLib.white, Pal.A(Pal.Teal, 0.85f)));
+                WorldLabel(deco, "safe zone", new Vector3((room.MinX + room.MaxX) * 0.5f + 5.2f, y + 0.035f, zLine - 0.55f), Quaternion.Euler(90f, 0, 0), 3.2f, 0.7f, 110, Pal.Hex("1f8f84"), TextAnchor.MiddleCenter, TexLib.title);
             }
         }
 
@@ -502,6 +548,27 @@ public class World3D
             }
             rd.sharedMaterials = mats;
         }
+    }
+
+    /// <summary>Switch a one-use or flicker plank on or off. Collision only: nothing is drawn for it anyway.</summary>
+    public void SetTileSolid(int room, int x, int r, bool solid)
+    {
+        Collider c;
+        if (tileCols.TryGetValue(Key(room, x, r), out c) && c != null) c.enabled = solid;
+    }
+
+    /// <summary>The remake finally fires a volley: beams across whole rows and columns at chest height.</summary>
+    public void FireLasers(Room room, LaserVolley v, Fx fx)
+    {
+        float y = room.FloorY + LaserY;
+        float midX = (room.MinX + room.MaxX) * 0.5f, midZ = (room.MinZ + room.MaxZ) * 0.5f;
+        float lenX = (Maps.W - 2) * TS;
+        // column beams stop at the safe-zone line
+        float zNear = room.TileCenter(0, Maps.LaserLobbyRow - 1).z - TS * 0.5f, zFar = room.MaxZ - TS;
+        midZ = (zNear + zFar) * 0.5f;
+        float lenZ = zFar - zNear;
+        foreach (int r in v.rows) fx.Beam(new Vector3(midX, y, room.TileCenter(0, r).z), new Vector3(lenX, 0.22f, 0.22f), Maps.LaserHot + 0.12f);
+        foreach (int x in v.cols) fx.Beam(new Vector3(room.TileCenter(x, 0).x, y, midZ), new Vector3(0.22f, 0.22f, lenZ), Maps.LaserHot + 0.12f);
     }
 
     public void SetRowDeleted(int room, int r, bool deleted)

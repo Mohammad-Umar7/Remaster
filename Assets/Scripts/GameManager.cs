@@ -24,21 +24,24 @@ public class Slime
         Reset();
     }
 
-    public void Reset() { d = def.phase * total; hopClock = 0f; hitFlash = 0f; Place(); }
+    public void Reset() { d = def.phase * total; hopClock = 0f; hitFlash = 0f; pos = PosAtDistance(d); }
 
     public void Tick(float dt)
     {
         d = (d + def.speed * dt) % total;
-        Place();
+        pos = PosAtDistance(d);
         hopped = false;
         hopClock += dt;
         if (hopClock >= 0.44f) { hopClock -= 0.44f; hopped = true; }
         if (hitFlash > 0f) hitFlash -= dt;
     }
 
-    void Place()
+    /// <summary>Where this slime will be in <paramref name="seconds"/> (it follows a fixed loop).</summary>
+    public Vector2 PosIn(float seconds) { return PosAtDistance((d + def.speed * Mathf.Max(0f, seconds)) % total); }
+
+    Vector2 PosAtDistance(float dist)
     {
-        float left = d;
+        float left = dist;
         int n = def.loop.Length;
         for (int i = 0; i < n; i++)
         {
@@ -47,11 +50,11 @@ public class Slime
                 Vector2 a = def.loop[i], b = def.loop[(i + 1) % n];
                 float t = seg[i] > 0f ? Mathf.Clamp01(left / seg[i]) : 0f;
                 Vector2 p = Vector2.Lerp(a, b, t);
-                pos = new Vector2(p.x + 0.5f, p.y + 0.5f);
-                return;
+                return new Vector2(p.x + 0.5f, p.y + 0.5f);
             }
             left -= seg[i];
         }
+        return pos;
     }
 }
 
@@ -60,11 +63,17 @@ public class RoomState
     public bool[,] coinTaken = new bool[Maps.W, Maps.H];
     public bool[,] revealed = new bool[Maps.W, Maps.H];
     public bool[,] fakeFound = new bool[Maps.W, Maps.H];
-    public float[] rowCrumble = new float[Maps.H];     // -1 intact, 0..1 crumbling, 2 deleted
+    public bool[,] broken = new bool[Maps.W, Maps.H];           // one-use planks that are gone
+    public float[,] breakIn = new float[Maps.W, Maps.H];        // > 0: this plank snaps in that many seconds
+    public float[] rowCrumble = new float[Maps.H];              // -1 intact, 0..1 crumbling, 2 deleted
     public List<Slime> slimes = new List<Slime>();
     public bool cleared, waveActive;
     public float waveClock;
     public int waveRow;
+    public float clock;                 // seconds spent in this room since the last (re)start: drives flicker and lasers
+    public int flickerPhase = -1;       // which flicker group is solid right now (-1 = not applied yet)
+    public int warnTicks;               // warning ticks already played in this flicker phase
+    public float[] hotUntil;            // per laser volley: room-clock time until which its beams hurt
 }
 
 /// <summary>The rules of REMASTER: the old game is the truth.</summary>
@@ -93,9 +102,9 @@ public class GameManager : MonoBehaviour
     public Fx fx;
     public Camera screenCam;
 
-    public const float WaveInterval = 1.8f, CrumbleTime = 0.75f;
+    public const float WaveInterval = 1.8f, CrumbleTime = 0.75f, PlankBreakDelay = 0.32f;
     int lastTileX = -99, lastTileR = -99;
-    bool firstBridge, firstFake, firstWrap, firstCoin, firstSlime, firstFall, chipFoot;
+    bool firstBridge, firstFake, firstWrap, firstCoin, firstSlime, firstFall, firstBreak, firstFlicker, firstLaser, chipFoot;
     int hitStopId;
     static readonly string[] LayerNames = { "drums", "bass", "strings", "bells" };
 
@@ -145,6 +154,7 @@ public class GameManager : MonoBehaviour
             rs[i] = new RoomState();
             for (int r = 0; r < Maps.H; r++) rs[i].rowCrumble[r] = -1f;
             foreach (var sd in Maps.Defs[i].slimes) rs[i].slimes.Add(new Slime(sd));
+            if (Maps.Defs[i].lasers != null) rs[i].hotUntil = new float[Maps.Defs[i].lasers.Length];
             totalCoins += rooms[i].coins.Count;
         }
 
@@ -169,6 +179,9 @@ public class GameManager : MonoBehaviour
         if (Boot.skipIntro) StartGame(Boot.startRoom);
         else GoTitle();
     }
+
+    /// <summary>How many remastered music layers you have earned after clearing this many rooms.</summary>
+    int LayersFor(int cleared) { return Mathf.Clamp(cleared * 4 / Mathf.Max(1, rooms.Length - 1), 0, 4); }
 
     // ------------------------------------------------------------------ flow
     void GoTitle()
@@ -201,7 +214,7 @@ public class GameManager : MonoBehaviour
         pixel.bootTimer = 1.0f;
         sound.Play("jingle_boot", 0.8f);
         sound.StartMusic();
-        sound.SetLayers(clearedCount);
+        sound.SetLayers(LayersFor(clearedCount));
         sound.SetMusicLevel(1f);
         hud.RefreshTodo();
         hud.ShowRoomTitle(cur);
@@ -231,7 +244,7 @@ public class GameManager : MonoBehaviour
         if (state != State.Playing) { intro.Abort(); StartGame(i); return; }
         clearedCount = i;
         for (int k = 0; k < rooms.Length; k++) rs[k].cleared = k < i;
-        sound.SetLayers(clearedCount);
+        sound.SetLayers(LayersFor(clearedCount));
         hearts = MaxHearts;
         Respawn(i, true);
         hud.RefreshTodo();
@@ -248,7 +261,7 @@ public class GameManager : MonoBehaviour
         if (GameInput.TabPressed && state == State.Playing) { hud.ToggleFloatSize(); sound.Play("ui_move", 0.6f); }
         // room-jump keys are for demos: only from the title or the pause menu, never by accident mid-run
         int num = GameInput.NumberPressed;
-        if (num > 0 && (state == State.Title || (state == State.Playing && paused))) { if (paused) SetPaused(false); JumpToRoom(num - 1); }
+        if (num > 0 && num <= rooms.Length && (state == State.Title || (state == State.Playing && paused))) { if (paused) SetPaused(false); JumpToRoom(num - 1); }
         else num = 0;
 
         switch (state)
@@ -320,7 +333,15 @@ public class GameManager : MonoBehaviour
         if (p.y < room.FloorY - 5f) { Fall(); return; }
 
         bool inRoom = p.z >= room.MinZ && p.z < room.MaxZ;
-        if (!inRoom) { lastTileX = -99; return; }
+        if (!inRoom)
+        {
+            // stepping out of the room off a one-use plank still snaps it
+            if (lastTileX != -99 && room.IsOneUse(lastTileX, lastTileR) && !s.broken[lastTileX, lastTileR] && s.breakIn[lastTileX, lastTileR] <= 0f)
+                s.breakIn[lastTileX, lastTileR] = PlankBreakDelay;
+            lastTileX = -99;
+            TickPlanks(room, s, dt);
+            return;
+        }
 
         if (room.def.wrap)
         {
@@ -328,26 +349,28 @@ public class GameManager : MonoBehaviour
             else if (p.x >= room.MaxX) { DoWrap(room, -1); p = player.transform.position; }
         }
 
+        s.clock += dt;
         room.WorldToTile(p, out tileX, out tileR);
         if (tileX != lastTileX || tileR != lastTileR)
         {
+            int px = lastTileX, pr = lastTileR;
             lastTileX = tileX; lastTileR = tileR;
+            OnLeaveTile(room, s, px, pr);
             OnEnterTile(room, s, tileX, tileR);
         }
 
         // coins: they only exist in the old game, so you find them by walking where it says
-        if (room.In(tileX, tileR))
+        if (room.HasCoin(tileX, tileR) && !s.coinTaken[tileX, tileR] && s.rowCrumble[tileR] < 2f)
         {
-            char ch = room.c[tileX, tileR];
-            if ((ch == 'C' || ch == 'c') && !s.coinTaken[tileX, tileR] && s.rowCrumble[tileR] < 2f)
-            {
-                Vector3 c = room.TileCenter(tileX, tileR);
-                if (new Vector2(p.x - c.x, p.z - c.z).magnitude < Maps.TS * 0.45f) Collect(room, s, tileX, tileR);
-            }
+            Vector3 c = room.TileCenter(tileX, tileR);
+            if (new Vector2(p.x - c.x, p.z - c.z).magnitude < Maps.TS * 0.45f) Collect(room, s, tileX, tileR);
         }
 
         TickSlimes(room, s, p, dt);
         TickWave(room, s, dt);
+        TickFlicker(room, s);
+        TickPlanks(room, s, dt);
+        TickLasers(room, s, dt);
     }
 
     void EnterRoom(int i, bool forward)
@@ -360,14 +383,17 @@ public class GameManager : MonoBehaviour
             if (!rs[prev].cleared)
             {
                 rs[prev].cleared = true;
+                int before = LayersFor(clearedCount);
                 clearedCount++;
+                int after = LayersFor(clearedCount);
                 sound.Play("jingle_room", 0.8f);
-                sound.SetLayers(clearedCount);
-                if (clearedCount >= 1 && clearedCount <= 4)
+                sound.SetLayers(after);
+                if (after > before)
                 {
                     StartCoroutine(After(0.9f, () => sound.Play("jingle_layer", 0.6f)));
-                    hud.Toast("checkpoint!     soundtrack remastered:  + " + LayerNames[clearedCount - 1]);
+                    hud.Toast("checkpoint!     soundtrack remastered:  + " + LayerNames[Mathf.Clamp(after - 1, 0, 3)]);
                 }
+                else hud.Toast("checkpoint!");
                 hud.RefreshTodo();
             }
             hearts = MaxHearts;
@@ -377,10 +403,17 @@ public class GameManager : MonoBehaviour
         else hud.ShowRoomTitle(i);
     }
 
+    void OnLeaveTile(Room room, RoomState s, int x, int r)
+    {
+        if (!room.In(x, r)) return;
+        // a one-use plank snaps a moment after you step off it
+        if (room.IsOneUse(x, r) && !s.broken[x, r] && s.breakIn[x, r] <= 0f) s.breakIn[x, r] = PlankBreakDelay;
+    }
+
     void OnEnterTile(Room room, RoomState s, int x, int r)
     {
         if (!room.In(x, r)) return;
-        if (room.IsBridge(x, r) && !s.revealed[x, r])
+        if (room.IsBridge(x, r) && !s.revealed[x, r] && IsSolidNow(cur, x, r))
         {
             s.revealed[x, r] = true;
             fx.RevealBridge(world.BridgeRenderers(cur, x, r));
@@ -411,6 +444,7 @@ public class GameManager : MonoBehaviour
         if (!firstCoin) { firstCoin = true; hud.Popup("A coin! They only exist in the old game.", 2.8f); }
     }
 
+    // ------------------------------------------------------------------ hazards
     void TickSlimes(Room room, RoomState s, Vector3 p, float dt)
     {
         if (s.slimes.Count == 0) return;
@@ -425,23 +459,141 @@ public class GameManager : MonoBehaviour
                 sound.PlayAt("slime_hop", wp + Vector3.up * 0.3f, 0.75f, 0.08f);
                 fx.Puff(wp + Vector3.up * 0.1f, Pal.A(Pal.Pencil, 0.75f), 0.5f, 0.4f);
             }
-            if (invuln <= 0f && Vector2.Distance(pf, sl.pos) < 0.62f) Hurt(sl);
+            if (invuln <= 0f && Vector2.Distance(pf, sl.pos) < 0.62f)
+            {
+                sl.hitFlash = 0.35f;
+                Hurt("Ouch! Something un-modelled bit you. Watch the old game.", ref firstSlime);
+            }
         }
     }
 
-    void Hurt(Slime sl)
+    /// <summary>Sprite flicker: plank groups A and B take turns existing. You can hear each switch.</summary>
+    void TickFlicker(Room room, RoomState s)
+    {
+        bool any = false;
+        for (int r = 0; r < Maps.H && !any; r++)
+            for (int x = 0; x < Maps.W; x++)
+                if (room.IsFlicker(x, r)) { any = true; break; }
+        if (!any) return;
+
+        float period = room.def.flickerPeriod;
+        int phase = Mathf.FloorToInt(s.clock / period) % 2;
+        float left = period - (s.clock % period);
+        if (phase != s.flickerPhase)
+        {
+            bool first = s.flickerPhase < 0;
+            s.flickerPhase = phase;
+            s.warnTicks = 0;
+            ApplyFlicker(room, s);
+            if (!first)
+            {
+                sound.Play(phase == 0 ? "flick_a" : "flick_b", 0.7f);
+                if (!firstFlicker) { firstFlicker = true; hud.Popup("They blink! Cross while a plank is solid. Listen for the beat.", 3.6f); }
+            }
+        }
+        // two quick ticks before the planks swap: an audible countdown
+        int want = left < 0.28f ? 2 : (left < 0.62f ? 1 : 0);
+        if (want > s.warnTicks) { s.warnTicks = want; sound.Play("flick_warn", 0.55f, 0f, want == 2 ? 1.18f : 1f); }
+    }
+
+    void ApplyFlicker(Room room, RoomState s)
+    {
+        for (int r = 0; r < Maps.H; r++)
+            for (int x = 0; x < Maps.W; x++)
+            {
+                if (!room.IsFlicker(x, r)) continue;
+                bool solid = room.FlickerSolidAt(room.c[x, r], s.clock);
+                world.SetTileSolid(room.index, x, r, solid);
+                var rds = world.BridgeRenderers(room.index, x, r);
+                if (rds != null) foreach (var rd in rds) world.SetReveal(rd, (solid && s.revealed[x, r]) ? 1f : 0f);
+            }
+    }
+
+    /// <summary>One-use planks: they snap a moment after you leave them.</summary>
+    void TickPlanks(Room room, RoomState s, float dt)
+    {
+        for (int r = 0; r < Maps.H; r++)
+            for (int x = 0; x < Maps.W; x++)
+            {
+                if (s.breakIn[x, r] <= 0f) continue;
+                s.breakIn[x, r] -= dt;
+                if (s.breakIn[x, r] > 0f) continue;
+                s.breakIn[x, r] = 0f;
+                s.broken[x, r] = true;
+                world.SetTileSolid(room.index, x, r, false);
+                var rds = world.BridgeRenderers(room.index, x, r);
+                if (rds != null) foreach (var rd in rds) world.SetReveal(rd, 0f);
+                Vector3 c = room.TileCenter(x, r);
+                sound.PlayAt("plank_break", c, 0.9f, 0.06f);
+                fx.Puff(c + Vector3.up * 0.1f, Pal.A(Pal.Magenta, 0.9f), 0.9f, 0.5f);
+                pixel.AddFx("poof", 3, 0.3f, new Vector2(x + 0.5f, r + 0.5f), room.index);
+                if (!firstBreak) { firstBreak = true; hud.Popup("It snapped behind you. Old planks hold ONE step: plan the route.", 3.8f); }
+            }
+    }
+
+    /// <summary>Lasers: the old game is three seconds ahead. It shows the line first; the remake fires it late.</summary>
+    void TickLasers(Room room, RoomState s, float dt)
+    {
+        var vols = room.def.lasers;
+        if (vols == null) return;
+        float P = room.def.laserPeriod;
+        float now = s.clock, before = s.clock - dt;
+        for (int i = 0; i < vols.Length; i++)
+        {
+            var v = vols[i];
+            // the old game fires it now (a small "pew" in the window)...
+            if (Crossed(before + Maps.LaserLead, now + Maps.LaserLead, v.t, P))
+            {
+                sound.Play("laser_old", 0.6f, 0.03f);
+                if (!firstLaser) { firstLaser = true; hud.Popup("Red line in the old game = a laser there in 3 seconds.", 4.2f); }
+            }
+            // ...and the remake fires it three seconds later
+            if (Crossed(before, now, v.t, P))
+            {
+                s.hotUntil[i] = now + Maps.LaserHot;
+                sound.Play("laser_fire", 0.85f, 0.04f);
+                world.FireLasers(room, v, fx);
+                player.AddTrauma(0.12f);
+            }
+            if (now < s.hotUntil[i] && invuln <= 0f && v.Hits(tileX, tileR))
+            {
+                bool dummy = true;
+                SketchCamera.Flash(0.5f, Pal.Red);
+                Hurt(null, ref dummy);
+            }
+        }
+    }
+
+    /// <summary>Did a looping clock pass time <paramref name="t"/> between <paramref name="a"/> and <paramref name="b"/>?</summary>
+    static bool Crossed(float a, float b, float t, float period)
+    {
+        if (b <= a) return false;
+        float k = Mathf.Floor((a - t) / period) + 1f;      // first loop index whose fire time is after a
+        float fire = t + k * period;
+        return fire > a && fire <= b;
+    }
+
+    /// <summary>Seconds until this volley next fires in the 3D remake.</summary>
+    public float LaserCountdown(Room room, RoomState s, LaserVolley v)
+    {
+        float P = room.def.laserPeriod;
+        float d = (v.t - s.clock) % P;
+        if (d < 0f) d += P;
+        return d;
+    }
+
+    void Hurt(string firstTimeText, ref bool firstFlag)
     {
         hearts--;
         hits++;
         invuln = 1.7f;
-        sl.hitFlash = 0.35f;
         sound.Play("hurt", 0.85f);
         player.AddTrauma(0.5f);
         SketchCamera.Flash(0.42f, Pal.Red);
         pixel.Shake(10);
         hud.HurtFlash();
         StartCoroutine(HitStop(0.06f));
-        if (!firstSlime) { firstSlime = true; hud.Popup("Ouch! Something un-modelled bit you. Watch the old game.", 3.4f); }
+        if (firstTimeText != null && !firstFlag) { firstFlag = true; hud.Popup(firstTimeText, 3.4f); }
         if (hearts <= 0)
         {
             sound.Play("jingle_gameover", 0.8f);
@@ -481,12 +633,35 @@ public class GameManager : MonoBehaviour
     void ResetRoomDynamic(int i)
     {
         var s = rs[i];
+        Room room = rooms[i];
         foreach (var sl in s.slimes) sl.Reset();
-        if (rooms[i].def.deleteWave)
+        s.clock = 0f;
+        s.flickerPhase = -1;
+        s.warnTicks = 0;
+        if (s.hotUntil != null) for (int k = 0; k < s.hotUntil.Length; k++) s.hotUntil[k] = -1f;
+
+        bool hideReveals = room.def.deleteWave;
+        // one-use planks come back
+        for (int r = 0; r < Maps.H; r++)
+            for (int x = 0; x < Maps.W; x++)
+            {
+                s.breakIn[x, r] = 0f;
+                if (room.IsOneUse(x, r))
+                {
+                    s.broken[x, r] = false;
+                    world.SetTileSolid(i, x, r, true);
+                    hideReveals = true;
+                }
+            }
+        if (room.def.deleteWave)
         {
             s.waveActive = false; s.waveClock = 0f; s.waveRow = Maps.H - 1;
             for (int r = 0; r < Maps.H; r++) s.rowCrumble[r] = -1f;
             world.RestoreRoom(i);
+            sound.SetHurry(false);
+        }
+        if (hideReveals)
+        {
             fx.ClearReveals();
             for (int r = 0; r < Maps.H; r++)
                 for (int x = 0; x < Maps.W; x++)
@@ -496,8 +671,9 @@ public class GameManager : MonoBehaviour
                         var l = world.BridgeRenderers(i, x, r);
                         if (l != null) foreach (var rd in l) world.SetReveal(rd, 0f);
                     }
-            sound.SetHurry(false);
         }
+        // put flicker planks into their starting state right away
+        TickFlicker(room, s);
     }
 
     void DoWrap(Room room, int dir)
@@ -552,6 +728,78 @@ public class GameManager : MonoBehaviour
             pixel.Shake(3);
             s.waveRow--;
         }
+    }
+
+    // ------------------------------------------------------------------ truth queries (also used by the auto-walker)
+    /// <summary>Can you stand on this tile right now, according to the old game?</summary>
+    public bool IsSolidNow(int ri, int x, int r)
+    {
+        Room room = rooms[ri];
+        RoomState s = rs[ri];
+        if (!room.TruthWalkable(x, r)) return false;
+        if (s.rowCrumble[r] >= 2f) return false;
+        if (s.broken[x, r]) return false;
+        if (room.IsFlicker(x, r) && !room.FlickerSolidAt(room.c[x, r], s.clock)) return false;
+        return true;
+    }
+
+    /// <summary>Seconds until row <paramref name="r"/> of the deleting floor is gone (infinite if it never goes).</summary>
+    float RowGoneIn(RoomState s, int r)
+    {
+        if (!s.waveActive) return float.PositiveInfinity;
+        if (s.rowCrumble[r] >= 2f) return 0f;
+        if (s.rowCrumble[r] >= 0f) return (1f - s.rowCrumble[r]) * CrumbleTime;
+        if (r < 1 || r > s.waveRow) return float.PositiveInfinity;
+        return (WaveInterval - s.waveClock) + (s.waveRow - r) * WaveInterval + CrumbleTime;
+    }
+
+    /// <summary>
+    /// Will this tile be safe to stand on for the whole window from <paramref name="t0"/> to <paramref name="t1"/>
+    /// seconds from now? Every hazard here follows a fixed pattern, so the answer is exact.
+    /// </summary>
+    public bool SafeBetween(int ri, int x, int r, float t0, float t1)
+    {
+        Room room = rooms[ri];
+        RoomState s = rs[ri];
+        if (!room.In(x, r) || !room.TruthWalkable(x, r)) return false;
+        if (s.broken[x, r]) return false;
+        if (s.breakIn[x, r] > 0f && s.breakIn[x, r] < t1 + 0.1f) return false;
+        if (RowGoneIn(s, r) < t1 + 0.35f) return false;
+        if (room.IsFlicker(x, r))
+        {
+            char ch = room.c[x, r];
+            float period = room.def.flickerPeriod;
+            float a = s.clock + Mathf.Max(0f, t0), b = s.clock + t1 + 0.2f;
+            if (!room.FlickerSolidAt(ch, a) || !room.FlickerSolidAt(ch, b)) return false;
+            if (Mathf.FloorToInt(a / period) != Mathf.FloorToInt(b / period)) return false;
+        }
+        var vols = room.def.lasers;
+        if (vols != null)
+        {
+            float P = room.def.laserPeriod;
+            for (int i = 0; i < vols.Length; i++)
+            {
+                if (!vols[i].Hits(x, r)) continue;
+                // unsafe if a fire time (plus the time the beam stays hot) overlaps the window
+                float lo = s.clock + t0 - Maps.LaserHot - 0.15f, hi = s.clock + t1 + 0.15f;
+                float k = Mathf.Ceil((lo - vols[i].t) / P);
+                float fire = vols[i].t + k * P;
+                if (fire <= hi) return false;
+                if (s.clock < s.hotUntil[i] && t0 < Maps.LaserHot) return false;
+            }
+        }
+        if (s.slimes.Count > 0)
+        {
+            Vector2 c = new Vector2(x + 0.5f, r + 0.5f);
+            for (int k = 0; k <= 4; k++)
+            {
+                float t = Mathf.Lerp(Mathf.Max(0f, t0), t1, k / 4f);
+                // a slime bites within 0.62 of a tile; leave a little room for not standing dead centre
+                foreach (var sl in s.slimes)
+                    if (Vector2.Distance(sl.PosIn(t), c) < 0.86f) return false;
+            }
+        }
+        return true;
     }
 
     void OnStep(bool sprint)

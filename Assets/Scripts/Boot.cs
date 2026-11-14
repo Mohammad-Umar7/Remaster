@@ -26,7 +26,7 @@ public static class Boot
         {
             if (args[i] == "-skipintro") skipIntro = true;
             if (args[i] == "-autopilot") { autopilot = true; skipIntro = true; }
-            if (args[i] == "-room" && i + 1 < args.Length) { int r; if (int.TryParse(args[i + 1], out r)) startRoom = Mathf.Clamp(r - 1, 0, 4); skipIntro = true; }
+            if (args[i] == "-room" && i + 1 < args.Length) { int r; if (int.TryParse(args[i + 1], out r)) startRoom = Mathf.Clamp(r - 1, 0, Maps.Defs.Length - 1); skipIntro = true; }
             if (args[i] == "-shots" && i + 1 < args.Length) shotDir = args[i + 1];
         }
     }
