@@ -42,8 +42,8 @@ public static class Props
                     dst[i] = MatForSlot(slot, dissolve, grey);
                 }
                 r.sharedMaterials = dst;
-                r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
-                r.receiveShadows = false;
+                r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.On;
+                r.receiveShadows = true;
             }
         }
         else

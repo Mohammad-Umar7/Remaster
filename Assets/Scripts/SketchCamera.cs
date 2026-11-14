@@ -9,6 +9,7 @@ public class SketchCamera : MonoBehaviour
     public static float desat;              // sleepy wash for the intro
     public static float boilFps = 8f;
     public float thickness = 1.15f, wobble = 2.4f, depthSens = 0.022f, normalSens = 0.55f, paperAmt = 1f;
+    public float haloRadius = 15f, haloAmount = 0.95f;
 
     Material mat;
     Camera cam;
@@ -36,6 +37,8 @@ public class SketchCamera : MonoBehaviour
         mat.SetFloat("_DepthSens", depthSens);
         mat.SetFloat("_NormalSens", normalSens);
         mat.SetFloat("_PaperAmt", paperAmt);
+        mat.SetFloat("_HaloRadius", haloRadius * k);
+        mat.SetFloat("_HaloAmt", haloAmount);
         mat.SetFloat("_Flash", Mathf.Clamp01(flash));
         mat.SetColor("_FlashColor", flashColor);
         mat.SetFloat("_Desat", Mathf.Clamp01(desat));

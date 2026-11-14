@@ -19,7 +19,7 @@ Shader "Hidden/Remaster/SketchPost"
             sampler2D _CameraDepthNormalsTexture;
             sampler2D _RM_Noise, _RM_PaperTex;
             float4 _RM_Ink, _RM_Pencil, _RM_Paper;
-            float _Thick, _Wobble, _BoilFps, _DepthSens, _NormalSens, _PaperAmt, _Flash, _Desat;
+            float _Thick, _Wobble, _BoilFps, _DepthSens, _NormalSens, _PaperAmt, _Flash, _Desat, _HaloRadius, _HaloAmt;
             float4 _FlashColor;
 
             void sampleDN(float2 uv, out float depth, out float3 n)
@@ -89,6 +89,25 @@ Shader "Hidden/Remaster/SketchPost"
                 float isInk = 1.0 - smoothstep(0.25, 0.45, flag);
                 col.rgb = lerp(col.rgb, _RM_Ink.rgb, inkAmt * isInk);
                 col.rgb = lerp(col.rgb, _RM_Pencil.rgb, pencilAmt * isPencil);
+
+                // depth shading: whatever sits behind something closer gets a soft pencil shadow around
+                // that thing, which separates the layers of the scene and makes it read as deep
+                {
+                    float dC; float3 nC; sampleDN(uv, dC, nC);
+                    float2 r = _MainTex_TexelSize.xy * _HaloRadius;
+                    float occ = 0.0;
+                    const float2 dirs[8] = { float2(1,0), float2(-1,0), float2(0,1), float2(0,-1), float2(0.7,0.7), float2(-0.7,0.7), float2(0.7,-0.7), float2(-0.7,-0.7) };
+                    for (int k = 0; k < 8; k++)
+                    {
+                        float d; float3 nn;
+                        sampleDN(uv + dirs[k] * r * (0.6 + 0.4 * tooth), d, nn);
+                        occ += saturate((dC - d) / (dC * 0.22 + 0.0005));
+                    }
+                    occ = occ / 8.0;
+                    occ *= (dC > 0.985) ? 0.45 : 1.0;      // lighter on the open sky
+                    float shadeTex = lerp(0.75, 1.0, tex2D(_RM_Noise, suv * 7.0).r);
+                    col.rgb *= lerp(float3(1, 1, 1), float3(0.62, 0.60, 0.74), saturate(occ * _HaloAmt) * shadeTex);
+                }
 
                 // paper grain + soft pencil vignette
                 float3 paper = tex2D(_RM_PaperTex, suv * 1.35).rgb;

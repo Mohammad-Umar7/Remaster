@@ -121,6 +121,22 @@ public class GameManager : MonoBehaviour
         screenCam.depth = -50;
         screenCam.allowHDR = false; screenCam.allowMSAA = false;
 
+        // the sun: one directional light whose shadows the sketch shader draws as hatching
+        var sun = new GameObject("Sun").AddComponent<Light>();
+        sun.type = LightType.Directional;
+        Vector3 toSun = new Vector3(-0.60f, 0.62f, -0.15f).normalized;
+        sun.transform.rotation = Quaternion.LookRotation(-toSun);
+        sun.shadows = LightShadows.Soft;
+        sun.shadowStrength = 1f;
+        sun.shadowBias = 0.06f; sun.shadowNormalBias = 0.5f;
+        sun.intensity = 1f; sun.color = Color.white;
+        QualitySettings.shadows = ShadowQuality.All;
+        QualitySettings.shadowDistance = 62f;
+        QualitySettings.shadowCascades = 2;
+        QualitySettings.shadowResolution = ShadowResolution.VeryHigh;
+        QualitySettings.shadowProjection = ShadowProjection.StableFit;
+        Shader.SetGlobalVector("_RM_LightDir", new Vector4(toSun.x, toSun.y, toSun.z, 0));
+
         rooms = new Room[Maps.Defs.Length];
         rs = new RoomState[rooms.Length];
         for (int i = 0; i < rooms.Length; i++)
@@ -229,6 +245,7 @@ public class GameManager : MonoBehaviour
         SketchCamera.flash = Mathf.MoveTowards(SketchCamera.flash, 0f, udt * 2.6f);
 
         if (GameInput.F11Pressed) Screen.fullScreen = !Screen.fullScreen;
+        if (GameInput.TabPressed && state == State.Playing) { hud.ToggleFloatSize(); sound.Play("ui_move", 0.6f); }
         int num = GameInput.NumberPressed;
         if (num > 0) JumpToRoom(num - 1);
 
@@ -348,7 +365,7 @@ public class GameManager : MonoBehaviour
                 if (clearedCount >= 1 && clearedCount <= 4)
                 {
                     StartCoroutine(After(0.9f, () => sound.Play("jingle_layer", 0.6f)));
-                    hud.Toast("soundtrack remastered:  + " + LayerNames[clearedCount - 1]);
+                    hud.Toast("checkpoint!     soundtrack remastered:  + " + LayerNames[clearedCount - 1]);
                 }
                 hud.RefreshTodo();
             }
@@ -555,6 +572,7 @@ public class GameManager : MonoBehaviour
         {
             sound.Play("step_paper_" + Random.Range(1, 5), sprint ? 0.5f : 0.38f, 0.07f);
         }
+        hud.StepKick(sprint ? 5f : 3f);
     }
 
     IEnumerator After(float seconds, System.Action act)

@@ -139,6 +139,7 @@ public static class GameInput
         }
     }
 
+    public static bool TabPressed { get { var k = Kb; var g = Gp; return (k != null && k.tabKey.wasPressedThisFrame) || (g != null && g.buttonNorth.wasPressedThisFrame); } }
     public static bool F1Pressed { get { var k = Kb; return k != null && k.f1Key.wasPressedThisFrame; } }
     public static bool F11Pressed { get { var k = Kb; return k != null && k.f11Key.wasPressedThisFrame; } }
 }

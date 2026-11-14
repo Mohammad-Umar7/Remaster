@@ -106,7 +106,7 @@ public class IntroDirector : MonoBehaviour
         go.transform.position = pos; go.transform.localScale = scale;
         go.AddComponent<MeshFilter>().sharedMesh = TexLib.Cube;
         var mr = go.AddComponent<MeshRenderer>(); mr.sharedMaterial = mat;
-        mr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+        mr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.On;
         return go;
     }
 

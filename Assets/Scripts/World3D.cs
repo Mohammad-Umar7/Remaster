@@ -69,6 +69,27 @@ public class World3D
         return Hash(room.index * 7 + 3, x / 2, r / 2) * 0.55f + Hash(room.index, x, r) * 0.25f < threshold;
     }
 
+    readonly Dictionary<string, Material> wallMats = new Dictionary<string, Material>();
+    /// <summary>Wall material: like the shared sketch material but darker toward its base.</summary>
+    Material WallMat(Color color, Texture tex, bool dissolve, bool grey = false)
+    {
+        string key = ColorUtility.ToHtmlStringRGB(color) + (tex ? tex.GetInstanceID() : 0) + dissolve + grey;
+        Material m;
+        if (wallMats.TryGetValue(key, out m) && m != null) return m;
+        m = new Material(TexLib.SketchShader);
+        m.color = color;
+        m.SetFloat("_Mode", grey ? 1 : 0);
+        m.SetFloat("_Flag", grey ? 0.5f : 0f);
+        m.SetFloat("_Dissolve", dissolve ? 1 : 0);
+        m.SetFloat("_Ghost", 0);
+        m.SetFloat("_Reveal", 1f);
+        m.SetFloat("_HatchScale", 0.35f);
+        m.SetFloat("_AO", 1f);
+        if (tex != null) m.mainTexture = tex;
+        wallMats[key] = m;
+        return m;
+    }
+
     GameObject Box(Transform parent, string name, Vector3 center, Vector3 size, Material mat, bool collider = false)
     {
         var go = new GameObject(name);
@@ -80,8 +101,8 @@ public class World3D
             go.AddComponent<MeshFilter>().sharedMesh = TexLib.Cube;
             var mr = go.AddComponent<MeshRenderer>();
             mr.sharedMaterial = mat;
-            mr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
-            mr.receiveShadows = false;
+            mr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.On;
+            mr.receiveShadows = true;
         }
         if (collider) go.AddComponent<BoxCollider>();
         return go;
@@ -96,7 +117,7 @@ public class World3D
         var mr = go.AddComponent<MeshRenderer>();
         mr.sharedMaterial = mat;
         mr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
-        mr.receiveShadows = false;
+        mr.receiveShadows = true;
         return go;
     }
 
@@ -135,12 +156,32 @@ public class World3D
                     bool fake = Room.IsFakeCh(ch);
                     bool fancy = Room.IsFancyCh(ch);
                     Material m;
-                    if (fancy) m = TexLib.Mat(Pal.Stone, 0, 0f, TexLib.bricksFancy, fake);
-                    else if (fin || fake) m = TexLib.Mat(Hash(ri, x * 3, r * 5) > 0.5f ? Pal.Stone : Pal.StoneDark, 0, 0f, TexLib.bricks, fake);
-                    else m = TexLib.Mat(Color.white, 1, 0.5f);
-                    Box(vis, (fake ? "k" : "w") + id, c + new Vector3(0, WH * 0.5f, 0), new Vector3(TS, WH, TS), m);
-                    if (fancy) AddBanners(room, vis, x, r, c, fake, id);
-                    else if (fin && !fake) MaybeTorch(room, deco, x, r, c);
+                    if (fancy) m = WallMat(Pal.Stone, TexLib.bricksFancy, fake);
+                    else if (fin || fake) m = WallMat(Hash(ri, x * 3, r * 5) > 0.5f ? Pal.Stone : Pal.StoneDark, TexLib.bricks, fake);
+                    else m = WallMat(Color.white, null, false, true);
+                    bool sideEdge = (x == 0 || x == Maps.W - 1) && r > 0 && r < Maps.H - 1 && !fake && !fancy;
+                    if (sideEdge)
+                    {
+                        // the outer side walls are open colonnades: a low parapet, columns, and a beam on top,
+                        // so you can see out across the blank page to everything the dev never finished
+                        Box(vis, "w" + id, c + new Vector3(0, 0.55f, 0), new Vector3(TS, 1.1f, TS), m);
+                        Material beam = fin ? WallMat(Pal.StoneDark, TexLib.bricks, false) : WallMat(Color.white, null, false, true);
+                        Box(vis, "w" + id + "_beam", c + new Vector3(0, WH - 0.2f, 0), new Vector3(0.8f, 0.4f, TS), beam);
+                        if (r % 2 == 1)
+                        {
+                            var col2 = Props.Spawn("pillar", deco, c + new Vector3(0, 1.1f, 0), Hash(ri, x, r) * 90f, 1f, false, !fin);
+                            col2.transform.localScale = new Vector3(1f, 0.6f, 1f);
+                        }
+                    }
+                    else
+                    {
+                        Box(vis, (fake ? "k" : "w") + id, c + new Vector3(0, WH * 0.5f, 0), new Vector3(TS, WH, TS), m);
+                        // battlements along the top give the walls a real silhouette against the sky
+                        if ((x + r) % 2 == 0)
+                            Box(vis, (fake ? "k" : "w") + id + "_m", c + new Vector3(0, WH + 0.3f, 0), new Vector3(TS * 0.55f, 0.6f, TS * 0.55f), m);
+                        if (fancy) AddBanners(room, vis, x, r, c, fake, id);
+                        else if (fin && !fake) MaybeTorch(room, deco, x, r, c);
+                    }
                 }
                 if (ch == 'G')
                 {
@@ -225,6 +266,13 @@ public class World3D
                     runStart = -1;
                 }
             }
+        }
+
+        // checkpoint: drawn on the floor where you (re)start this room
+        {
+            Vector3 sp = room.TileCenter(room.SpawnTile);
+            Quad(deco, "checkpoint", TexLib.QuadUp, sp + new Vector3(0, 0.03f, 0), Quaternion.identity, new Vector3(1.7f, 1f, 1.7f), TexLib.DecalMat(TexLib.ring, Pal.A(Pal.Teal, 0.9f)));
+            WorldLabel(deco, "checkpoint " + (ri + 1), sp + new Vector3(0, 0.04f, -0.05f), Quaternion.Euler(90f, 0, 0), 1.5f, 0.5f, 46, Pal.Hex("1f8f84"), TextAnchor.MiddleCenter, TexLib.title);
         }
 
         RegisterVis(vis, ri);
@@ -369,6 +417,13 @@ public class World3D
             Quad(parent, "cskirt", TexLib.FadeQuad, start + new Vector3(s * TS * 1.5f, 0, L * 0.5f), Quaternion.LookRotation(new Vector3(-s, 0, 0)), new Vector3(L, 2.8f, 1f), wallMat);
         }
 
+        // beams overhead: walking under them gives the corridor depth
+        for (int b = 1; b <= 2; b++)
+        {
+            float t = b / 3f;
+            Box(parent, "cbeam", start + new Vector3(0, rise * t + 2.75f, L * t), new Vector3(TS * 1.15f, 0.3f, 0.36f), wallMat);
+        }
+
         if (final)
         {
             // the way out of the dream: a giant monitor showing BUILD & RUN
@@ -394,7 +449,7 @@ public class World3D
         for (int i = 0; i < 34; i++)
         {
             float a = (float)rng.NextDouble() * Mathf.PI * 2f;
-            float dist = 62f + (float)rng.NextDouble() * 70f;
+            float dist = 46f + (float)rng.NextDouble() * 70f;
             float w = 8f + (float)rng.NextDouble() * 18f, d = 8f + (float)rng.NextDouble() * 18f, h = 16f + (float)rng.NextDouble() * 60f;
             Vector3 p = mid + new Vector3(Mathf.Cos(a) * dist * 1.25f, -22f + h * 0.5f + (float)rng.NextDouble() * 10f, Mathf.Sin(a) * dist * 1.6f);
             var b = Box(parent, "tower", p, new Vector3(w, h, d), grey);

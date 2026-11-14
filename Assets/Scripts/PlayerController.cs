@@ -17,7 +17,7 @@ public class PlayerController : MonoBehaviour
 
     public const float WalkSpeed = 4.6f, SprintSpeed = 7.4f, EyeHeight = 1.62f;
     const float Accel = 46f, Decel = 40f, Gravity = 26f;
-    const float BaseFov = 68f, SprintFov = 76f;
+    const float BaseFov = 72f, SprintFov = 80f;
 
     CharacterController cc;
     float stepAccum, bobPhase, bobAmt, roll, fov = BaseFov, landDip;

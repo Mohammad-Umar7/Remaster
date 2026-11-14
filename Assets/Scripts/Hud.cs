@@ -1,36 +1,36 @@
-using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 
 /// <summary>
-/// The screen is the dev's desktop: the unfinished 3D build in a big window on the left,
-/// the 1989 original in a small window on the right, and his TODO list under it.
-/// Everything is hand-drawn (see TexLib / Doodle).
+/// The whole screen is the unfinished 3D game. The 1989 original floats over it in its own little
+/// window (it sways when you turn and bobs when you walk), and the dev's TODO checklist and
+/// sticky-note instructions are pinned inside the 3D view. Everything is hand-drawn (TexLib / Doodle).
 /// </summary>
 public class Hud : MonoBehaviour
 {
     GameManager gm;
     Canvas canvas;
     RectTransform root;
-    public RenderTexture fullRT, viewRT;
-    public bool fullscreen = true;
+    public RenderTexture fullRT;
+    RenderTexture pixelRT;
+    public bool fullscreen = true;      // true = cinematic (title, intro, ending): no floating window, no play HUD
 
-    // layout pieces
-    RawImage fullView, windowView, pixelView;
-    GameObject leftWindow, rightColumn, playUi, titleUi, pauseUi, resultsUi;
-    RectTransform windowViewRect, rightRect, todoRect;
-    Text timerText, roomText, hintText, popupText, toastText, captionText, coinText3d;
+    RawImage fullView, pixelView;
+    GameObject playUi, titleUi, pauseUi, resultsUi, pixelFloat;
+    RectTransform floatRect, noteRect, checkRow;
+    Text timerText, roomText, hintText, popupText, toastText, captionText, noteHead, noteBody;
     Image popupBack, captionBack;
-    RawImage crosshair, hurtBurst, roomUnderline;
+    RawImage crosshair, hurtBurst;
     Image lidTop, lidBottom, fade;
-    Text[] todoLines; RawImage[] todoBoxes, todoChecks;
-    Text todoNote, todoTitle;
+    RawImage[] todoBoxes, todoChecks; Text[] todoNums;
     Text pressText;
-    float popupTimer, toastTimer, hintTimer, hurtTimer, coinPulse, roomTitleTimer, rightPop = 1f, captionAlpha, captionTarget;
+    float popupTimer, toastTimer, hintTimer, hurtTimer, coinPulse, captionAlpha, captionTarget;
     float fadeTarget, fadeSpeed = 3f;
-    int lastW, lastH;
+    float floatIn = 1f, floatScale = 1f, floatScaleTarget = 1f, lastYaw, yawVel, swayX, swayTilt, stepKick, checkPulse;
+    bool floatBig = true;
+    int lastW, lastH, pulseIndex = -1;
 
-    const float RightW = 648f, Margin = 24f, PixelW = 624f, PixelH = 576f, PixelWinH = 636f;
+    const float PixelW = 624f, PixelH = 576f, TitleH = 42f, Pad = 12f;
 
     // ------------------------------------------------------------------ helpers
     RectTransform Rect(string name, Transform parent, Vector2 aMin, Vector2 aMax, Vector2 offMin, Vector2 offMax)
@@ -97,99 +97,94 @@ public class Hud : MonoBehaviour
         scaler.matchWidthOrHeight = 1f;
         root = GetComponent<RectTransform>();
 
-        // desk paper behind everything
-        var bg = Rect("Paper", root, Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
-        var bgRaw = Raw(bg, TexLib.paper, Pal.PaperDark);
-        bgRaw.uvRect = new Rect(0, 0, 3.75f, 2.1f);
-
-        // ---------- full-screen view (title, intro, ending) ----------
-        var fv = Rect("FullView", root, Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
+        // the 3D game fills the screen
+        var fv = Rect("View", root, Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
         fullView = Raw(fv, null, Color.white);
 
-        // ---------- left window: the unfinished 3D build ----------
-        var lw = Rect("LeftWindow", root, Vector2.zero, Vector2.one, new Vector2(Margin, Margin), new Vector2(-(RightW + Margin * 2f), -Margin));
-        leftWindow = lw.gameObject;
-        var lwBack = Rect("Back", lw, Vector2.zero, Vector2.one, new Vector2(6, 6), new Vector2(-6, -6));
-        Img(lwBack, TexLib.whiteSprite, Pal.Paper);
-        windowViewRect = Rect("View", lw, Vector2.zero, Vector2.one, new Vector2(14, 14), new Vector2(-14, -46));
-        windowView = Raw(windowViewRect, null, Color.white);
-        var lwFrame = Rect("Frame", lw, Vector2.zero, Vector2.one, new Vector2(-4, -4), new Vector2(4, 4));
-        Img(lwFrame, TexLib.frameSprite, Pal.Ink, true);
-        var lwTitle = Rect("Title", lw, new Vector2(0, 1), new Vector2(1, 1), new Vector2(22, -44), new Vector2(-22, -8));
-        Txt(lwTitle, "TinyKeep3D   <color=#8f83c9>—  my remake  —</color>   <color=#ef5d5d>UNFINISHED</color>", 27, Pal.Ink, TextAnchor.MiddleLeft);
-        var lwRight = Rect("TitleR", lw, new Vector2(0, 1), new Vector2(1, 1), new Vector2(22, -44), new Vector2(-22, -8));
-        Txt(lwRight, "<color=#8f83c9>what I see</color>", 24, Pal.Ink, TextAnchor.MiddleRight);
-
-        // ---------- right column: the 1989 original + TODO pad ----------
-        rightRect = Box("RightColumn", root, new Vector2(1, 1), new Vector2(1, 1), new Vector2(-Margin, -Margin), new Vector2(RightW, 1080 - Margin * 2f));
-        rightColumn = rightRect.gameObject;
-        var pw = Box("PixelWindow", rightRect, new Vector2(0.5f, 1), new Vector2(0.5f, 1), Vector2.zero, new Vector2(RightW, PixelWinH));
-        var pwBack = Rect("Back", pw, Vector2.zero, Vector2.one, new Vector2(6, 6), new Vector2(-6, -6));
-        Img(pwBack, TexLib.whiteSprite, Pal.K);
-        var pv = Box("Pixels", pw, new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(0, -46), new Vector2(PixelW, PixelH));
-        pixelView = Raw(pv, gm.pixel.scr.tex, Color.white);
-        var pwTitleBack = Rect("TitleBack", pw, new Vector2(0, 1), new Vector2(1, 1), new Vector2(6, -46), new Vector2(-6, -6));
-        Img(pwTitleBack, TexLib.whiteSprite, Pal.Paper);
-        var pwFrame = Rect("Frame", pw, Vector2.zero, Vector2.one, new Vector2(-4, -4), new Vector2(4, 4));
-        Img(pwFrame, TexLib.frameSprite, Pal.Ink, true);
-        var pwTitle = Rect("Title", pw, new Vector2(0, 1), new Vector2(1, 1), new Vector2(22, -44), new Vector2(-22, -8));
-        Txt(pwTitle, "tinykeep.exe   <color=#8f83c9>—  the 1989 original</color>", 27, Pal.Ink, TextAnchor.MiddleLeft);
-        var pwTitleR = Rect("TitleR", pw, new Vector2(0, 1), new Vector2(1, 1), new Vector2(22, -44), new Vector2(-22, -8));
-        Txt(pwTitleR, "<color=#2fb5a8>the truth</color>", 24, Pal.Ink, TextAnchor.MiddleRight);
-
-        // TODO pad
-        todoRect = Box("Todo", rightRect, new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(0, -(PixelWinH + 18f)), new Vector2(RightW - 8f, 1080 - Margin * 2f - PixelWinH - 18f));
-        Img(todoRect, TexLib.panelSprite, Pal.Sticky, true);
-        todoRect.localRotation = Quaternion.Euler(0, 0, -0.8f);
-        var tape = Box("Tape", todoRect, new Vector2(0.5f, 1), new Vector2(0.5f, 0.5f), new Vector2(0, -4), new Vector2(170, 44));
-        Raw(tape, TexLib.tape, Pal.A(Pal.White, 0.75f)).transform.localRotation = Quaternion.Euler(0, 0, 2.5f);
-        var tt = Box("TodoTitle", todoRect, new Vector2(0, 1), new Vector2(0, 1), new Vector2(34, -22), new Vector2(360, 48));
-        todoTitle = Txt(tt, "TODO.txt", 40, Pal.Ink, TextAnchor.MiddleLeft, TexLib.title);
-        var ul = Box("Underline", todoRect, new Vector2(0, 1), new Vector2(0, 1), new Vector2(30, -64), new Vector2(190, 18));
-        Raw(ul, TexLib.underline, Pal.Ink);
-        int n = Maps.Defs.Length;
-        todoLines = new Text[n]; todoBoxes = new RawImage[n]; todoChecks = new RawImage[n];
-        for (int i = 0; i < n; i++)
-        {
-            float y = -84f - i * 33f;
-            var bx = Box("Box" + i, todoRect, new Vector2(0, 1), new Vector2(0, 1), new Vector2(34, y), new Vector2(30, 30));
-            todoBoxes[i] = Raw(bx, TexLib.box, Pal.Ink);
-            var ck = Box("Check" + i, todoRect, new Vector2(0, 1), new Vector2(0, 1), new Vector2(32, y + 5), new Vector2(40, 40));
-            todoChecks[i] = Raw(ck, TexLib.check, Pal.Red);
-            var ln = Box("Line" + i, todoRect, new Vector2(0, 1), new Vector2(0, 1), new Vector2(76, y + 3), new Vector2(520, 36));
-            todoLines[i] = Txt(ln, (i + 1) + ". " + Maps.Defs[i].todo, 29, Pal.Ink, TextAnchor.MiddleLeft);
-        }
-        var nt = Rect("Note", todoRect, new Vector2(0, 0), new Vector2(1, 0), new Vector2(34, 16), new Vector2(-30, 122));
-        todoNote = Txt(nt, "", 27, Pal.Hex("5a4a2a"), TextAnchor.UpperLeft);
-        todoNote.lineSpacing = 0.9f;
-        todoRect.gameObject.AddComponent<Boil>().degrees = 0.25f;
-
-        // ---------- things drawn over the 3D view while playing ----------
-        var pu = Rect("PlayUi", windowViewRect, Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
+        // ---------- things pinned inside the 3D view while playing ----------
+        var pu = Rect("PlayUi", root, Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
         playUi = pu.gameObject;
         var ch = Box("Crosshair", pu, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(16, 16));
         crosshair = Raw(ch, TexLib.dot, Pal.A(Pal.Ink, 0.65f));
-        var rt = Box("RoomTitle", pu, new Vector2(0, 1), new Vector2(0, 1), new Vector2(26, -14), new Vector2(900, 54));
-        roomText = Txt(rt, "", 40, Pal.Ink, TextAnchor.MiddleLeft, TexLib.title);
-        Halo(roomText, Pal.A(Pal.Paper, 0.9f));
-        var ru = Box("RoomUnderline", pu, new Vector2(0, 1), new Vector2(0, 1), new Vector2(24, -62), new Vector2(330, 20));
-        roomUnderline = Raw(ru, TexLib.underline, Pal.Ink);
-        var tm = Box("Timer", pu, new Vector2(1, 1), new Vector2(1, 1), new Vector2(-26, -14), new Vector2(300, 54));
-        timerText = Txt(tm, "0:00.0", 38, Pal.Ink, TextAnchor.MiddleRight);
-        Halo(timerText, Pal.A(Pal.Paper, 0.9f));
-        var hn = Box("Hint", pu, new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(0, 26), new Vector2(1100, 44));
-        hintText = Txt(hn, "WASD  move      mouse  look      Shift  run      Esc  pause", 30, Pal.Ink, TextAnchor.MiddleCenter);
-        Halo(hintText, Pal.A(Pal.Paper, 0.9f));
-        var pb = Box("PopupBack", pu, new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(0, 150), new Vector2(980, 86));
+
+        // room title
+        var rt = Box("RoomTitle", pu, new Vector2(0, 1), new Vector2(0, 1), new Vector2(40, -24), new Vector2(1000, 60));
+        roomText = Txt(rt, "", 46, Pal.Ink, TextAnchor.MiddleLeft, TexLib.title);
+        Halo(roomText, Pal.A(Pal.Paper, 0.92f), 3f);
+        var ru = Box("RoomUnderline", pu, new Vector2(0, 1), new Vector2(0, 1), new Vector2(38, -80), new Vector2(380, 22));
+        Raw(ru, TexLib.underline, Pal.Ink);
+
+        // checkpoints: one box per room, ticked as you clear them
+        checkRow = Box("Checkpoints", pu, new Vector2(0, 1), new Vector2(0, 1), new Vector2(40, -108), new Vector2(520, 48));
+        var crBack = Rect("Back", checkRow, Vector2.zero, Vector2.one, new Vector2(-10, -4), new Vector2(-150, 4));
+        Img(crBack, TexLib.panelSprite, Pal.A(Pal.Paper, 0.92f), true);
+        int n = Maps.Defs.Length;
+        todoBoxes = new RawImage[n]; todoChecks = new RawImage[n]; todoNums = new Text[n];
+        var lbl = Box("Label", checkRow, new Vector2(0, 0.5f), new Vector2(0, 0.5f), new Vector2(8, 0), new Vector2(120, 40));
+        Txt(lbl, "rooms", 28, Pal.Ink, TextAnchor.MiddleLeft);
+        for (int i = 0; i < n; i++)
+        {
+            float x = 110f + i * 50f;
+            var bx = Box("Box" + i, checkRow, new Vector2(0, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(x, 0), new Vector2(34, 34));
+            todoBoxes[i] = Raw(bx, TexLib.box, Pal.Ink);
+            var nm = Rect("Num", bx, Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
+            todoNums[i] = Txt(nm, (i + 1).ToString(), 22, Pal.Ink, TextAnchor.MiddleCenter);
+            var ck = Box("Check" + i, checkRow, new Vector2(0, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(x + 3, 4), new Vector2(46, 46));
+            todoChecks[i] = Raw(ck, TexLib.check, Pal.Red);
+        }
+
+        // the dev's sticky note for this room: the instructions
+        noteRect = Box("Note", pu, new Vector2(0, 1), new Vector2(0, 1), new Vector2(44, -176), new Vector2(430, 196));
+        Img(noteRect, TexLib.panelSprite, Pal.Sticky, true);
+        noteRect.localRotation = Quaternion.Euler(0, 0, -1.6f);
+        var tape = Box("Tape", noteRect, new Vector2(0.5f, 1), new Vector2(0.5f, 0.5f), new Vector2(0, -2), new Vector2(150, 40));
+        Raw(tape, TexLib.tape, Pal.A(Pal.White, 0.8f)).transform.localRotation = Quaternion.Euler(0, 0, 3f);
+        var nh = Box("Head", noteRect, new Vector2(0, 1), new Vector2(0, 1), new Vector2(24, -18), new Vector2(390, 44));
+        noteHead = Txt(nh, "", 33, Pal.Ink, TextAnchor.MiddleLeft, TexLib.title);
+        var nu = Box("Underline", noteRect, new Vector2(0, 1), new Vector2(0, 1), new Vector2(22, -60), new Vector2(250, 16));
+        Raw(nu, TexLib.underline, Pal.Hex("b98a1e"));
+        var nb = Rect("Body", noteRect, new Vector2(0, 0), new Vector2(1, 1), new Vector2(26, 14), new Vector2(-18, -76));
+        noteBody = Txt(nb, "", 30, Pal.Hex("4a3d1e"), TextAnchor.UpperLeft);
+        noteBody.lineSpacing = 0.9f;
+        noteRect.gameObject.AddComponent<Boil>().degrees = 0.3f;
+
+        var tm = Box("Timer", pu, new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(0, -22), new Vector2(300, 54));
+        timerText = Txt(tm, "0:00.0", 42, Pal.Ink, TextAnchor.MiddleCenter);
+        Halo(timerText, Pal.A(Pal.Paper, 0.92f), 3f);
+        var hn = Box("Hint", pu, new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(0, 34), new Vector2(1500, 48));
+        hintText = Txt(hn, "WASD  move      mouse  look      Shift  run      Tab  resize the old game      Esc  pause", 32, Pal.Ink, TextAnchor.MiddleCenter);
+        Halo(hintText, Pal.A(Pal.Paper, 0.92f), 3f);
+        var pb = Box("PopupBack", pu, new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(0, 170), new Vector2(1040, 92));
         popupBack = Img(pb, TexLib.panelSprite, Pal.Paper, true);
         var pt = Rect("PopupText", pb, Vector2.zero, Vector2.one, new Vector2(24, 8), new Vector2(-24, -8));
-        popupText = Txt(pt, "", 38, Pal.Ink, TextAnchor.MiddleCenter);
+        popupText = Txt(pt, "", 40, Pal.Ink, TextAnchor.MiddleCenter);
         pb.gameObject.AddComponent<Boil>().degrees = 0.4f;
-        var to = Box("Toast", pu, new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(0, -78), new Vector2(900, 46));
-        toastText = Txt(to, "", 32, Pal.Hex("1f8f84"), TextAnchor.MiddleCenter, TexLib.title);
-        Halo(toastText, Pal.A(Pal.Paper, 0.95f));
-        var hb = Rect("Hurt", pu, Vector2.zero, Vector2.one, new Vector2(-60, -60), new Vector2(60, 60));
+        var to = Box("Toast", pu, new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(0, -84), new Vector2(1000, 50));
+        toastText = Txt(to, "", 36, Pal.Hex("1f8f84"), TextAnchor.MiddleCenter, TexLib.title);
+        Halo(toastText, Pal.A(Pal.Paper, 0.95f), 3f);
+        var hb = Rect("Hurt", pu, Vector2.zero, Vector2.one, new Vector2(-80, -80), new Vector2(80, 80));
         hurtBurst = Raw(hb, TexLib.burst, Pal.A(Pal.Red, 0f));
+
+        // ---------- the 1989 original, floating in its own window ----------
+        float fw = PixelW + Pad * 2f, fh = PixelH + TitleH + Pad * 2f;
+        floatRect = Box("PixelFloat", root, new Vector2(1, 1), new Vector2(1, 1), new Vector2(-40, -40), new Vector2(fw, fh));
+        pixelFloat = floatRect.gameObject;
+        var sh = Rect("Shadow", floatRect, Vector2.zero, Vector2.one, new Vector2(16, -22), new Vector2(16, -22));
+        Img(sh, TexLib.whiteSprite, Pal.A(Pal.Ink, 0.28f));
+        var sh2 = Rect("Shadow2", floatRect, Vector2.zero, Vector2.one, new Vector2(8, -11), new Vector2(8, -11));
+        Img(sh2, TexLib.whiteSprite, Pal.A(Pal.Ink, 0.18f));
+        var fb = Rect("Back", floatRect, Vector2.zero, Vector2.one, new Vector2(4, 4), new Vector2(-4, -4));
+        Img(fb, TexLib.whiteSprite, Pal.K);
+        var tb = Rect("TitleBack", floatRect, new Vector2(0, 1), new Vector2(1, 1), new Vector2(5, -(TitleH + Pad)), new Vector2(-5, -5));
+        Img(tb, TexLib.whiteSprite, Pal.Paper);
+        var pv = Box("Pixels", floatRect, new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(0, Pad), new Vector2(PixelW, PixelH));
+        pixelView = Raw(pv, gm.pixel.scr.tex, Color.white);
+        var ff = Rect("Frame", floatRect, Vector2.zero, Vector2.one, new Vector2(-5, -5), new Vector2(5, 5));
+        Img(ff, TexLib.frameSprite, Pal.Ink, true);
+        var ft = Rect("Title", floatRect, new Vector2(0, 1), new Vector2(1, 1), new Vector2(22, -(TitleH + Pad) + 2), new Vector2(-22, -8));
+        Txt(ft, "tinykeep.exe   <color=#8f83c9>—  the 1989 original</color>", 28, Pal.Ink, TextAnchor.MiddleLeft);
+        var ftr = Rect("TitleR", floatRect, new Vector2(0, 1), new Vector2(1, 1), new Vector2(22, -(TitleH + Pad) + 2), new Vector2(-22, -8));
+        Txt(ftr, "<color=#1f8f84>the truth</color>", 26, Pal.Ink, TextAnchor.MiddleRight);
 
         // ---------- full-screen overlays ----------
         var cb = Box("CaptionBack", root, new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(0, 96), new Vector2(1300, 120));
@@ -219,7 +214,6 @@ public class Hud : MonoBehaviour
         SetLayout(true);
     }
 
-    Text titleBig, titleSub;
     void BuildTitle()
     {
         var t = Rect("TitleUi", root, Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
@@ -228,15 +222,15 @@ public class Hud : MonoBehaviour
         Img(card, TexLib.panelSprite, Pal.Paper, true);
         card.localRotation = Quaternion.Euler(0, 0, 1.2f);
         var big = Rect("Big", card, Vector2.zero, Vector2.one, new Vector2(40, 96), new Vector2(-30, -14));
-        titleBig = Txt(big, "REMASTER", 176, Pal.Ink, TextAnchor.MiddleLeft, TexLib.title);
+        Txt(big, "REMASTER", 176, Pal.Ink, TextAnchor.MiddleLeft, TexLib.title);
         var ul = Box("Underline", card, new Vector2(0, 0), new Vector2(0, 0), new Vector2(44, 92), new Vector2(770, 34));
         Raw(ul, TexLib.underline, Pal.Purple);
         var sub = Rect("Sub", card, new Vector2(0, 0), new Vector2(1, 0), new Vector2(46, 22), new Vector2(-30, 92));
-        titleSub = Txt(sub, "a game about an <color=#ef5d5d>unfinished</color> game", 46, Pal.Ink, TextAnchor.MiddleLeft);
+        Txt(sub, "a game about an <color=#ef5d5d>unfinished</color> game", 46, Pal.Ink, TextAnchor.MiddleLeft);
         card.gameObject.AddComponent<Boil>().degrees = 0.35f;
 
         var press = Box("Press", t, new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(0, 150), new Vector2(900, 80));
-        var pressBack = Img(press, TexLib.panelSprite, Pal.Sticky, true);
+        Img(press, TexLib.panelSprite, Pal.Sticky, true);
         var pressT = Rect("T", press, Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
         pressText = Txt(pressT, "press any key to keep working...", 44, Pal.Ink, TextAnchor.MiddleCenter);
         press.gameObject.AddComponent<Boil>().degrees = 0.5f;
@@ -251,17 +245,17 @@ public class Hud : MonoBehaviour
         var p = Rect("PauseUi", root, Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
         pauseUi = p.gameObject;
         Img(p, TexLib.whiteSprite, Pal.A(Pal.Ink, 0.45f));
-        var card = Box("Card", p, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(760, 470));
+        var card = Box("Card", p, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(800, 520));
         Img(card, TexLib.panelSprite, Pal.Paper, true);
-        var h = Box("H", card, new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(0, -34), new Vector2(700, 110));
+        var h = Box("H", card, new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(0, -34), new Vector2(740, 110));
         Txt(h, "coffee break", 92, Pal.Ink, TextAnchor.MiddleCenter, TexLib.title);
-        var b = Box("B", card, new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(0, 46), new Vector2(660, 260));
-        var bt = Txt(b, "<b>Esc</b>   back to work\n<b>R</b>   restart this room\n<b>1 - 5</b>   jump to a room\n<b>Q</b>   quit to the title", 40, Pal.Ink, TextAnchor.MiddleCenter);
+        var b = Box("B", card, new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(0, 40), new Vector2(700, 320));
+        var bt = Txt(b, "<b>Esc</b>   back to work\n<b>R</b>   restart this room\n<b>Tab</b>   resize the old game\n<b>1 - 5</b>   jump to a room\n<b>Q</b>   quit to the title", 40, Pal.Ink, TextAnchor.MiddleCenter);
         bt.lineSpacing = 1.05f;
         card.gameObject.AddComponent<Boil>().degrees = 0.3f;
     }
 
-    Text resTitle, resBody, resRank, resFoot;
+    Text resBody, resRank, resFoot;
     RawImage resRing;
     void BuildResults()
     {
@@ -271,7 +265,7 @@ public class Hud : MonoBehaviour
         Img(card, TexLib.panelSprite, Pal.Paper, true);
         card.localRotation = Quaternion.Euler(0, 0, -0.8f);
         var h = Box("H", card, new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(0, -28), new Vector2(1040, 130));
-        resTitle = Txt(h, "BUILD SUCCEEDED", 108, Pal.Ink, TextAnchor.MiddleCenter, TexLib.title);
+        Txt(h, "BUILD SUCCEEDED", 108, Pal.Ink, TextAnchor.MiddleCenter, TexLib.title);
         var ul = Box("Ul", card, new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(0, -150), new Vector2(760, 30));
         Raw(ul, TexLib.underline, Pal.Teal);
         var b = Box("B", card, new Vector2(0, 0.5f), new Vector2(0, 0.5f), new Vector2(80, -30), new Vector2(640, 330));
@@ -287,77 +281,70 @@ public class Hud : MonoBehaviour
         card.gameObject.AddComponent<Boil>().degrees = 0.25f;
     }
 
-    // ------------------------------------------------------------------ layout + render targets
+    // ------------------------------------------------------------------ layout + render target
+    /// <summary>full = cinematic (title / intro / ending). Otherwise the old game floats in and the play HUD shows.</summary>
     public void SetLayout(bool full)
     {
+        bool was = fullscreen;
         fullscreen = full;
-        fullView.gameObject.SetActive(full);
-        leftWindow.SetActive(!full);
-        rightColumn.SetActive(!full);
-        if (!full) rightPop = 0f;
-        // captions sit over the 3D view, not over the note pad
-        var cbr = captionBack.rectTransform;
-        cbr.anchoredPosition = new Vector2(full ? 0f : -(RightW + Margin) * 0.5f, full ? 96f : 150f);
-        cbr.sizeDelta = new Vector2(full ? 1300f : 1100f, 120f);
+        pixelFloat.SetActive(!full);
+        if (!full && was) floatIn = 0f;
         EnsureTargets(true);
     }
 
     void EnsureTargets(bool force)
     {
         int sw = Mathf.Max(64, Screen.width), sh = Mathf.Max(64, Screen.height);
-        if (!force && sw == lastW && sh == lastH) return;
+        if (!force && sw == lastW && sh == lastH && fullRT != null) return;
         lastW = sw; lastH = sh;
-        float k = sh / 1080f;
-        Canvas.ForceUpdateCanvases();
-        int vw = Mathf.Max(64, Mathf.RoundToInt(windowViewRect.rect.width * k));
-        int vh = Mathf.Max(64, Mathf.RoundToInt(windowViewRect.rect.height * k));
-        if (vw < 100) { vw = Mathf.RoundToInt(1172 * k); vh = Mathf.RoundToInt(972 * k); }
         if (fullRT == null || fullRT.width != sw || fullRT.height != sh)
         {
             if (fullRT != null) fullRT.Release();
-            fullRT = new RenderTexture(sw, sh, 24, RenderTextureFormat.ARGB32) { name = "FullRT", antiAliasing = 1, filterMode = FilterMode.Bilinear };
-        }
-        if (viewRT == null || viewRT.width != vw || viewRT.height != vh)
-        {
-            if (viewRT != null) viewRT.Release();
-            viewRT = new RenderTexture(vw, vh, 24, RenderTextureFormat.ARGB32) { name = "ViewRT", antiAliasing = 1, filterMode = FilterMode.Bilinear };
+            fullRT = new RenderTexture(sw, sh, 24, RenderTextureFormat.ARGB32) { name = "ViewRT", antiAliasing = 1, filterMode = FilterMode.Bilinear };
         }
         fullView.texture = fullRT;
-        windowView.texture = viewRT;
-        var target = fullscreen ? fullRT : viewRT;
-        if (gm.player != null && gm.player.cam != null) gm.player.cam.targetTexture = target;
-        if (gm.intro != null) gm.intro.SetTarget(target);
+        if (gm.player != null && gm.player.cam != null) gm.player.cam.targetTexture = fullRT;
+        if (gm.intro != null) gm.intro.SetTarget(fullRT);
     }
 
-    public RenderTexture CurrentTarget => fullscreen ? fullRT : viewRT;
+    public RenderTexture CurrentTarget { get { if (fullRT == null) EnsureTargets(true); return fullRT; } }
 
     // ------------------------------------------------------------------ public controls
     public void ShowPlayUi(bool on) { playUi.SetActive(on); }
     public void ShowTitle(bool on) { titleUi.SetActive(on); }
     public void ShowPause(bool on) { pauseUi.SetActive(on); }
 
+    public void ToggleFloatSize()
+    {
+        floatBig = !floatBig;
+        floatScaleTarget = floatBig ? 1f : 0.667f;
+    }
+
     public void RefreshTodo()
     {
-        for (int i = 0; i < todoLines.Length; i++)
+        int cur = Mathf.Clamp(gm.cur, 0, Maps.Defs.Length - 1);
+        for (int i = 0; i < todoBoxes.Length; i++)
         {
             bool done = gm.rs[i].cleared;
-            bool now = i == gm.cur && !done;
+            bool now = i == cur && !done;
+            if (done && !todoChecks[i].enabled) { pulseIndex = i; checkPulse = 1f; }
             todoChecks[i].enabled = done;
-            todoLines[i].color = done ? Pal.Hex("8a7a52") : (now ? Pal.Ink : Pal.Hex("5a4a2a"));
-            todoLines[i].fontStyle = now ? FontStyle.Bold : FontStyle.Normal;
-            todoLines[i].text = (i + 1) + ". " + Maps.Defs[i].todo + (now ? "   <color=#ef5d5d><--</color>" : "");
+            todoBoxes[i].color = now ? (Color)Pal.Red : (Color)Pal.Ink;
+            todoNums[i].color = done ? Pal.A(Pal.Ink, 0.35f) : (now ? (Color)Pal.Red : (Color)Pal.Ink);
+            todoNums[i].fontStyle = now ? FontStyle.Bold : FontStyle.Normal;
         }
-        todoNote.text = Maps.Defs[Mathf.Clamp(gm.cur, 0, Maps.Defs.Length - 1)].note;
+        noteHead.text = "note to self  #" + (cur + 1);
+        noteBody.text = Maps.Defs[cur].note;
     }
 
     public void ShowRoomTitle(int i)
     {
         roomText.text = (i + 1) + "/" + Maps.Defs.Length + "   " + Maps.Defs[i].title;
-        roomTitleTimer = 0f;
         RefreshTodo();
+        noteRect.localScale = new Vector3(1.18f, 0.8f, 1f);
     }
 
-    public void ShowControlsHint() { hintTimer = 9f; }
+    public void ShowControlsHint() { hintTimer = 10f; }
 
     public void Popup(string text, float seconds)
     {
@@ -368,8 +355,9 @@ public class Hud : MonoBehaviour
     }
 
     public void Toast(string text) { toastText.text = text; toastTimer = 3.5f; }
-    public void CoinPulse() { coinPulse = 1f; }
-    public void HurtFlash() { hurtTimer = 0.5f; }
+    public void CoinPulse() { coinPulse = 1f; stepKick = 10f; }
+    public void HurtFlash() { hurtTimer = 0.5f; stepKick = 18f; }
+    public void StepKick(float amount) { stepKick = Mathf.Max(stepKick, amount); }
 
     public void SetCaption(string text)
     {
@@ -395,10 +383,12 @@ public class Hud : MonoBehaviour
         fade.color = c;
     }
 
+    public void SetFadeSpeed(float s) { fadeSpeed = s; }
+
     public void ShowResults(float time, int coins, int total, int falls, int hits)
     {
         resultsUi.SetActive(true);
-        string rank = "B";
+        string rank;
         if (coins >= total && time < 150f) rank = "S";
         else if (coins >= total - 3 && time < 240f) rank = "A";
         else if (time < 420f) rank = "B";
@@ -429,18 +419,27 @@ public class Hud : MonoBehaviour
         float dt = Mathf.Min(Time.unscaledDeltaTime, 0.05f);     // a long first frame must not eat the timers
         EnsureTargets(false);
 
-        if (gm.state == GameManager.State.Playing)
+        if (gm.state == GameManager.State.Playing) timerText.text = FormatTime(gm.time);
+
+        // the old game is upscaled 3x with hard pixels first, so the tilted, floating window stays crisp
+        if (pixelFloat.activeSelf)
         {
-            timerText.text = FormatTime(gm.time);
-            roomTitleTimer += dt;
+            if (pixelRT == null)
+            {
+                pixelRT = new RenderTexture(PixelScreen.W * 3, PixelScreen.H * 3, 0, RenderTextureFormat.ARGB32) { name = "PixelRT", filterMode = FilterMode.Bilinear, antiAliasing = 1 };
+                pixelView.texture = pixelRT;
+            }
+            Graphics.Blit(gm.pixel.scr.tex, pixelRT);
         }
 
-        // window pop-in when the layout appears
-        if (rightPop < 1f)
+        UpdateFloat(dt);
+
+        // the note pops back to rest after a new room
+        noteRect.localScale = Vector3.Lerp(noteRect.localScale, Vector3.one, 1f - Mathf.Exp(-12f * dt));
+        if (checkPulse > 0f && pulseIndex >= 0)
         {
-            rightPop = Mathf.Min(1f, rightPop + dt / 0.45f);
-            float e = EaseOutBack(rightPop);
-            rightRect.anchoredPosition = new Vector2(-Margin + (1f - e) * (RightW + 80f), -Margin);
+            checkPulse = Mathf.Max(0f, checkPulse - dt * 2.2f);
+            todoChecks[pulseIndex].rectTransform.localScale = Vector3.one * (1f + checkPulse * 1.2f);
         }
 
         if (popupTimer > 0f)
@@ -478,7 +477,32 @@ public class Hud : MonoBehaviour
         fade.enabled = fc.a > 0.002f;
     }
 
-    public void SetFadeSpeed(float s) { fadeSpeed = s; }
+    /// <summary>The old game's window hovers: it drifts, lags behind when you turn, and bumps when things happen.</summary>
+    void UpdateFloat(float dt)
+    {
+        if (!pixelFloat.activeSelf) return;
+        float t = Time.unscaledTime;
+        if (floatIn < 1f) floatIn = Mathf.Min(1f, floatIn + dt / 0.55f);
+        float pop = EaseOutBack(floatIn);
+
+        float yaw = gm.player != null ? gm.player.yaw : 0f;
+        float dy = Mathf.DeltaAngle(lastYaw, yaw);
+        lastYaw = yaw;
+        float v = dt > 0f ? dy / dt : 0f;
+        yawVel = Mathf.Lerp(yawVel, v, 1f - Mathf.Exp(-10f * dt));
+        swayX = Mathf.Lerp(swayX, Mathf.Clamp(-yawVel * 0.22f, -46f, 46f), 1f - Mathf.Exp(-6f * dt));
+        swayTilt = Mathf.Lerp(swayTilt, Mathf.Clamp(-yawVel * 0.02f, -4f, 4f), 1f - Mathf.Exp(-6f * dt));
+        stepKick = Mathf.Lerp(stepKick, 0f, 1f - Mathf.Exp(-9f * dt));
+        floatScale = Mathf.Lerp(floatScale, floatScaleTarget, 1f - Mathf.Exp(-12f * dt));
+
+        float bobY = Mathf.Sin(t * 1.25f) * 7f + Mathf.Sin(t * 2.1f + 1f) * 2.5f;
+        float bobX = Mathf.Sin(t * 0.83f + 0.4f) * 5f;
+        floatRect.anchoredPosition = new Vector2(-40f + bobX + swayX, -40f + bobY - stepKick + (1f - pop) * 40f);
+        floatRect.localRotation = Quaternion.Euler(0, 0, -1.4f + Mathf.Sin(t * 0.7f) * 0.6f + swayTilt + (1f - pop) * 14f);
+        float s = floatScale * Mathf.Max(0.001f, pop) * (1f + coinPulse * 0.035f);
+        floatRect.localScale = new Vector3(s, s, 1f);
+        coinPulse = Mathf.Max(0f, coinPulse - dt * 4f);
+    }
 
     static float EaseOutBack(float t)
     {
