@@ -37,3 +37,6 @@ crashlytics-build.properties
 # build outputs
 /dist/
 *.zip
+
+# local agent notes
+/CLAUDE.md
