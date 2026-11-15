@@ -61,6 +61,7 @@ The soundtrack is one tune in two arrangements. It starts as a chip tune, and ev
 | Esc | pause |
 | In the pause menu: R | restart the room |
 | N | skip to the next room, if you are stuck |
+| P | go back to the previous room |
 | B | skip straight to the last fight (also works on the start screen) |
 | In the pause menu or on the title: 1 to 6 | jump to a room (for demos) |
 | F11 | toggle full screen |
