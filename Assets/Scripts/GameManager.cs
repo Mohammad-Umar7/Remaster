@@ -738,7 +738,9 @@ public class GameManager : MonoBehaviour
                 if (!g.attackLanded && g.attackT >= Maps.GuardImpactAt)
                 {
                     g.attackLanded = true;
-                    GuardImpact(g);
+                    // the spear only reaches so far: sprint out from under it and it finds nothing but air
+                    if (toYou.magnitude <= Maps.GuardReach) GuardImpact(g);
+                    else if (invuln <= 0f) hud.Word("MISSED!", Pal.Hex("bfeee8"), Pal.Hex("1f8f84"), 0f, 0.62f);
                 }
                 if (g.attackT >= Maps.GuardWindup + Maps.GuardStrike + Maps.GuardRecover) g.attackT = -1f;
             }
