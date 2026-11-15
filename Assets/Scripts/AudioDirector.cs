@@ -167,6 +167,37 @@ public class AudioDirector : MonoBehaviour
         s.Play();
     }
 
+    /// <summary>
+    /// A spoken line. Lines share one voice channel, so a new line cuts the last one off
+    /// (skipping through a conversation never leaves two people talking at once).
+    /// </summary>
+    public void PlayVoice(string name, float volume = 1f, float basePitch = 1f)
+    {
+        var c = Clip(name);
+        if (c == null) return;
+        if (voice == null)
+        {
+            voice = gameObject.AddComponent<AudioSource>();
+            voice.playOnAwake = false; voice.loop = false; voice.spatialBlend = 0f; voice.priority = 0;
+        }
+        voice.Stop();
+        voice.clip = c; voice.pitch = basePitch; voice.volume = volume;
+        voice.Play();
+    }
+
+    public void StopVoice() { if (voice != null) voice.Stop(); }
+    /// <summary>How loud the spoken line is right now (0..1), so a mouth can move to it.</summary>
+    public float VoiceLevel()
+    {
+        if (voice == null || !voice.isPlaying) return 0f;
+        voice.GetOutputData(voiceBuf, 0);
+        float sum = 0f;
+        for (int i = 0; i < voiceBuf.Length; i++) sum += voiceBuf[i] * voiceBuf[i];
+        return Mathf.Clamp01(Mathf.Sqrt(sum / voiceBuf.Length) * 4.5f);
+    }
+    AudioSource voice;
+    readonly float[] voiceBuf = new float[256];
+
     public void LoopTone(string name, float volume)
     {
         var c = Clip(name);
