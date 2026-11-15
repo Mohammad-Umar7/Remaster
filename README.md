@@ -80,6 +80,9 @@ A gamepad also works (left stick move, right stick look, X or the right bumper t
 - `Sketch.shader` and `SketchPost.shader` give the hand-drawn look: marker colour, pencil hatching, cast shadows drawn as hatching, wobbly double outlines that "boil".
 - `Doodle.cs` / `TexLib.cs` draw every texture and UI frame in code at start-up.
 - `AudioDirector.cs` runs the eight synced music layers.
+- `GuardRig.cs` poses the guard (six Blender parts) in code every frame: there are no animation clips, so the animation can never drift away from the rules.
+- `BossFight.cs` is the last room: the scene and its camera shots, the Captain's three attacks and their red floor markers, your combo and dodge, and the pieces he breaks into.
+- `HeroRig.cs` is you in that room: the old game's hero and sword, built out of blocks and posed in code like the guard.
 
 ## Tests
 
