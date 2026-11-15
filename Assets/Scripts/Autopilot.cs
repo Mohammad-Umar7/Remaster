@@ -25,7 +25,7 @@ public class Autopilot : MonoBehaviour
     float waitUntil, shotClock, runClock, stuckClock, noPlanLog;
     List<Vector3> exitPath; int exitIndex;
     int plannedRoom = -1, shotIndex, lastFalls, lastHits, lastRoomLogged = -1;
-    bool done, lastNeedKey;
+    bool done, lastNeedKey, lastFighting;
 
     void Start()
     {
@@ -36,7 +36,7 @@ public class Autopilot : MonoBehaviour
         Application.runInBackground = true;
     }
 
-    void OnDestroy() { GameInput.overrideActive = false; GameInput.overrideYaw = null; }
+    void OnDestroy() { GameInput.overrideActive = false; GameInput.overrideYaw = null; GameInput.overrideAttack = false; }
 
     void Note(string s) { log.Add(s); Debug.Log("[AUTOPILOT] " + s); }
 
@@ -168,6 +168,24 @@ public class Autopilot : MonoBehaviour
             if (exitPath == null || !leaving) BuildExitPath(room);
             if (exitIndex >= exitPath.Count) { GameInput.overrideMove = Vector2.zero; return; }
             if (WalkTo(exitPath[exitIndex], p, 0.4f)) exitIndex++;
+            return;
+        }
+
+        // the last room is a fight, not a route: walk up to the Captain and keep swinging the keys.
+        // (His hits do not count against the test driver: this proves the fight can be finished, not dodged.)
+        GameInput.overrideAttack = false;
+        if (room.def.boss && gm.boss != null && !gm.ExitOpen(gm.cur))
+        {
+            var b = gm.boss;
+            if (b.Fighting != lastFighting)
+            {
+                lastFighting = b.Fighting;
+                Note((b.Fighting ? "boss fight started" : "boss fight over") + " at t=" + gm.time.ToString("0.0") + " hp=" + b.hp + "/" + b.maxHp);
+                Shot(b.Fighting ? "boss_fight" : "boss_down");
+            }
+            GameInput.overrideAttack = b.Fighting;
+            Vector3 to = b.pos - p; to.y = 0f;
+            if (WalkTo(new Vector3(b.pos.x, p.y, b.pos.z), p, 2.2f)) GameInput.overrideYaw = Mathf.Atan2(to.x, to.z) * Mathf.Rad2Deg;
             return;
         }
 
