@@ -515,6 +515,8 @@ public class World3D
                 // one pose per guard, worked out from its state, then given to every copy of it
                 Slime gs = s.guards[g];
                 GuardPose pose = GuardRig.Compute(room, gs, d.guardAnim[g], dt);
+                // a guard is six jointed parts: only the rooms you can see from here need theirs drawn
+                if (Mathf.Abs(i - gm.cur) > 1) pose.visible = false;
                 Vector3 wp = room.TileFToWorld(gs.pos);
                 var list = d.guards[g];
                 var rings = d.guardRings[g];
