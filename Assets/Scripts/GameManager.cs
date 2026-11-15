@@ -12,6 +12,11 @@ public class Slime
     public float hopPeriod = 0.44f;         // seconds per hop
     public int steps;                       // hops so far (left foot, right foot)
     public bool gone;                       // its floor was deleted under it
+    // a guard's behaviour. Its patrol never changes, so the auto-player's maths stay exact:
+    // noticing you and striking only change how it looks, sounds, and when the heart is lost.
+    public bool alerted;                    // it has noticed you
+    public float alertT;                    // 0..1, eased: how far it is into its on-guard stance
+    public float bangT = -1f;               // seconds since the "!" popped (-1: not showing)
     readonly float[] seg;
 
     public Slime(SlimeDef def)
