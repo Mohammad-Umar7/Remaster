@@ -998,6 +998,46 @@ def sfx_plank_break():
     return finish(out, out_ms=15.0)
 
 
+def sfx_key_get():
+    """Key picked up: the classic 'item get' run up the C chord, landing on a bright ringing note."""
+    out = np.zeros(int(0.80 * SR))
+    place(out, seq([(0.00, 0.06, 'C6', 0.75), (0.06, 0.06, 'E6', 0.8), (0.12, 0.06, 'G6', 0.85), (0.18, 0.06, 'C7', 0.9)],
+                   duty=0.25, gate=0.95, a=0.002, d=0.02, s=0.9, r=0.004), 0.0)
+    m = int(0.52 * SR)
+    for name, duty, g in (('E7', 0.25, 0.85), ('C7', 0.125, 0.40), ('G6', 0.125, 0.35)):
+        place(out, osc_pulse(const(hz(name), m), duty) * expdecay(m, 0.17, 2.0), 0.24, g)
+    place(out, osc_tri(const(hz('C5'), m), drive=1.2) * expdecay(m, 0.16, 2.0), 0.24, 0.45)
+    return finish(out, out_ms=30.0)
+
+
+def sfx_door_unlock():
+    """The exit unlocks: a click, a metal clunk, the bars rattle upward, and two happy notes say 'open'."""
+    out = np.zeros(int(0.78 * SR))
+    c = int(0.035 * SR)
+    place(out, osc_pulse(const(hz('C7'), c), 0.125) * expdecay(c, 0.008, 0.8), 0.0, 0.6)
+    n = int(0.16 * SR)
+    t = np.arange(n) / SR
+    clunk = sum(g * np.sin(2 * np.pi * f * t) for f, g in ((180.0, 1.0), (540.0, 0.5), (1210.0, 0.3))) * np.exp(-t / 0.035)
+    place(out, clunk, 0.06, 0.8)
+    m = int(0.40 * SR)
+    u = np.arange(m) / SR
+    chop = 0.55 + 0.45 * np.sign(np.sin(2 * np.pi * 26.0 * u))
+    rattle = osc_pulse(glide(130.0, 420.0, m), 0.25, soft=3000.0) * chop * ramp_out(ramp_in(np.ones(m), 4.0), 60.0)
+    place(out, rattle, 0.16, 0.5)
+    place(out, seq([(0.52, 0.07, 'G5', 0.75), (0.59, 0.12, 'C6', 0.85)], duty=0.25, gate=0.95, r=0.03), 0.0)
+    return finish(out, out_ms=25.0)
+
+
+def sfx_guard_step():
+    """A guard's armoured hop: a low thump with a small metal clink on top. You hear them coming."""
+    n = int(0.14 * SR)
+    t = np.arange(n) / SR
+    thump = osc_tri(glide(190.0, 85.0, n), drive=1.4) * expdecay(n, 0.035, 1.0)
+    knock = osc_pulse(glide(420.0, 300.0, n), 0.5, soft=3000.0) * expdecay(n, 0.014, 0.8)
+    clink = sum(g * np.sin(2 * np.pi * f * t) for f, g in ((1480.0, 1.0), (2210.0, 0.5))) * np.exp(-t / 0.014)
+    return finish(thump + 0.45 * knock + 0.40 * clink, out_ms=12.0)
+
+
 def sfx_ui_move():
     n = int(0.050 * SR)
     return finish(osc_pulse(const(hz('G5'), n), 0.25) * expdecay(n, 0.018, 1.0), out_ms=5.0)
@@ -1232,6 +1272,9 @@ SOUNDS = [
     ('flick_b',         lambda: sfx_flick('A5'), -1.0, 'Flicker planks: group B appears (lower note).'),
     ('flick_warn',      sfx_flick_warn,  -4.0, 'Tick before the flicker planks swap.'),
     ('plank_break',     sfx_plank_break, 2.0, 'A one-use plank snaps after you step off it.'),
+    ('key_get',         sfx_key_get,     5.0, 'Key picked up. Keys are new in the remake: only the 3D world has them.'),
+    ('door_unlock',     sfx_door_unlock, 4.0, 'The locked exit opens once you hold the key.'),
+    ('guard_step',      sfx_guard_step,  1.0, 'A guard hops nearby. Guards are new in the remake: the old game cannot see them.'),
 ]
 SFX_PEAK_CEILING_DB = -3.0   # no sound effect peaks above this
 # Very short or very low sounds would need silly peaks to hit a loudness target; cap them.
@@ -1239,7 +1282,7 @@ SFX_PEAK_CAP = {
     'key_1': -9.0, 'key_2': -9.0, 'key_3': -9.0,
     'step_paper_1': -7.0, 'step_paper_2': -7.0, 'step_paper_3': -7.0, 'step_paper_4': -7.0,
     'step_chip_1': -8.0, 'step_chip_2': -8.0, 'ui_move': -8.0, 'tile_delete': -7.0,
-    'slime_hop': -8.0, 'gate': -6.0,
+    'slime_hop': -8.0, 'gate': -6.0, 'guard_step': -5.0,
     'flick_a': -7.0, 'flick_b': -7.0, 'flick_warn': -9.0, 'laser_old': -6.0,
 }
 

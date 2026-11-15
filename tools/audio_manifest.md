@@ -73,8 +73,11 @@ Levels are set by loudness, not by peak: each sound is placed a fixed number of 
 | flick_b.wav | 1 | 0.110 | -7.5 | -19.2 | -20.2 | -1.0 | Flicker planks: group B appears (lower note). |
 | flick_warn.wav | 1 | 0.035 | -9.0 | -25.4 | -30.1 | -11.0 | Tick before the flicker planks swap. |
 | plank_break.wav | 1 | 0.202 | -3.0 | -19.3 | -19.4 | -0.2 | A one-use plank snaps after you step off it. |
+| key_get.wav | 1 | 0.772 | -4.7 | -18.6 | -14.2 | +5.0 | Key picked up. Keys are new in the remake: only the 3D world has them. |
+| door_unlock.wav | 1 | 0.744 | -4.8 | -18.9 | -15.2 | +4.0 | The locked exit opens once you hold the key. |
+| guard_step.wav | 1 | 0.140 | -5.0 | -21.0 | -27.8 | -8.6 | A guard hops nearby. Guards are new in the remake: the old game cannot see them. |
 
-Held at a peak cap (so a little under their loudness target): jingle_boot, jingle_room, jingle_win, ui_move, gate, step_paper_1, step_paper_4, key_1, key_2, key_3, yawn_whoosh, flick_warn, plank_break.
+Held at a peak cap (so a little under their loudness target): jingle_boot, jingle_room, jingle_win, ui_move, gate, step_paper_1, step_paper_4, key_1, key_2, key_3, yawn_whoosh, flick_warn, plank_break, guard_step.
 
 ## Loop points
 
