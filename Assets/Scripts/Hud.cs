@@ -33,6 +33,13 @@ public class Hud : MonoBehaviour
     RawImage[] heartFills, heartLines;
     readonly float[] heartPunch = new float[GameManager.MaxHearts];
     int shownHearts = -1;
+    // the comic word that pops when a guard's spear lands
+    RectTransform bonkRect;
+    Text bonkText;
+    RawImage bonkFill, bonkLine;
+    float bonkT = -1f;
+    int bonkCount;
+    static readonly string[] BonkWords = { "BONK!", "POW!", "WHACK!", "OOF!" };
     // start menu: two sticky notes, START and QUIT
     public int menuIndex;
     RectTransform[] menuNotes;
