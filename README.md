@@ -61,7 +61,9 @@ The soundtrack is one tune in two arrangements. It starts as a chip tune, and ev
 | Tab | raise or lower the handheld (the old game) |
 | Esc | pause |
 | In the pause menu: R | restart the room |
-| In the pause menu or on the title: 1 to 8 | jump to a room (for demos) |
+| N | skip to the next room, if you are stuck |
+| B | skip straight to the last fight (also works on the start screen) |
+| In the pause menu or on the title: 1 to 7 | jump to a room (for demos) |
 | F11 | toggle full screen |
 
 A gamepad also works (left stick move, right stick look, X or the right bumper to swing, B to dodge).
