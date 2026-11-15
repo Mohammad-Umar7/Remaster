@@ -175,6 +175,48 @@ public class GuardRig
         if (gs.bangT >= 0f)
             p.bang = gs.bangT < 0.14f ? OutBack(gs.bangT / 0.14f) : (gs.bangT < 0.62f ? 1f : Mathf.Clamp01(1f - (gs.bangT - 0.62f) / 0.26f));
 
+        // --- the strike: cock the spear back (squash), lunge and thrust (stretch), wobble back to rest
+        float t = gs.attackT;
+        if (t >= 0f)
+        {
+            float W = Maps.GuardWindup, K = Maps.GuardStrike, R = Maps.GuardRecover;
+            float face, lunge, spear, aim, lean, squash, shieldOut;
+            // it stops a spear's length from you: lunging in from further away, hopping back if you are on its toes,
+            // so the whole thrust happens in front of your eyes and the spear tip comes at your face
+            float reach = gs.attackReach;
+            if (t < W)
+            {
+                float e = OutCubic(t / W);
+                face = e; lunge = -0.16f * e; squash = 1f - 0.18f * e; lean = -15f * e; aim = 0f;
+                spear = Mathf.Lerp(p.spear, -62f, e); shieldOut = Mathf.Lerp(p.shieldOut, -8f, e);
+            }
+            else if (t < W + K)
+            {
+                float e = OutCubic((t - W) / K);
+                face = 1f; lunge = Mathf.Lerp(-0.16f, reach, e); squash = Mathf.Lerp(0.82f, 1.16f, e); lean = Mathf.Lerp(-15f, 11f, e);
+                spear = Mathf.Lerp(-62f, 80f, e); aim = 21f * e; shieldOut = Mathf.Lerp(-8f, 34f, e);
+            }
+            else
+            {
+                float u = Mathf.Clamp01((t - W - K) / R);
+                float wobble = Mathf.Exp(-5.5f * u) * Mathf.Cos(u * 16f);      // a damped spring: 1 at the hit, settling to 0
+                float back = Smooth((u - 0.18f) * 1.5f);                       // it holds the thrust for a beat, then steps back
+                face = 1f - Smooth((u - 0.55f) / 0.45f);
+                lunge = reach * (1f - back);
+                squash = 1f + 0.16f * wobble;
+                lean = 11f * wobble;
+                spear = Mathf.Lerp(80f, p.spear, back) + 8f * wobble;
+                aim = 21f * (1f - back);
+                shieldOut = Mathf.Lerp(34f, p.shieldOut, back);
+            }
+            float strikeYaw = YawOf(gs.attackDir);
+            p.yaw = Mathf.LerpAngle(p.yaw, strikeYaw, face);
+            p.feet += new Vector3(gs.attackDir.x, 0f, -gs.attackDir.y) * lunge;
+            p.spear = spear; p.spearAim = aim; p.lean = lean; p.squash = squash; p.shieldOut = shieldOut;
+            p.headYaw = Mathf.Lerp(p.headYaw, 0f, face);
+            p.legL = Mathf.Lerp(p.legL, 26f, face * 0.8f); p.legR = Mathf.Lerp(p.legR, -30f, face * 0.8f);   // a fencer's stance
+            p.bob *= 1f - face;
+        }
         return p;
     }
 }
