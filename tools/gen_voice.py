@@ -10,6 +10,16 @@ The five lines in tools/voice_src/*.mp3 were generated with ElevenLabs text-to-s
     hyah.mp3    "[shouting] HYAH!"
     gotcha.mp3  "[smug] Gotcha!"
 
+The words before the last fight were generated the same way. The Captain uses the guard's voice;
+the dev ("YOU") is the voice "Will - Relaxed Optimist":
+
+    boss_line_1.mp3  "[shouting, angry] HALT! Nobody ships an unfinished game on MY watch!"
+    dev_line_1.mp3   "[tired, deadpan] It's three forty-seven in the morning. I'm shipping it."
+    boss_line_2.mp3  "[mocking, shouting] With WHAT? You never even modelled a sword! [laughs loudly]"
+    dev_line_2.mp3   "[calm, confident] I don't need one. The old game still has its sword. And every coin I found makes it sharper."
+    boss_line_3.mp3  "[shouting, furious] Then come and TAKE your build!"
+    boss_line_4.mp3  "[defeated, grumbling] Fine... ship it. But fix that bridge."
+
 This script turns them into the kind of speech sample a 1989 game could play, so the voice sits with
 the chip sounds instead of on top of them:
 
@@ -17,7 +27,8 @@ the chip sounds instead of on top of them:
 
 Run (needs ffmpeg on the PATH or at C:/ffmpeg/bin, plus numpy and scipy):
     python tools/gen_voice.py
-Writes Assets/Resources/Audio/guard_say_<name>.wav
+Writes Assets/Resources/Audio/guard_say_<name>.wav for the guard's shouts and
+Assets/Resources/Audio/<name>.wav for the lines of the last scene.
 """
 import os
 import shutil
@@ -36,7 +47,11 @@ CEILING = 0.89              # ...and its peaks are rounded off below this
 HERE = os.path.dirname(os.path.abspath(__file__))
 SRC = os.path.join(HERE, "voice_src")
 OUT = os.path.normpath(os.path.join(HERE, "..", "Assets", "Resources", "Audio"))
-LINES = ["halt", "hey", "stop", "hyah", "gotcha"]
+# source file (without .mp3) -> name of the .wav the game loads
+LINES = [("halt", "guard_say_halt"), ("hey", "guard_say_hey"), ("stop", "guard_say_stop"),
+         ("hyah", "guard_say_hyah"), ("gotcha", "guard_say_gotcha"),
+         ("boss_line_1", "boss_line_1"), ("dev_line_1", "dev_line_1"), ("boss_line_2", "boss_line_2"),
+         ("dev_line_2", "dev_line_2"), ("boss_line_3", "boss_line_3"), ("boss_line_4", "boss_line_4")]
 
 
 def ffmpeg_exe():
@@ -99,12 +114,12 @@ def write_wav(path, x):
 
 def main():
     os.makedirs(OUT, exist_ok=True)
-    for name in LINES:
+    for name, out_name in LINES:
         x = decode(os.path.join(SRC, name + ".mp3"))
         x = fades(crush(trim(x)))
         x *= 10.0 ** (LOUDNESS_DB / 20.0) / max(1e-9, np.sqrt(np.mean(x ** 2)))
         x = np.tanh(x / CEILING) * CEILING
-        out = os.path.join(OUT, "guard_say_%s.wav" % name)
+        out = os.path.join(OUT, out_name + ".wav")
         write_wav(out, x)
         rms = 20.0 * np.log10(max(1e-9, np.sqrt(np.mean(x ** 2))))
         print("%-22s %.2f s   peak %.1f dB   rms %.1f dB" % (os.path.basename(out), len(x) / SR, 20.0 * np.log10(np.abs(x).max()), rms))
