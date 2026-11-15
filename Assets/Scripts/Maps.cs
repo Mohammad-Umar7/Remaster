@@ -81,6 +81,11 @@ public static class Maps
     // a guard's strike, in seconds: cock the spear back, thrust, then wobble back to rest
     public const float GuardWindup = 0.17f, GuardStrike = 0.09f, GuardRecover = 0.52f;
     public const float GuardImpactAt = 0.235f;      // when the spear lands and the heart is lost
+    public const float GuardReach = 1.05f;          // tiles: the spear lands only if you are still this close when it arrives
+    // the chase: a guard whose ring you stepped into comes after you, then gives up and walks back
+    public const float ChaseLeash = 3.2f;           // tiles it will go from where it left its patrol
+    public const float ChaseSeconds = 4.5f;         // or this long since its last strike, whichever comes first
+    public const float ChaseLose = 4.2f;            // tiles: get this far away and it loses you
 
     static int[] L(params int[] v) { return v; }
     static Vector2Int K(int x, int r) { return new Vector2Int(x, r); }
