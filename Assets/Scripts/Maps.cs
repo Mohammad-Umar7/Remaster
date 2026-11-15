@@ -98,8 +98,11 @@ public static class Maps
         {
             title = "THE MISSING BRIDGE",
             todo = "model the bridge",
-            note = "TODO: model the bridge.\nCollision already works!\n(check the old game!)",
+            note = "TODO: model the bridge.\nIt holds, but every plank\nSNAPS behind you!",
             finish = 0.92f, needBridge = true,
+            // The bridge only exists in the old game, and it is made of old planks: each one snaps a moment
+            // after you step off it, so there is no going back the way you came (the second column is the
+            // way back, once). If you use up both, the room puts itself back.
             // the key hangs in plain sight across the pit; one slow guard circles it
             key = K(9, 2),
             guards = new[] { new SlimeDef(0.7f, 0.55f, 8,1, 10,1, 10,3, 8,3) },
@@ -109,9 +112,9 @@ public static class Maps
                 "#....C.C....#",
                 "#...........#",
                 "#...........#",
-                "#~~~~~BB~~~~#",
-                "#~~~~~Bc~~~~#",
-                "#~~~~~BB~~~~#",
+                "#~~~~~oo~~~~#",
+                "#~~~~~ok~~~~#",
+                "#~~~~~oo~~~~#",
                 "#....N......#",
                 "#...........#",
                 "#...........#",
