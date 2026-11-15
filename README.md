@@ -16,7 +16,7 @@ It is 3:47 AM. You are remaking a 1989 pixel game, TINY KEEP, in 3D. You fall as
 
 Neither world is enough on its own. The old game knows everything that is **old**: where the floor really is, where the slimes are, which planks are about to blink out. The remake knows everything that is **new**: every exit is locked until you find that room's key, and guards patrol the rooms. Keys and guards are never drawn in the old game, so you find the key and dodge the guards with your own eyes, in 3D. A guard notices you when you come close: it chirps and shouts "HALT!" in a crunchy 1989 speech sample, a "!" pops over its head, it turns its face to you and lowers its spear, and its footsteps get louder the nearer it is. Step inside the red ring at its feet and it strikes: it cocks the spear back, lunges, and you are knocked back with a BONK and lose a heart. The shove never pushes you into a pit. And from then on it is after you: it leaves its patrol and follows you for a few tiles, striking again if it catches up. Get far enough away and it gives up, walks back the way it came and carries on guarding. Sprint out from under the spear and it misses. Your hearts are shown in the 3D view too, next to the room checklist, so you never have to look away from a guard to see how many are left.
 
-You walk in first person through eight short rooms. Each room has one note from your past self and one thing the remake gets wrong.
+You walk in first person through seven short rooms. Each room has one note from your past self and one thing the remake gets wrong.
 
 1. **The Missing Bridge** - trust the old game and walk across thin air.
 2. **Placeholder Wall** - some walls are only decoration.
@@ -24,10 +24,9 @@ You walk in first person through eight short rooms. Each room has one note from 
 4. **Screen Wrap** - use the 1989 bug to get behind a gate.
 5. **Sprite Flicker** - two groups of planks take turns existing. You can hear the beat.
 6. **One-Way Maze** - old planks snap after one step. Three ways in, one true route, and every dead end is final, so solve the maze in the old game before you walk it.
-7. **Ship It** - the unfinished floor deletes itself behind you. Run.
-8. **The Captain** - the last room is a fight. The Captain of the guards is new in the remake, so the old game shows an empty hall.
+7. **The Captain** - the last room is a fight. The Captain of the guards is new in the remake, so the old game shows an empty hall.
 
-The keys get harder to reach and the guards get faster as you go: in room 1 the key hangs in plain sight with one slow guard circling it; in room 6 you fetch it from one end of the start floor before you can solve the maze from the other, and in room 7 it is a detour while the floor is deleting itself.
+The keys get harder to reach and the guards get faster as you go: in room 1 the key hangs in plain sight with one slow guard circling it; in room 6 you fetch it from one end of the start floor before you can solve the maze from the other.
 
 ### The Captain
 
@@ -74,7 +73,7 @@ A gamepad also works (left stick move, right stick look, X or the right bumper t
 
 ## How it is built
 
-- `Assets/Scripts/Maps.cs` holds the eight rooms as text grids. One grid describes both games, so the 3D world and the pixel game can never disagree by accident.
+- `Assets/Scripts/Maps.cs` holds the seven rooms as text grids. One grid describes both games, so the 3D world and the pixel game can never disagree by accident.
 - `World3D.cs` builds the 3D rooms; collision comes from the old game's truth, not from what is drawn.
 - `PixelGame.cs` / `PixelScreen.cs` draw the 1989 game into a 208x192 software framebuffer from `Assets/Resources/pixelart.txt`.
 - `HandheldConsole.cs` builds the handheld and the hand that holds it out of simple shapes, as part of the 3D view, and shows the old game on its screen.
