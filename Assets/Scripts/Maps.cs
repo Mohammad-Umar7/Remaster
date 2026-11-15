@@ -76,6 +76,8 @@ public static class Maps
     public const float GuardHit = 0.5f;     // a guard catches you within this many tiles (one metre)
     public const float GuardClear = 0.74f;  // what the auto-walker keeps away from a guard (it is not always dead centre)
     public const float KeyReach = 0.95f;    // metres: how close you have to get to pick the key up
+    public const float GuardAlert = 1.9f;   // tiles: a guard notices you this close (it chirps, turns its head, lowers its spear)
+    public const float GuardCalm = 2.7f;    // tiles: and forgets you again this far away
 
     static int[] L(params int[] v) { return v; }
     static Vector2Int K(int x, int r) { return new Vector2Int(x, r); }
