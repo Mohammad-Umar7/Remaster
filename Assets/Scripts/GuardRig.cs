@@ -129,4 +129,31 @@ public class GuardRig
     /// <summary>Yaw (degrees) of a direction given in tile space, where y points down the screen (-Z).</summary>
     public static float YawOf(Vector2 tileDir) { return Mathf.Atan2(tileDir.x, -tileDir.y) * Mathf.Rad2Deg; }
 
+    /// <summary>
+    /// Work out this frame's pose from the guard's state: its patrol step, how alert it is,
+    /// and how far into a spear strike it is.
+    /// </summary>
+    public static GuardPose Compute(Room room, Slime gs, GuardAnim an, float dt)
+    {
+        var p = new GuardPose();
+        p.visible = !gs.gone;
+        p.squash = 1f;
+        if (gs.gone) return p;
+
+        // --- marching: one step per hop, the front foot lands on the beat (when the step sound plays)
+        float phase = Mathf.PI * (gs.steps + Mathf.Clamp01(gs.hopClock / gs.hopPeriod));
+        float stride = Mathf.Cos(phase);                    // +1 left foot forward, -1 right foot forward
+        float rise = 1f - Mathf.Abs(stride);                // 0 as a foot lands, 1 as the legs pass
+        p.legL = stride * -34f; p.legR = stride * 34f;
+        p.bob = rise * 0.05f;
+        p.roll = stride * 3.5f;
+        p.twist = stride * 7f;
+        p.lean = 3f;
+        p.spear = -5f - stride * 5f;
+        p.shield = stride * 9f;
+        p.headYaw = -p.twist * 0.7f;                        // the head stays on course while the shoulders swing
+        p.headPitch = -rise * 2.5f;
+
+        return p;
+    }
 }
