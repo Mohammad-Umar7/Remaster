@@ -22,6 +22,11 @@ public class Slime
     public Vector2 attackDir = Vector2.up;  // which way the strike goes, in tile space
     public float attackReach;               // metres it lunges (or hops back) so it ends a spear's length from you
     public Vector2 lookAt;                  // where you are, in tile units (for its head)
+    // the chase (guards only): step inside its ring and it leaves its patrol to come after you, for a few
+    // tiles or a few seconds. Then it walks back the way it came and carries on where it left off.
+    public int mode;                        // 0 on patrol, 1 chasing you, 2 walking back to its patrol
+    public float chaseClock, chaseT;        // seconds on this chase; 0..1 eased, for how it looks
+    public readonly List<Vector2> trail = new List<Vector2>();     // breadcrumbs: the way back (first = where it left the loop)
     readonly float[] seg;
 
     public Slime(SlimeDef def)
@@ -42,6 +47,7 @@ public class Slime
     {
         d = def.phase * total; hopClock = 0f; hitFlash = 0f; steps = 0; gone = false;
         alerted = false; alertT = 0f; bangT = -1f; attackT = -1f; attackSwung = false; attackLanded = false;
+        mode = 0; chaseClock = 0f; chaseT = 0f; trail.Clear();
         pos = PosAtDistance(d);
         Vector2 ahead = PosAtDistance((d + 0.05f) % total) - pos;
         if (ahead.sqrMagnitude > 1e-6f) dir = ahead.normalized;
@@ -49,19 +55,30 @@ public class Slime
 
     public void Tick(float dt)
     {
-        d = (d + def.speed * dt) % total;
-        Vector2 before = pos;
-        pos = PosAtDistance(d);
-        Vector2 moved = pos - before;
-        if (moved.sqrMagnitude > 1e-8f) dir = moved.normalized;
+        if (mode == 0)
+        {
+            // on patrol: along the loop. (Off it, the game moves the guard and the loop waits where it was left.)
+            d = (d + def.speed * dt) % total;
+            Vector2 before = pos;
+            pos = PosAtDistance(d);
+            Vector2 moved = pos - before;
+            if (moved.sqrMagnitude > 1e-8f) dir = moved.normalized;
+        }
         hopped = false;
-        hopClock += dt;
+        hopClock += dt * (mode == 1 ? 1.4f : 1f);       // a chasing guard takes quicker steps
         if (hopClock >= hopPeriod) { hopClock -= hopPeriod; hopped = true; steps++; }
         if (hitFlash > 0f) hitFlash -= dt;
     }
 
-    /// <summary>Where this slime will be in <paramref name="seconds"/> (it follows a fixed loop).</summary>
-    public Vector2 PosIn(float seconds) { return PosAtDistance((d + def.speed * Mathf.Max(0f, seconds)) % total); }
+    /// <summary>
+    /// Where this slime will be in <paramref name="seconds"/> (it follows a fixed loop).
+    /// A guard that is off its loop cannot be predicted: it is treated as staying where it is.
+    /// </summary>
+    public Vector2 PosIn(float seconds)
+    {
+        if (mode != 0) return pos;
+        return PosAtDistance((d + def.speed * Mathf.Max(0f, seconds)) % total);
+    }
 
     Vector2 PosAtDistance(float dist)
     {
@@ -131,7 +148,7 @@ public class GameManager : MonoBehaviour
     public const float WaveInterval = 1.8f, CrumbleTime = 0.75f, PlankBreakDelay = 0.32f;
     int lastTileX = -99, lastTileR = -99;
     bool firstBridge, firstFake, firstWrap, firstCoin, firstSlime, firstFall, firstBreak, firstFlicker, firstLaser, chipFoot;
-    bool firstKey, firstLocked, firstGuardSeen, firstGuardHit;
+    bool firstKey, firstLocked, firstGuardSeen, firstGuardHit, firstChase;
     float lockedCooldown;
     int hitStopId;
     bool[] hasOneUse;
