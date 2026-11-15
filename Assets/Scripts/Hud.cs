@@ -33,6 +33,15 @@ public class Hud : MonoBehaviour
     RawImage[] heartFills, heartLines;
     readonly float[] heartPunch = new float[GameManager.MaxHearts];
     int shownHearts = -1;
+    // start menu: two sticky notes, START and QUIT
+    public int menuIndex;
+    RectTransform[] menuNotes;
+    RectTransform menuArrow;
+    Image[] menuBacks;
+    Text[] menuLabels, menuSubs;
+    readonly float[] menuSel = { 1f, 0f }, menuTilt = { -3f, 2.6f };
+    readonly Color[] menuCols = { Pal.Sticky, Pal.Hex("f7a8c4") };
+    float menuPunch;
     float popupTimer, toastTimer, hintTimer, hurtTimer, coinPulse, captionAlpha, captionTarget;
     float fadeTarget, fadeSpeed = 3f;
     float floatIn = 1f, floatScale = 1f, floatScaleTarget = 1f, lastYaw, yawVel, swayX, swayTilt, stepKick, checkPulse;
@@ -270,11 +279,32 @@ public class Hud : MonoBehaviour
         Txt(sub, "a game about an <color=#ef5d5d>unfinished</color> game", 46, Pal.Ink, TextAnchor.MiddleLeft);
         card.gameObject.AddComponent<Boil>().degrees = 0.35f;
 
-        var press = Box("Press", t, new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(0, 150), new Vector2(900, 80));
-        Img(press, TexLib.panelSprite, Pal.Sticky, true);
-        var pressT = Rect("T", press, Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
-        pressText = Txt(pressT, "press any key to keep working...", 44, Pal.Ink, TextAnchor.MiddleCenter);
-        press.gameObject.AddComponent<Boil>().degrees = 0.5f;
+        // The start menu: two sticky notes stuck on the dev's window, next to the "TODO: sleep" note on the wall.
+        // START keeps you working on the remake; QUIT finally does that TODO.
+        string[] names = { "START", "QUIT" }, subs = { "keep working on the remake", "go to sleep at last" };
+        Vector2[] pos = { new Vector2(-352, 292), new Vector2(-338, 70) }, size = { new Vector2(450, 204), new Vector2(380, 168) };
+        menuNotes = new RectTransform[2]; menuBacks = new Image[2]; menuLabels = new Text[2]; menuSubs = new Text[2];
+        for (int i = 0; i < 2; i++)
+        {
+            // the outer rect is moved and scaled by the selection; the inner one "boils" like the other paper bits
+            var note = Box("Menu" + names[i], t, new Vector2(1, 0.5f), new Vector2(0.5f, 0.5f), pos[i], size[i]);
+            var inner = Rect("Inner", note, Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
+            menuBacks[i] = Img(inner, TexLib.panelSprite, menuCols[i], true);
+            var tape = Box("Tape", inner, new Vector2(0.5f, 1), new Vector2(0.5f, 0.5f), new Vector2(0, -2), new Vector2(140, 38));
+            Raw(tape, TexLib.tape, Pal.A(Pal.White, 0.85f)).transform.localRotation = Quaternion.Euler(0, 0, i == 0 ? 4f : -5f);
+            var lb = Rect("Label", inner, new Vector2(0, 0.33f), new Vector2(1, 1), new Vector2(10, 0), new Vector2(-10, -16));
+            menuLabels[i] = Txt(lb, names[i], i == 0 ? 108 : 88, Pal.Ink, TextAnchor.MiddleCenter, TexLib.title);
+            var sb = Rect("Sub", inner, new Vector2(0, 0), new Vector2(1, 0.36f), new Vector2(10, 12), new Vector2(-10, 0));
+            menuSubs[i] = Txt(sb, subs[i], i == 0 ? 30 : 27, Pal.Hex("4a3d1e"), TextAnchor.MiddleCenter);
+            inner.gameObject.AddComponent<Boil>().degrees = 0.35f;
+            note.localRotation = Quaternion.Euler(0, 0, menuTilt[i]);
+            menuNotes[i] = note;
+        }
+        menuArrow = Box("MenuArrow", t, new Vector2(1, 0.5f), new Vector2(0.5f, 0.5f), pos[0] + new Vector2(-size[0].x * 0.5f - 74f, 0), new Vector2(104, 104));
+        Raw(menuArrow, TexLib.arrow, Pal.Red);
+        var mh = Box("MenuHint", t, new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(0, 36), new Vector2(1400, 48));
+        var mht = Txt(mh, "W / S  or  arrows   choose          Enter   select          or click a note", 32, Pal.Paper, TextAnchor.MiddleCenter);
+        Halo(mht, Pal.A(Pal.Ink, 0.85f), 2f);
 
         var jam = Box("Jam", t, new Vector2(0, 0), new Vector2(0, 0), new Vector2(40, 30), new Vector2(1200, 40));
         var jt = Txt(jam, "SHIFT Game Jam 2026   ·   theme: Between Two Worlds", 28, Pal.Paper, TextAnchor.MiddleLeft);
@@ -352,7 +382,24 @@ public class Hud : MonoBehaviour
 
     // ------------------------------------------------------------------ public controls
     public void ShowPlayUi(bool on) { playUi.SetActive(on); }
-    public void ShowTitle(bool on) { titleUi.SetActive(on); }
+    public void ShowTitle(bool on)
+    {
+        titleUi.SetActive(on);
+        if (on) { menuIndex = 0; menuPunch = 0f; }
+    }
+
+    /// <summary>Highlight a start-menu note (0 = START, 1 = QUIT).</summary>
+    public void SetMenu(int i) { menuIndex = Mathf.Clamp(i, 0, 1); }
+    /// <summary>The chosen note jumps when you pick it.</summary>
+    public void PunchMenu() { menuPunch = 1f; }
+    /// <summary>Which start-menu note is under this screen point (-1 for none).</summary>
+    public int MenuAt(Vector2 screenPoint)
+    {
+        if (menuNotes == null || !titleUi.activeSelf) return -1;
+        for (int i = 0; i < menuNotes.Length; i++)
+            if (RectTransformUtility.RectangleContainsScreenPoint(menuNotes[i], screenPoint, null)) return i;
+        return -1;
+    }
     public void ShowPause(bool on) { pauseUi.SetActive(on); }
 
     public void ToggleFloatSize()
@@ -539,6 +586,7 @@ public class Hud : MonoBehaviour
 
         if (titleUi.activeSelf && pressText != null)
             pressText.color = Pal.A(Pal.Ink, 0.55f + 0.45f * Mathf.Sin(Time.unscaledTime * 3.2f));
+        if (titleUi.activeSelf && menuNotes != null) UpdateMenu(dt);
 
         Color fc = fade.color;
         fc.a = Mathf.MoveTowards(fc.a, fadeTarget, dt * fadeSpeed);
@@ -571,6 +619,29 @@ public class Hud : MonoBehaviour
             heartRects[i].localScale = new Vector3(s, s, 1f);
             heartRects[i].localRotation = Quaternion.Euler(0, 0, (i - 1) * -6f + Mathf.Sin(Time.unscaledTime * 40f) * 14f * k);
         }
+    }
+
+    /// <summary>The picked note grows, rocks a little and gets the red arrow; the other one sits back and dims.</summary>
+    void UpdateMenu(float dt)
+    {
+        float tt = Time.unscaledTime;
+        menuPunch = Mathf.Max(0f, menuPunch - dt * 3.2f);
+        for (int i = 0; i < menuNotes.Length; i++)
+        {
+            bool sel = i == menuIndex;
+            menuSel[i] = Mathf.Lerp(menuSel[i], sel ? 1f : 0f, 1f - Mathf.Exp(-14f * dt));
+            float s = Mathf.Lerp(0.9f, 1.07f, menuSel[i]) + (sel ? menuPunch * menuPunch * 0.22f : 0f);
+            menuNotes[i].localScale = new Vector3(s, s, 1f);
+            menuNotes[i].localRotation = Quaternion.Euler(0, 0, menuTilt[i] + (sel ? Mathf.Sin(tt * 3.4f) * 1.5f : 0f));
+            float dim = Mathf.Lerp(0.7f, 1f, menuSel[i]);
+            Color c = menuCols[i];
+            menuBacks[i].color = new Color(c.r * dim, c.g * dim, c.b * dim, 1f);
+            menuLabels[i].color = Pal.A(Pal.Ink, Mathf.Lerp(0.55f, 1f, menuSel[i]));
+            menuSubs[i].color = Pal.A(Pal.Hex("4a3d1e"), Mathf.Lerp(0.5f, 1f, menuSel[i]));
+        }
+        var target = menuNotes[menuIndex];
+        Vector2 want = target.anchoredPosition + new Vector2(-target.sizeDelta.x * 0.5f - 78f + Mathf.Sin(tt * 6f) * 9f, 0);
+        menuArrow.anchoredPosition = Vector2.Lerp(menuArrow.anchoredPosition, want, 1f - Mathf.Exp(-18f * dt));
     }
 
     /// <summary>The old game's window hovers: it drifts, lags behind when you turn, and bumps when things happen.</summary>
