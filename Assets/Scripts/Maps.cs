@@ -88,6 +88,9 @@ public static class Maps
             todo = "model the bridge",
             note = "TODO: model the bridge.\nCollision already works!\n(check the old game  -->)",
             finish = 0.92f, needBridge = true,
+            // the key hangs in plain sight across the pit; one slow guard circles it
+            key = K(9, 2),
+            guards = new[] { new SlimeDef(0.7f, 0.55f, 8,1, 10,1, 10,3, 8,3) },
             rows = new[]
             {
                 "######X######",
@@ -109,6 +112,9 @@ public static class Maps
             todo = "give walls collision",
             note = "TODO: some walls are\nonly decoration.\nNo collision yet.",
             finish = 0.85f, needFake = true,
+            // the key is a few steps down the first hidden passage; a slow guard paces in front of the exit
+            key = K(2, 6),
+            guards = new[] { new SlimeDef(0.9f, 0.30f, 1,1, 11,1) },
             rows = new[]
             {
                 "######X######",
@@ -130,6 +136,10 @@ public static class Maps
             todo = "model the slimes",
             note = "TODO: model the slimes.\nThey only exist in the\nold game. They still bite.",
             finish = 0.6f, needBridge = true,
+            // the key floats over a bridge that only the old game shows, right on the slimes' lap;
+            // a guard paces the ledge in front of the exit
+            key = K(7, 3),
+            guards = new[] { new SlimeDef(1.0f, 0.15f, 4,1, 11,1) },
             slimes = new[]
             {
                 new SlimeDef(1.45f, 0.55f, 6,6, 10,6, 10,7, 6,7),
@@ -157,6 +167,14 @@ public static class Maps
             note = "KNOWN BUG since 1989:\nexit LEFT, appear RIGHT.\nWON'T FIX.",
             wrap = true, needWrap = true,
             finish = 0.5f,
+            // the key is at the far end of the hall behind the gate, and a guard laps that hall;
+            // another one circles the way to the screen edge
+            key = K(2, 1),
+            guards = new[]
+            {
+                new SlimeDef(1.1f, 0.00f, 1,5, 4,5, 4,7, 1,7),
+                new SlimeDef(1.2f, 0.25f, 1,1, 11,1, 11,2, 1,2),
+            },
             rows = new[]
             {
                 "######X######",
