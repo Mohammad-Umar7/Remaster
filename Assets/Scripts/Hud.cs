@@ -380,7 +380,7 @@ public class Hud : MonoBehaviour
         var h = Box("H", card, new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(0, -34), new Vector2(740, 110));
         Txt(h, "coffee break", 92, Pal.Ink, TextAnchor.MiddleCenter, TexLib.title);
         var b = Box("B", card, new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(0, 40), new Vector2(700, 320));
-        var bt = Txt(b, "<b>Esc</b>   back to work\n<b>R</b>   restart this room\n<b>Tab</b>   raise / lower the old game\n<b>1 - 8</b>   jump to a room\n<b>Q</b>   quit to the title", 40, Pal.Ink, TextAnchor.MiddleCenter);
+        var bt = Txt(b, "<b>Esc</b>   back to work\n<b>R</b>   restart this room\n<b>N</b>   skip to the next room\n<b>B</b>   skip to the boss fight\n<b>Tab</b>   raise / lower the old game\n<b>1 - " + Maps.Defs.Length + "</b>   jump to a room\n<b>Q</b>   quit to the title", 34, Pal.Ink, TextAnchor.MiddleCenter);
         bt.lineSpacing = 1.05f;
         card.gameObject.AddComponent<Boil>().degrees = 0.3f;
     }
