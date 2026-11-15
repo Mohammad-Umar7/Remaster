@@ -150,6 +150,23 @@ public class AudioDirector : MonoBehaviour
         s.Play();
     }
 
+    /// <summary>
+    /// A placed sound with its own pitch. <paramref name="spatial"/> 0..1: how much it comes from its place
+    /// (below 1 some of it is always heard, so the caller can make "nearer = louder" with the volume).
+    /// </summary>
+    public void PlayAt(string name, Vector3 pos, float volume, float pitchJitter, float basePitch, float spatial)
+    {
+        var c = Clip(name);
+        if (c == null) return;
+        var s = Free();
+        s.transform.position = pos;
+        s.spatialBlend = Mathf.Clamp01(spatial);
+        s.pitch = basePitch + (pitchJitter > 0f ? Random.Range(-pitchJitter, pitchJitter) : 0f);
+        s.volume = volume;
+        s.clip = c;
+        s.Play();
+    }
+
     public void LoopTone(string name, float volume)
     {
         var c = Clip(name);
