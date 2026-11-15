@@ -2,7 +2,7 @@
 
 *A game about an unfinished game.* Made for the SHIFT Game Jam 2026 (theme: **Between Two Worlds**).
 
-It is 3:47 AM. You are remaking a 1989 pixel game, TINY KEEP, in 3D. You fall asleep at your desk and wake up inside the unfinished remake. The old game is still running in a little window floating beside you, and it is the only thing that knows what is really there.
+It is 3:47 AM. You are remaking a 1989 pixel game, TINY KEEP, in 3D. You fall asleep at your desk and wake up inside the unfinished remake. The old game is still running in a little window floating beside you, and it knows what is really there. But the remake has things the old game never had, so you need both.
 
 ## The two worlds
 
@@ -12,6 +12,9 @@ It is 3:47 AM. You are remaking a 1989 pixel game, TINY KEEP, in 3D. You fall as
 | Fancy decoration walls | look solid | not in the old game, walk through |
 | Slimes and coins | never modelled | there, they bite, they count |
 | The screen-wrap bug | space just repeats | exit left, appear right |
+| **Keys and guards** (new in the remake) | there, in plain sight | the old game has never heard of them |
+
+Neither world is enough on its own. The old game knows everything that is **old**: where the floor really is, where the slimes are, when a laser is coming. The remake knows everything that is **new**: every exit is locked until you find that room's key, and guards patrol the rooms. Keys and guards are never drawn in the pixel window, so you find the key and dodge the guards with your own eyes, in 3D. A guard catches you if you step inside the red ring at its feet. Your hearts are shown in the 3D view too, next to the room checklist, so you never have to look away from a guard to see how many are left.
 
 You walk in first person through eight short rooms. Each room has one note from your past self and one thing the remake gets wrong.
 
@@ -23,6 +26,8 @@ You walk in first person through eight short rooms. Each room has one note from 
 6. **Three Seconds Late** - the old game is three seconds ahead: it shows each laser before the remake fires it.
 7. **One-Way Maze** - old planks snap after one step. Three ways in, one true route, and every dead end is final, so solve the maze in the old game before you walk it.
 8. **Ship It** - the unfinished floor deletes itself behind you. Run.
+
+The keys get harder to reach and the guards get faster as you go: in room 1 the key hangs in plain sight with one slow guard circling it; by room 6 it sits inside a guard's ring under the lasers, and in the last room it is a detour while the floor is deleting itself.
 
 The soundtrack is one tune in two arrangements. It starts as a chip tune, and every room you clear adds a "remastered" instrument, so finishing the game finishes its soundtrack.
 
@@ -57,8 +62,8 @@ A gamepad also works (left stick move, right stick look).
 
 ## Tests
 
-- `MapValidator.RunAll()` checks every room can be finished and really needs its trick.
-- `Remaster.exe -autopilot` plays the whole game by itself and logs `[AUTOPILOT] DONE ...`. It plans in space and time (every hazard follows a fixed pattern), so it also proves the slime, flicker and laser timings are beatable. Add `-batchmode` to run it without a window.
+- `MapValidator.RunAll()` checks every room can be finished and really needs its trick, that its key can be reached, and that guards only walk on real floor and never over the spawn point.
+- `Remaster.exe -autopilot` plays the whole game by itself and logs `[AUTOPILOT] DONE ...`. It fetches each key and then leaves, planning in space and time (every hazard follows a fixed pattern), so it also proves the guard, slime, flicker and laser timings are beatable. Add `-batchmode` to run it without a window.
 - `tools/pt.sh` drives the same checks inside the open Unity Editor.
 
 See [CREDITS.md](CREDITS.md) for every tool and asset used.
