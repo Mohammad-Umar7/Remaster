@@ -5,7 +5,9 @@ using UnityEngine;
 /// Test driver: plays the whole game by itself, to prove every room can be finished in the real build.
 /// It plans in space AND time: every hazard in the game follows a fixed pattern (slime loops, flicker
 /// planks, laser volleys, the deleting floor), so it searches for a route of "step" and "wait" moves
-/// that is safe at the moment each tile is stood on. Start the game with -autopilot.
+/// that is safe at the moment each tile is stood on. Guards are in that search too.
+/// Each room is two errands: fetch the key (the exit is locked without it), then walk out.
+/// Start the game with -autopilot.
 /// </summary>
 public class Autopilot : MonoBehaviour
 {
@@ -23,7 +25,7 @@ public class Autopilot : MonoBehaviour
     float waitUntil, shotClock, runClock, stuckClock, noPlanLog;
     List<Vector3> exitPath; int exitIndex;
     int plannedRoom = -1, shotIndex, lastFalls, lastHits, lastRoomLogged = -1;
-    bool done;
+    bool done, lastNeedKey;
 
     void Start()
     {
@@ -54,8 +56,11 @@ public class Autopilot : MonoBehaviour
     struct Act { public bool move; public int x, r; public bool wrap; public int wrapDir; }
     int[] prev, moves;
 
-    /// <summary>Breadth-first search over (tile, time step). Returns the first action of the quickest safe route to the exit.</summary>
-    bool PlanFirstAction(Room room, Vector2Int from, out Act first)
+    /// <summary>
+    /// Breadth-first search over (tile, time step). Returns the first action of the quickest safe route to
+    /// <paramref name="goalTile"/>. While the exit is locked it counts as a wall.
+    /// </summary>
+    bool PlanFirstAction(Room room, Vector2Int from, Vector2Int goalTile, bool exitLocked, out Act first)
     {
         first = new Act();
         int ri = room.index;
@@ -67,7 +72,7 @@ public class Autopilot : MonoBehaviour
         int startId = (from.y * W + from.x);
         prev[startId] = -1; moves[startId] = 0;
         int goal = -1;
-        int exitCell = room.exit.y * W + room.exit.x;
+        int exitCell = goalTile.y * W + goalTile.x;
         int[] dx = { 0, 1, 0, -1 }, dr = { -1, 0, 1, 0 };
         // Sweep forward in time, one layer per step. Every action moves forward in time, so when a layer
         // is reached all the ways into it are known: the first layer that contains the exit is the
@@ -99,6 +104,7 @@ public class Autopilot : MonoBehaviour
                         if (nx < 0) nx = W - 1; else if (nx >= W) nx = 0;
                     }
                     if (!room.In(nx, nr) || !room.TruthWalkable(nx, nr)) continue;
+                    if (exitLocked && nx == room.exit.x && nr == room.exit.y) continue;
                     int nid = (k + MoveSteps) * cells + nr * W + nx;
                     if (m + 1 >= moves[nid]) continue;
                     float arrive = t + MoveSteps * Step;
@@ -168,7 +174,15 @@ public class Autopilot : MonoBehaviour
         int tx, tr;
         room.WorldToTile(p, out tx, out tr);
         if (!room.In(tx, tr)) { GameInput.overrideMove = Vector2.zero; return; }
-        if (tx == room.exit.x && tr == room.exit.y) { leaving = true; BuildExitPath(room); return; }
+        // errand one: the key. It only exists in the 3D remake, and the exit stays shut without it.
+        bool needKey = !gm.ExitOpen(gm.cur);
+        Vector2Int goal = needKey ? room.def.key : room.exit;
+        if (needKey != lastNeedKey)
+        {
+            lastNeedKey = needKey;
+            if (!needKey) Note("key taken in room " + (gm.cur + 1) + " at t=" + gm.time.ToString("0.0"));
+        }
+        if (!needKey && tx == room.exit.x && tr == room.exit.y) { leaving = true; BuildExitPath(room); return; }
 
         if (hasTarget)
         {
@@ -193,8 +207,15 @@ public class Autopilot : MonoBehaviour
             return;
         }
 
+        if (needKey && tx == goal.x && tr == goal.y)
+        {
+            // standing on the key's tile: step to the middle of it and it is ours
+            WalkTo(room.TileCenter(tx, tr), p, 0.15f);
+            return;
+        }
+
         Act act;
-        if (!PlanFirstAction(room, new Vector2Int(tx, tr), out act))
+        if (!PlanFirstAction(room, new Vector2Int(tx, tr), goal, needKey, out act))
         {
             GameInput.overrideMove = Vector2.zero;
             waitUntil = Time.time + 0.2f;
