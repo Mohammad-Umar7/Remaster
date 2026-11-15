@@ -154,6 +154,11 @@ public class GuardRig
         p.headYaw = -p.twist * 0.7f;                        // the head stays on course while the shoulders swing
         p.headPitch = -rise * 2.5f;
 
+        float patrolYaw = YawOf(gs.dir);
+        an.yaw = float.IsNaN(an.yaw) ? patrolYaw : Mathf.MoveTowardsAngle(an.yaw, patrolYaw, 520f * dt);
+        p.yaw = an.yaw;
+        p.feet = room.TileFToWorld(gs.pos);
+
         return p;
     }
 }
