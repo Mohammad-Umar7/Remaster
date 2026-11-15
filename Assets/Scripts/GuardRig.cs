@@ -21,3 +21,63 @@ public class GuardAnim
     public float yaw = float.NaN, headYaw;
 }
 
+/// <summary>
+/// The keep guard, put together from six Blender-made parts so it can move like a toy soldier:
+/// it marches on its patrol, turns its head to you when you come close, cocks its spear back,
+/// lunges and strikes. There are no animation clips: every pose is worked out each frame from
+/// the guard's state, so the animation can never drift away from the rules.
+/// </summary>
+public class GuardRig
+{
+    Transform root, body, head, armSpear, armShield, legL, legR, bang, bangFill, bangLine;
+    const float S = World3D.GuardScale;
+    // joints, from the Blender model (see GUARD_ASSEMBLY in tools/gen_props_blender.py): x mirrored, y up
+    static readonly Vector3 Hip = new Vector3(0f, 0.30f, 0f), Neck = new Vector3(0f, 0.80f, 0f);
+    static readonly Vector3 ShoulderSpear = new Vector3(-0.47f, 0.62f, 0f), ShoulderShield = new Vector3(0.47f, 0.62f, 0f);
+    const float LegX = 0.19f;
+
+    public static GuardRig Build(Transform parent)
+    {
+        var r = new GuardRig();
+        r.root = new GameObject("guard").transform;
+        r.root.SetParent(parent, false);
+        r.root.localScale = Vector3.one * S;
+        r.body = Part("guard_body", r.root, Hip);
+        r.head = Part("guard_head", r.body, Neck);
+        r.armSpear = Part("guard_arm_spear", r.body, ShoulderSpear);
+        r.armShield = Part("guard_arm_shield", r.body, ShoulderShield);
+        r.legL = Part("guard_leg", r.root, new Vector3(-LegX, Hip.y, 0f));
+        r.legR = Part("guard_leg", r.root, new Vector3(LegX, Hip.y, 0f));
+
+        // the "!" that pops over its head when it notices you: a comic burst that always faces you
+        r.bang = new GameObject("bang").transform;
+        r.bang.SetParent(parent, false);
+        r.bangFill = Flat(r.bang, TexLib.burstFill, Pal.Yellow, 1.25f, 1.25f, 0f);
+        r.bangLine = Flat(r.bang, TexLib.burst, Pal.Ink, 1.25f, 1.25f, 0.004f);
+        Flat(r.bang, TexLib.bang, Pal.Red, 0.36f, 0.72f, 0.008f);
+        r.bang.gameObject.SetActive(false);
+        return r;
+    }
+
+    static Transform Part(string name, Transform parent, Vector3 local)
+    {
+        var t = Props.Spawn(name, parent, Vector3.zero, 0f, 1f).transform;
+        t.localPosition = local; t.localRotation = Quaternion.identity; t.localScale = Vector3.one;
+        return t;
+    }
+
+    static Transform Flat(Transform parent, Texture tex, Color color, float width, float height, float lift)
+    {
+        var go = new GameObject("flat");
+        go.transform.SetParent(parent, false);
+        go.transform.localPosition = new Vector3(0f, lift, 0f);
+        go.transform.localScale = new Vector3(width, 1f, height);
+        go.AddComponent<MeshFilter>().sharedMesh = TexLib.QuadUp;
+        var mr = go.AddComponent<MeshRenderer>();
+        mr.sharedMaterial = TexLib.DecalMat(tex, color);
+        mr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+        mr.receiveShadows = false;
+        return go.transform;
+    }
+
+}
