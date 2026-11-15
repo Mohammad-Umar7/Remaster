@@ -42,6 +42,9 @@ Shader "Hidden/Remaster/SketchPost"
                 // surfaces seen at a grazing angle change depth quickly: relax the threshold there
                 float graze = 1.0 - saturate(abs(nc.z));
                 float dThresh = _DepthSens * max(dc, 0.0005) * (1.0 + 14.0 * graze * graze);
+                // depth is stored in 16 bits: right in front of the eye (the handheld) a slope steps by a bit or two,
+                // which must not be read as an edge
+                dThresh = max(dThresh, 3.0 / 65535.0);
                 float en = smoothstep(_NormalSens, _NormalSens * 1.7, nd);
                 float ed = smoothstep(dThresh, dThresh * 2.0, dd);
                 return saturate(max(en, ed));

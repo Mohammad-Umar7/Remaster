@@ -2,9 +2,9 @@ using UnityEngine;
 using UnityEngine.UI;
 
 /// <summary>
-/// The whole screen is the unfinished 3D game. The 1989 original floats over it in its own little
-/// window (it sways when you turn and bobs when you walk), and the dev's TODO checklist and
-/// sticky-note instructions are pinned inside the 3D view. Everything is hand-drawn (TexLib / Doodle).
+/// The whole screen is the unfinished 3D game. The 1989 original runs on the handheld in your left
+/// hand (see HandheldConsole), and the dev's TODO checklist and sticky-note instructions are pinned inside
+/// the 3D view. Everything is hand-drawn (TexLib / Doodle).
 /// </summary>
 public class Hud : MonoBehaviour
 {
@@ -12,12 +12,12 @@ public class Hud : MonoBehaviour
     Canvas canvas;
     RectTransform root;
     public RenderTexture fullRT;
-    RenderTexture pixelRT;
-    public bool fullscreen = true;      // true = cinematic (title, intro, ending): no floating window, no play HUD
+    public HandheldConsole handheld;           // the old game, in your left hand
+    public bool fullscreen = true;      // true = cinematic (title, intro, ending): no handheld, no play HUD
 
-    RawImage fullView, pixelView;
-    GameObject playUi, titleUi, pauseUi, resultsUi, pixelFloat;
-    RectTransform floatRect, noteRect, checkRow, keyRect;
+    RawImage fullView;
+    GameObject playUi, titleUi, pauseUi, resultsUi;
+    RectTransform noteRect, checkRow, keyRect;
     RawImage keyIcon, keyCheck;
     Text keyText, keySub;
     Image keyBack;
@@ -57,7 +57,7 @@ public class Hud : MonoBehaviour
     int talkShown;
     float talkT = -1f, talkDur = 1f, talkKick;
     bool talkAngry;
-    const string ControlsHint = "WASD  move      mouse  look      Shift  run      Tab  resize the old game      Esc  pause";
+    const string ControlsHint = "WASD  move     mouse  look     Shift  run     Tab  raise / lower the old game     Esc  pause";
     // start menu: two sticky notes, START and QUIT
     public int menuIndex;
     RectTransform[] menuNotes;
@@ -67,13 +67,13 @@ public class Hud : MonoBehaviour
     readonly float[] menuSel = { 1f, 0f }, menuTilt = { -3f, 2.6f };
     readonly Color[] menuCols = { Pal.Sticky, Pal.Hex("f7a8c4") };
     float menuPunch;
-    float popupTimer, toastTimer, hintTimer, hurtTimer, coinPulse, captionAlpha, captionTarget;
+    float popupTimer, toastTimer, hintTimer, hurtTimer, captionAlpha, captionTarget;
     float fadeTarget, fadeSpeed = 3f;
-    float floatIn = 1f, floatScale = 1f, floatScaleTarget = 1f, lastYaw, yawVel, swayX, swayTilt, stepKick, checkPulse;
-    bool floatBig = true;
+    float checkPulse;
     int lastW, lastH, pulseIndex = -1;
 
-    const float PixelW = 624f, PixelH = 576f, TitleH = 42f, Pad = 12f;
+    // the handheld fills the lower left of the view, so the messages along the bottom sit on the right
+    const float BottomShift = 300f;
 
     // ------------------------------------------------------------------ helpers
     RectTransform Rect(string name, Transform parent, Vector2 aMin, Vector2 aMax, Vector2 offMin, Vector2 offMax)
@@ -192,10 +192,10 @@ public class Hud : MonoBehaviour
             heartRects[i] = hr;
         }
 
-        // the dev's sticky note for this room: the instructions
-        noteRect = Box("Note", pu, new Vector2(0, 1), new Vector2(0, 1), new Vector2(44, -176), new Vector2(430, 196));
+        // the dev's sticky note for this room: the instructions (top right: the handheld has the left side of the view)
+        noteRect = Box("Note", pu, new Vector2(1, 1), new Vector2(1, 1), new Vector2(-44, -40), new Vector2(430, 196));
         Img(noteRect, TexLib.panelSprite, Pal.Sticky, true);
-        noteRect.localRotation = Quaternion.Euler(0, 0, -1.6f);
+        noteRect.localRotation = Quaternion.Euler(0, 0, 1.6f);
         var tape = Box("Tape", noteRect, new Vector2(0.5f, 1), new Vector2(0.5f, 0.5f), new Vector2(0, -2), new Vector2(150, 40));
         Raw(tape, TexLib.tape, Pal.A(Pal.White, 0.8f)).transform.localRotation = Quaternion.Euler(0, 0, 3f);
         var nh = Box("Head", noteRect, new Vector2(0, 1), new Vector2(0, 1), new Vector2(24, -18), new Vector2(390, 44));
@@ -209,7 +209,7 @@ public class Hud : MonoBehaviour
 
         // the key tag: keys are new in the remake, so this lives in the 3D view and never in the old game
         // (the outer rect takes the pulse when something happens; the inner one "boils" like the other paper bits)
-        keyRect = Box("KeyTag", pu, new Vector2(0, 1), new Vector2(0.5f, 0.5f), new Vector2(48 + 215, -386 - 42), new Vector2(430, 84));
+        keyRect = Box("KeyTag", pu, new Vector2(1, 1), new Vector2(0.5f, 0.5f), new Vector2(-48 - 215, -250 - 42), new Vector2(430, 84));
         var kin = Rect("Inner", keyRect, Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
         keyBack = Img(kin, TexLib.panelSprite, Pal.A(Pal.Paper, 0.95f), true);
         var ki = Box("Icon", kin, new Vector2(0, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(62, 0), new Vector2(92, 46));
@@ -226,10 +226,10 @@ public class Hud : MonoBehaviour
         var tm = Box("Timer", pu, new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(0, -22), new Vector2(300, 54));
         timerText = Txt(tm, "0:00.0", 42, Pal.Ink, TextAnchor.MiddleCenter);
         Halo(timerText, Pal.A(Pal.Paper, 0.92f), 3f);
-        var hn = Box("Hint", pu, new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(0, 34), new Vector2(1500, 48));
-        hintText = Txt(hn, ControlsHint, 32, Pal.Ink, TextAnchor.MiddleCenter);
+        var hn = Box("Hint", pu, new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(BottomShift, 34), new Vector2(1100, 48));
+        hintText = Txt(hn, ControlsHint, 28, Pal.Ink, TextAnchor.MiddleCenter);
         Halo(hintText, Pal.A(Pal.Paper, 0.92f), 3f);
-        var pb = Box("PopupBack", pu, new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(0, 170), new Vector2(1040, 92));
+        var pb = Box("PopupBack", pu, new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(BottomShift, 170), new Vector2(1040, 92));
         popupBack = Img(pb, TexLib.panelSprite, Pal.Paper, true);
         var pt = Rect("PopupText", pb, Vector2.zero, Vector2.one, new Vector2(24, 8), new Vector2(-24, -8));
         popupText = Txt(pt, "", 40, Pal.Ink, TextAnchor.MiddleCenter);
@@ -269,26 +269,8 @@ public class Hud : MonoBehaviour
         Bar(youRect, new Vector2(480, 40), Pal.Hex("3fbf6a"), GameManager.MaxHearts, out youFill, out youLag, out youFillImg);
         youRect.gameObject.SetActive(false);
 
-        // ---------- the 1989 original, floating in its own window ----------
-        float fw = PixelW + Pad * 2f, fh = PixelH + TitleH + Pad * 2f;
-        floatRect = Box("PixelFloat", root, new Vector2(1, 1), new Vector2(1, 1), new Vector2(-40, -40), new Vector2(fw, fh));
-        pixelFloat = floatRect.gameObject;
-        var sh = Rect("Shadow", floatRect, Vector2.zero, Vector2.one, new Vector2(16, -22), new Vector2(16, -22));
-        Img(sh, TexLib.whiteSprite, Pal.A(Pal.Ink, 0.28f));
-        var sh2 = Rect("Shadow2", floatRect, Vector2.zero, Vector2.one, new Vector2(8, -11), new Vector2(8, -11));
-        Img(sh2, TexLib.whiteSprite, Pal.A(Pal.Ink, 0.18f));
-        var fb = Rect("Back", floatRect, Vector2.zero, Vector2.one, new Vector2(4, 4), new Vector2(-4, -4));
-        Img(fb, TexLib.whiteSprite, Pal.K);
-        var tb = Rect("TitleBack", floatRect, new Vector2(0, 1), new Vector2(1, 1), new Vector2(5, -(TitleH + Pad)), new Vector2(-5, -5));
-        Img(tb, TexLib.whiteSprite, Pal.Paper);
-        var pv = Box("Pixels", floatRect, new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(0, Pad), new Vector2(PixelW, PixelH));
-        pixelView = Raw(pv, gm.pixel.scr.tex, Color.white);
-        var ff = Rect("Frame", floatRect, Vector2.zero, Vector2.one, new Vector2(-5, -5), new Vector2(5, 5));
-        Img(ff, TexLib.frameSprite, Pal.Ink, true);
-        var ft = Rect("Title", floatRect, new Vector2(0, 1), new Vector2(1, 1), new Vector2(22, -(TitleH + Pad) + 2), new Vector2(-22, -8));
-        Txt(ft, "tinykeep.exe   <color=#8f83c9>—  the 1989 original</color>", 28, Pal.Ink, TextAnchor.MiddleLeft);
-        var ftr = Rect("TitleR", floatRect, new Vector2(0, 1), new Vector2(1, 1), new Vector2(22, -(TitleH + Pad) + 2), new Vector2(-22, -8));
-        Txt(ftr, "<color=#1f8f84>the truth</color>", 26, Pal.Ink, TextAnchor.MiddleRight);
+        // ---------- the 1989 original, on the handheld in your left hand (part of the 3D view, not of this canvas) ----------
+        handheld = HandheldConsole.Create(gm);
 
         // ---------- full-screen overlays ----------
         var cb = Box("CaptionBack", root, new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(0, 96), new Vector2(1300, 120));
@@ -392,7 +374,7 @@ public class Hud : MonoBehaviour
         var h = Box("H", card, new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(0, -34), new Vector2(740, 110));
         Txt(h, "coffee break", 92, Pal.Ink, TextAnchor.MiddleCenter, TexLib.title);
         var b = Box("B", card, new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(0, 40), new Vector2(700, 320));
-        var bt = Txt(b, "<b>Esc</b>   back to work\n<b>R</b>   restart this room\n<b>Tab</b>   resize the old game\n<b>1 - 8</b>   jump to a room\n<b>Q</b>   quit to the title", 40, Pal.Ink, TextAnchor.MiddleCenter);
+        var bt = Txt(b, "<b>Esc</b>   back to work\n<b>R</b>   restart this room\n<b>Tab</b>   raise / lower the old game\n<b>1 - 8</b>   jump to a room\n<b>Q</b>   quit to the title", 40, Pal.Ink, TextAnchor.MiddleCenter);
         bt.lineSpacing = 1.05f;
         card.gameObject.AddComponent<Boil>().degrees = 0.3f;
     }
@@ -424,13 +406,11 @@ public class Hud : MonoBehaviour
     }
 
     // ------------------------------------------------------------------ layout + render target
-    /// <summary>full = cinematic (title / intro / ending). Otherwise the old game floats in and the play HUD shows.</summary>
+    /// <summary>full = cinematic (title / intro / ending). Otherwise you lift the handheld into view and the play HUD shows.</summary>
     public void SetLayout(bool full)
     {
-        bool was = fullscreen;
         fullscreen = full;
-        pixelFloat.SetActive(!full);
-        if (!full && was) floatIn = 0f;
+        handheld.SetShown(!full);
         EnsureTargets(true);
     }
 
@@ -473,11 +453,7 @@ public class Hud : MonoBehaviour
     }
     public void ShowPause(bool on) { pauseUi.SetActive(on); }
 
-    public void ToggleFloatSize()
-    {
-        floatBig = !floatBig;
-        floatScaleTarget = floatBig ? 1f : 0.667f;
-    }
+    public void ToggleHandheld() { handheld.Toggle(); }
 
     public void RefreshTodo()
     {
@@ -596,13 +572,16 @@ public class Hud : MonoBehaviour
         RefreshKey();
     }
 
-    /// <summary>The play HUD and the old game's window step aside for a scene, and come back after it.</summary>
+    /// <summary>The play HUD and the handheld step aside for a scene, and come back after it.</summary>
     public void SetCinema(bool on)
     {
         if (fullscreen) return;
         playUi.SetActive(!on);
-        if (pixelFloat.activeSelf == on) { pixelFloat.SetActive(!on); if (!on) floatIn = 0f; }
+        handheld.SetShown(!on);
     }
+
+    /// <summary>Put the handheld away or bring it back (the last fight is seen from outside your own head).</summary>
+    public void ShowHandheld(bool on) { if (!fullscreen) handheld.SetShown(on); }
 
     /// <summary>
     /// Somebody says a line. The words arrive one at a time over <paramref name="seconds"/> (the length of
@@ -732,9 +711,10 @@ public class Hud : MonoBehaviour
     }
 
     public void Toast(string text) { toastText.text = text; toastTimer = 3.5f; }
-    public void CoinPulse() { coinPulse = 1f; stepKick = 10f; }
-    public void HurtFlash() { hurtTimer = 0.5f; stepKick = 18f; }
-    public void StepKick(float amount) { stepKick = Mathf.Max(stepKick, amount); }
+    public void CoinPulse() { handheld.CoinPulse(); }
+    public void HurtFlash() { hurtTimer = 0.5f; handheld.Hurt(); }
+    /// <summary>A footstep jolts the handheld (the amount is in pixels of a 1080-line screen).</summary>
+    public void StepKick(float amount) { handheld.Bump(amount / 600f); }
 
     public void SetCaption(string text)
     {
@@ -797,19 +777,6 @@ public class Hud : MonoBehaviour
         EnsureTargets(false);
 
         if (gm.state == GameManager.State.Playing) timerText.text = FormatTime(gm.time);
-
-        // the old game is upscaled 3x with hard pixels first, so the tilted, floating window stays crisp
-        if (pixelFloat.activeSelf)
-        {
-            if (pixelRT == null)
-            {
-                pixelRT = new RenderTexture(PixelScreen.W * 3, PixelScreen.H * 3, 0, RenderTextureFormat.ARGB32) { name = "PixelRT", filterMode = FilterMode.Bilinear, antiAliasing = 1 };
-                pixelView.texture = pixelRT;
-            }
-            Graphics.Blit(gm.pixel.scr.tex, pixelRT);
-        }
-
-        UpdateFloat(dt);
 
         // the note pops back to rest after a new room
         noteRect.localScale = Vector3.Lerp(noteRect.localScale, Vector3.one, 1f - Mathf.Exp(-12f * dt));
@@ -925,33 +892,6 @@ public class Hud : MonoBehaviour
         var target = menuNotes[menuIndex];
         Vector2 want = target.anchoredPosition + new Vector2(-target.sizeDelta.x * 0.5f - 78f + Mathf.Sin(tt * 6f) * 9f, 0);
         menuArrow.anchoredPosition = Vector2.Lerp(menuArrow.anchoredPosition, want, 1f - Mathf.Exp(-18f * dt));
-    }
-
-    /// <summary>The old game's window hovers: it drifts, lags behind when you turn, and bumps when things happen.</summary>
-    void UpdateFloat(float dt)
-    {
-        if (!pixelFloat.activeSelf) return;
-        float t = Time.unscaledTime;
-        if (floatIn < 1f) floatIn = Mathf.Min(1f, floatIn + dt / 0.55f);
-        float pop = EaseOutBack(floatIn);
-
-        float yaw = gm.player != null ? gm.player.yaw : 0f;
-        float dy = Mathf.DeltaAngle(lastYaw, yaw);
-        lastYaw = yaw;
-        float v = dt > 0f ? dy / dt : 0f;
-        yawVel = Mathf.Lerp(yawVel, v, 1f - Mathf.Exp(-10f * dt));
-        swayX = Mathf.Lerp(swayX, Mathf.Clamp(-yawVel * 0.22f, -46f, 46f), 1f - Mathf.Exp(-6f * dt));
-        swayTilt = Mathf.Lerp(swayTilt, Mathf.Clamp(-yawVel * 0.02f, -4f, 4f), 1f - Mathf.Exp(-6f * dt));
-        stepKick = Mathf.Lerp(stepKick, 0f, 1f - Mathf.Exp(-9f * dt));
-        floatScale = Mathf.Lerp(floatScale, floatScaleTarget, 1f - Mathf.Exp(-12f * dt));
-
-        float bobY = Mathf.Sin(t * 1.25f) * 7f + Mathf.Sin(t * 2.1f + 1f) * 2.5f;
-        float bobX = Mathf.Sin(t * 0.83f + 0.4f) * 5f;
-        floatRect.anchoredPosition = new Vector2(-40f + bobX + swayX, -40f + bobY - stepKick + (1f - pop) * 40f);
-        floatRect.localRotation = Quaternion.Euler(0, 0, -1.4f + Mathf.Sin(t * 0.7f) * 0.6f + swayTilt + (1f - pop) * 14f);
-        float s = floatScale * Mathf.Max(0.001f, pop) * (1f + coinPulse * 0.035f);
-        floatRect.localScale = new Vector3(s, s, 1f);
-        coinPulse = Mathf.Max(0f, coinPulse - dt * 4f);
     }
 
     static float EaseOutBack(float t)

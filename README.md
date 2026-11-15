@@ -2,7 +2,7 @@
 
 *A game about an unfinished game.* Made for the SHIFT Game Jam 2026 (theme: **Between Two Worlds**).
 
-It is 3:47 AM. You are remaking a 1989 pixel game, TINY KEEP, in 3D. You fall asleep at your desk and wake up inside the unfinished remake. The old game is still running in a little window floating beside you, and it knows what is really there. But the remake has things the old game never had, so you need both.
+It is 3:47 AM. You are remaking a 1989 pixel game, TINY KEEP, in 3D. You fall asleep at your desk and wake up inside the unfinished remake. The old game is still running on the handheld in your left hand, and it knows what is really there. But the remake has things the old game never had, so you need both.
 
 ## The two worlds
 
@@ -14,7 +14,7 @@ It is 3:47 AM. You are remaking a 1989 pixel game, TINY KEEP, in 3D. You fall as
 | The screen-wrap bug | space just repeats | exit left, appear right |
 | **Keys and guards** (new in the remake) | there, in plain sight | the old game has never heard of them |
 
-Neither world is enough on its own. The old game knows everything that is **old**: where the floor really is, where the slimes are, which planks are about to blink out. The remake knows everything that is **new**: every exit is locked until you find that room's key, and guards patrol the rooms. Keys and guards are never drawn in the pixel window, so you find the key and dodge the guards with your own eyes, in 3D. A guard notices you when you come close: it chirps and shouts "HALT!" in a crunchy 1989 speech sample, a "!" pops over its head, it turns its face to you and lowers its spear, and its footsteps get louder the nearer it is. Step inside the red ring at its feet and it strikes: it cocks the spear back, lunges, and you are knocked back with a BONK and lose a heart. The shove never pushes you into a pit. And from then on it is after you: it leaves its patrol and follows you for a few tiles, striking again if it catches up. Get far enough away and it gives up, walks back the way it came and carries on guarding. Sprint out from under the spear and it misses. Your hearts are shown in the 3D view too, next to the room checklist, so you never have to look away from a guard to see how many are left.
+Neither world is enough on its own. The old game knows everything that is **old**: where the floor really is, where the slimes are, which planks are about to blink out. The remake knows everything that is **new**: every exit is locked until you find that room's key, and guards patrol the rooms. Keys and guards are never drawn in the old game, so you find the key and dodge the guards with your own eyes, in 3D. A guard notices you when you come close: it chirps and shouts "HALT!" in a crunchy 1989 speech sample, a "!" pops over its head, it turns its face to you and lowers its spear, and its footsteps get louder the nearer it is. Step inside the red ring at its feet and it strikes: it cocks the spear back, lunges, and you are knocked back with a BONK and lose a heart. The shove never pushes you into a pit. And from then on it is after you: it leaves its patrol and follows you for a few tiles, striking again if it catches up. Get far enough away and it gives up, walks back the way it came and carries on guarding. Sprint out from under the spear and it misses. Your hearts are shown in the 3D view too, next to the room checklist, so you never have to look away from a guard to see how many are left.
 
 You walk in first person through eight short rooms. Each room has one note from your past self and one thing the remake gets wrong.
 
@@ -59,7 +59,7 @@ The soundtrack is one tune in two arrangements. It starts as a chip tune, and ev
 | Left click (or F) | sword, in the last room: keep clicking for the three-hit combo |
 | Space | dodge roll, in the last room |
 | Enter or click | next line, in the scene before the last fight |
-| Tab | resize the floating old-game window |
+| Tab | raise or lower the handheld (the old game) |
 | Esc | pause |
 | In the pause menu: R | restart the room |
 | In the pause menu or on the title: 1 to 8 | jump to a room (for demos) |
@@ -77,6 +77,7 @@ A gamepad also works (left stick move, right stick look, X or the right bumper t
 - `Assets/Scripts/Maps.cs` holds the eight rooms as text grids. One grid describes both games, so the 3D world and the pixel game can never disagree by accident.
 - `World3D.cs` builds the 3D rooms; collision comes from the old game's truth, not from what is drawn.
 - `PixelGame.cs` / `PixelScreen.cs` draw the 1989 game into a 208x192 software framebuffer from `Assets/Resources/pixelart.txt`.
+- `HandheldConsole.cs` builds the handheld and the hand that holds it out of simple shapes, as part of the 3D view, and shows the old game on its screen.
 - `Sketch.shader` and `SketchPost.shader` give the hand-drawn look: marker colour, pencil hatching, cast shadows drawn as hatching, wobbly double outlines that "boil".
 - `Doodle.cs` / `TexLib.cs` draw every texture and UI frame in code at start-up.
 - `AudioDirector.cs` runs the eight synced music layers.

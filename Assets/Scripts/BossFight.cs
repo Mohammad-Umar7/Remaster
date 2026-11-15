@@ -5,8 +5,8 @@ using UnityEngine;
 /// The last room: the Captain of the guards stands between you and BUILD & RUN.
 /// He is new in the remake, so the old game shows an empty hall.
 ///
-/// The camera pulls out of your head and you see yourself for the first time: the 1989 game's little
-/// hero, in 3D. First a scene, shot like a film (he drops in, the two of you have words, voiced; his
+/// The camera pulls out of your head (the handheld is put away) and you see yourself for the first
+/// time: the 1989 game's little hero, in 3D. First a scene, shot like a film (he drops in, the two of you have words, voiced; his
 /// mouth moves to the sound of his own voice). The remake never modelled a sword, so you draw the old
 /// game's one. Then the fight, with the view locked on him:
 ///   left click   a three-hit combo (slash, slash, overhead smash)
@@ -497,6 +497,7 @@ public class BossFight
             pos = home; yaw = 180f;
             st = St.Stalk; t = 0f; cooldown = 1.3f; roundT = 1.3f;
             swordShow = 1f;
+            gm.hud.ShowHandheld(false);
             gm.hud.SetFightUi(true);
             gm.hud.ShowBoss(true);
             gm.hud.SetBoss(hp, maxHp);
@@ -529,7 +530,7 @@ public class BossFight
         if (line == 4) { gm.sound.Play("tile_delete", 0.8f, 0f, 0.7f); gm.player.AddTrauma(0.45f); }
     }
 
-    /// <summary>The remake has no sword, so you take the old game's: it comes out of the pixel window in a flash.</summary>
+    /// <summary>The remake has no sword, so you take the old game's: it comes out of the old game in a flash.</summary>
     void DrawSword(Vector3 p)
     {
         swordDrawn = true;
@@ -551,6 +552,7 @@ public class BossFight
         gm.hud.HideDialogue();
         gm.hud.SetEyelids(0f);
         gm.hud.SetCinema(false);
+        gm.hud.ShowHandheld(false);
         gm.player.zoom = 0f;
         gm.player.controlEnabled = true;
         st = St.Stalk; t = 0f; cooldown = 1.1f;
@@ -562,7 +564,7 @@ public class BossFight
         gm.hud.Word("FIGHT!", Pal.Yellow, Pal.Red, 0f, 0.9f);
         gm.hud.PlaceWord(new Vector2(0.5f, 0.72f), 0.9f);
         gm.sound.Play("jingle_hurry", 0.7f);
-        gm.hud.Hint("LEFT CLICK  sword  (keep clicking: 3-hit combo)        SPACE  dodge roll        he BLOCKS until he is stuck or dizzy", 18f);
+        gm.hud.Hint("LEFT CLICK  sword combo       SPACE  dodge roll       he BLOCKS until he is stuck or dizzy", 18f);
         if (maxHp < 12) gm.hud.Toast("old-game coins:  " + gm.coins + "     the Captain starts  " + (12 - maxHp) + "  hits down");
     }
 

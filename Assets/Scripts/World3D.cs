@@ -98,7 +98,7 @@ public class World3D
     /// <summary>Wall material: like the shared sketch material but darker toward its base.</summary>
     Material WallMat(Color color, Texture tex, bool dissolve, bool grey = false)
     {
-        string key = ColorUtility.ToHtmlStringRGB(color) + (tex ? tex.GetInstanceID() : 0) + dissolve + grey;
+        string key = ColorUtility.ToHtmlStringRGB(color) + TexLib.TexKey(tex) + dissolve + grey;
         Material m;
         if (wallMats.TryGetValue(key, out m) && m != null) return m;
         m = new Material(TexLib.SketchShader);

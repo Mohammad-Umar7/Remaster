@@ -306,7 +306,7 @@ public class IntroDirector : MonoBehaviour
     IEnumerator LandingCaption()
     {
         yield return new WaitForSeconds(0.5f);
-        gm.hud.SetCaption("I'm INSIDE my unfinished game.   The 1989 original still runs  -->   trust it.");
+        gm.hud.SetCaption("I'm INSIDE my unfinished game.   The 1989 original is still in my hand:   trust it.");
         yield return new WaitForSeconds(5.5f);
         gm.hud.SetCaption(null);
         captionRoutine = null;
