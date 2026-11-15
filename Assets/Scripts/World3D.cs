@@ -25,6 +25,27 @@ public class World3D
     readonly Dictionary<int, List<Renderer>> fakeVis = new Dictionary<int, List<Renderer>>();
     MaterialPropertyBlock mpb;
 
+    // things that are NEW in the remake (the old game never had them): one set per room.
+    // Rooms that wrap are drawn three times side by side, so each thing has up to three copies.
+    class RoomDyn
+    {
+        public readonly List<Transform> gates = new List<Transform>();
+        public readonly List<GameObject> padlocks = new List<GameObject>();
+        public readonly List<Transform> keys = new List<Transform>();
+        public readonly List<Transform> rings = new List<Transform>();
+        public readonly List<Transform> discs = new List<Transform>(), bursts = new List<Transform>();
+        public readonly List<Vector3> gateBase = new List<Vector3>(), keyBase = new List<Vector3>();
+        public readonly List<List<Transform>> guards = new List<List<Transform>>();     // [guard][copy]
+        public readonly List<List<Transform>> guardRings = new List<List<Transform>>();
+        public readonly List<float> guardYaw = new List<float>();
+        public readonly List<float> copyOffset = new List<float>();
+        public Collider gateCol;
+        public Vector3 gatePos;
+        public float open, keyGone, rattle;
+    }
+    RoomDyn[] dyn;
+    const float GuardScale = 1.12f, KeyScale = 1.45f, KeyHeight = 1.2f;
+
     static int Key(int room, int x, int r) { return room * 10000 + r * 100 + x; }
     static int RowKey(int room, int r) { return room * 100 + r; }
 
@@ -57,6 +78,7 @@ public class World3D
             }
         }
 
+        dyn = new RoomDyn[rooms.Length];
         for (int i = 0; i < rooms.Length; i++) BuildRoom(rooms[i]);
         for (int i = 0; i < rooms.Length; i++) BuildCorridor(rooms[i], i == rooms.Length - 1);
         BuildSkyline();
@@ -322,6 +344,7 @@ public class World3D
         }
 
         RegisterVis(vis, ri);
+        BuildDyn(room, parent, col);
 
         // rooms that wrap are drawn three times side by side, so the "bug" bends space seamlessly
         if (room.def.wrap)
@@ -336,6 +359,34 @@ public class World3D
                 var dcopy = Object.Instantiate(deco.gameObject, parent);
                 dcopy.name = "DecoCopy" + (s < 0 ? "W" : "E");
                 dcopy.transform.position += new Vector3(s * Maps.W * TS, 0, 0);
+            }
+        }
+    }
+
+    /// <summary>
+    /// The locked exit, the key and the guards. They are new in the remake, so nothing here is ever
+    /// drawn by the pixel game: you find the key and dodge the guards with your own eyes.
+    /// </summary>
+    void BuildDyn(Room room, Transform parent, Transform col)
+    {
+        var d = new RoomDyn();
+        dyn[room.index] = d;
+        var holder = new GameObject("New").transform;
+        holder.SetParent(parent, false);
+        int copies = room.def.wrap ? 3 : 1;
+        for (int k = 0; k < copies; k++) d.copyOffset.Add(room.def.wrap ? (k - 1) * Maps.W * TS : 0f);
+
+        d.gatePos = room.TileCenter(room.exit) + new Vector3(0, 0, -TS * 0.5f + 0.78f);
+        if (room.HasKey)
+        {
+            Vector3 kp = room.TileCenter(room.def.key);
+            foreach (float ox in d.copyOffset)
+            {
+                Vector3 off = new Vector3(ox, 0, 0);
+                // a portcullis across the exit, with a padlock at eye height
+                var gate = Props.Spawn("gate", holder, d.gatePos + off, 0f, 1f);
+                var padlock = Props.Spawn("padlock", gate.transform, d.gatePos + off + new Vector3(0, 1.3f, -0.16f), 180f, 1.35f);
+                d.gates.Add(gate.transform); d.gateBase.Add(d.gatePos + off); d.padlocks.Add(padlock);
             }
         }
     }
