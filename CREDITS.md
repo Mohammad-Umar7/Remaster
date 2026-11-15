@@ -13,7 +13,8 @@ Everything in the game was made during the SHIFT Game Jam (13 to 15 November 202
 
 ## Art
 
-- **3D props** (desk, monitor, lamp, pillar, gate, banner, signpost, the guard (six jointed parts, animated in code), the key, the padlock and others): modelled in Blender 5.1 by script during the jam. Source: `tools/gen_props_blender.py`, `tools/remaster_props.blend`.
+- **3D props** (desk, monitor, lamp, pillar, gate, banner, signpost, the guard (six jointed parts, animated in code; the Captain is the same model, scaled up and repainted in code), the key, the padlock and others): modelled in Blender 5.1 by script during the jam. Source: `tools/gen_props_blender.py`, `tools/remaster_props.blend`.
+- **The hero and his sword** in the last room are built out of blocks by our own code (`Assets/Scripts/HeroRig.cs`). There is no model file for them.
 - **Pixel art** for the 1989 game: drawn by hand as text grids during the jam. Source: `Assets/Resources/pixelart.txt`.
 - **Textures, UI frames and doodles**: drawn by our own code when the game starts (`Assets/Scripts/Doodle.cs`, `TexLib.cs`). There are no image files.
 - **Shaders**: written for this game (`Assets/Resources/Shaders`).
