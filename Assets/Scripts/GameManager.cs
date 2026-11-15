@@ -595,6 +595,7 @@ public class GameManager : MonoBehaviour
         Vector2 pf = room.WorldToTileF(p);
         bool striking = false;
         foreach (var g in s.guards) if (!g.gone && g.attackT >= 0f && !g.attackLanded) striking = true;
+        if (guardBarkCooldown > 0f) guardBarkCooldown -= dt;
         foreach (var g in s.guards)
         {
             if (g.gone) continue;
@@ -616,8 +617,14 @@ public class GameManager : MonoBehaviour
             {
                 g.alerted = true;
                 g.bangT = 0f;
-                sound.PlayAt("guard_alert", wp + Vector3.up * 1.6f, 0.9f, 0.03f, 1f, 0.35f);
-                sound.Duck(0.6f, 0.3f);
+                sound.PlayAt("guard_alert", wp + Vector3.up * 1.6f, 0.6f, 0.03f, 1f, 0.35f);
+                sound.Duck(0.55f, 0.5f);
+                if (guardBarkCooldown <= 0f)
+                {
+                    // "HALT!" - it says so out loud, in a crunchy 1989 speech sample
+                    guardBarkCooldown = 4.5f;
+                    sound.PlayAt(GuardBarks[guardBarkCount++ % GuardBarks.Length], wp + Vector3.up * 1.6f, 1f, 0.03f, 1f, 0.3f);
+                }
                 if (!firstGuardSeen) { firstGuardSeen = true; hud.Popup("A guard! Guards are NEW too: the old game cannot see them. Watch the 3D world.", 4.4f); }
             }
             else if (g.alerted && dist > Maps.GuardCalm) g.alerted = false;
@@ -669,6 +676,10 @@ public class GameManager : MonoBehaviour
     }
 
     const float GuardEarshot = 7f;      // tiles: beyond this you cannot hear a guard's steps
+    // the guard's voice: three barks for when it notices you, taken in turn, never two in quick succession
+    static readonly string[] GuardBarks = { "guard_say_halt", "guard_say_hey", "guard_say_stop" };
+    float guardBarkCooldown;
+    int guardBarkCount;
 
     /// <summary>The spear lands: bonk, a shove away from the guard, the camera snaps back, and a heart goes.</summary>
     void GuardImpact(Slime g)
