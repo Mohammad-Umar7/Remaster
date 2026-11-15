@@ -1329,7 +1329,7 @@ SFX_PEAK_CAP = {
     'key_1': -9.0, 'key_2': -9.0, 'key_3': -9.0,
     'step_paper_1': -7.0, 'step_paper_2': -7.0, 'step_paper_3': -7.0, 'step_paper_4': -7.0,
     'step_chip_1': -8.0, 'step_chip_2': -8.0, 'ui_move': -8.0, 'tile_delete': -7.0,
-    'slime_hop': -8.0, 'gate': -6.0, 'guard_step': -5.0,
+    'slime_hop': -8.0, 'gate': -6.0, 'guard_step': -3.5,
     'flick_a': -7.0, 'flick_b': -7.0, 'flick_warn': -9.0, 'laser_old': -6.0,
 }
 
