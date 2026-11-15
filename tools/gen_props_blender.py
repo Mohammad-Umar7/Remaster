@@ -835,6 +835,46 @@ def make_books():
     return p, dict(ground=True)
 
 
+# ------------------------------------------------------------------------------------------
+# things that are NEW in the remake: the old game has never heard of them
+# ------------------------------------------------------------------------------------------
+def make_guard():
+    """Keep guard: a stubby toy knight with a spear and a shield.  1.38 to the top of the helmet,
+    about 2.0 with the spear.  Origin on the ground between the feet, face toward -Y."""
+    p = Prop("guard", 31, rough=0.04)
+    for sx in (-1.0, 1.0):
+        p.box((0.26, 0.38, 0.16), "ink", loc=(sx * 0.20, -0.03, 0.08), bevel=0.03, flat_bottom=True)
+    # body, belt, and a red tabard with a yellow diamond so the front reads from far away
+    p.box((0.78, 0.58, 0.74), "metal", loc=(0, 0, 0.53), bevel=0.07)
+    p.box((0.81, 0.61, 0.09), "ink", loc=(0, 0, 0.36), rough=0.02)
+    p.box((0.36, 0.05, 0.46), "red", loc=(0, -0.295, 0.62), rough=0.03)
+    p.box((0.15, 0.04, 0.15), "yellow", loc=(0, -0.325, 0.68), rot=(0, R(45), 0), rough=0.0)
+    for sx in (-1.0, 1.0):
+        p.box((0.24, 0.42, 0.20), "metal", loc=(sx * 0.46, 0, 0.84), rot=(0, R(11 * sx), 0), bevel=0.04)
+    # helmet: one dark slit, two bright eyes, a red crest front to back
+    p.box((0.50, 0.46, 0.09), "ink", loc=(0, 0, 0.93), rough=0.02)
+    p.box((0.58, 0.54, 0.44), "metal", loc=(0, -0.01, 1.16), bevel=0.08)
+    p.box((0.44, 0.05, 0.14), "ink", loc=(0, -0.265, 1.17), rough=0.0)
+    for sx in (-1.0, 1.0):
+        p.box((0.095, 0.03, 0.095), "flame", loc=(sx * 0.105, -0.292, 1.17), rough=0.0)
+    p.add(P_prism([(-0.29, 1.35), (-0.25, 1.53), (-0.04, 1.61), (0.19, 1.56), (0.30, 1.35)], 0.09), "red",
+          rot=(0, 0, R(90)), wob=0.006)
+    # spear in the right hand
+    p.box((0.055, 0.055, 1.74), "wood_dark", loc=(0.57, -0.12, 0.89), rot=(R(-2.0), R(1.5), 0), rough=0.03)
+    p.box((0.17, 0.17, 0.15), "ink", loc=(0.55, -0.12, 0.70), bevel=0.03)
+    p.box((0.11, 0.11, 0.06), "yellow", loc=(0.575, -0.15, 1.73), rough=0.0)
+    p.add(P_lathe([(0, 0), (0.085, 0.0), (0.095, 0.06), (0, 0.33)], 4, phase=math.pi / 4.0), "white",
+          loc=(0.578, -0.155, 1.76), rot=(R(-2.0), R(1.5), 0), wob=0.004)
+    # shield on the left arm, turned a little outward
+    p.parent = Matrix.Translation((-0.57, -0.25, 0.62)) @ Euler((0, 0, R(-24.0)), "XYZ").to_matrix().to_4x4()
+    p.box((0.56, 0.05, 0.68), "ink", loc=(0, 0.02, 0), rough=0.02)
+    p.box((0.48, 0.07, 0.60), "red", loc=(0, -0.01, 0), rough=0.03)
+    p.box((0.16, 0.05, 0.16), "yellow", loc=(0, -0.055, 0.02), rot=(0, R(45), 0), rough=0.0)
+    p.parent = Matrix.Identity(4)
+    p.box((0.17, 0.17, 0.15), "ink", loc=(-0.50, -0.10, 0.62), bevel=0.03)
+    return p, dict(ground=True)
+
+
 DUNGEON = [make_torch, make_pillar, make_door_arch, make_gate, make_crate, make_barrel, make_banner,
            make_signpost, make_rubble, make_placeholder_cube]
 DESK = [make_desk, make_monitor, make_keyboard, make_mouse, make_mug, make_lamp, make_clock, make_plant, make_books]
