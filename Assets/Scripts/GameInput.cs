@@ -9,6 +9,7 @@ public static class GameInput
     public static bool overrideSprint;
     public static float? overrideYaw;      // absolute yaw the autopilot wants
     public static bool overrideAnyKey;
+    public static bool overrideAttack;     // the autopilot swings the keys in the last fight
 
     public static float mouseSensitivity = 0.09f;
     public static float stickLookSpeed = 150f;
@@ -115,6 +116,19 @@ public static class GameInput
             if (m != null && (m.leftButton.wasPressedThisFrame || m.rightButton.wasPressedThisFrame)) return true;
             if (g != null && (g.buttonSouth.wasPressedThisFrame || g.startButton.wasPressedThisFrame)) return true;
             return false;
+        }
+    }
+
+    /// <summary>Swing the keys (the last fight): left mouse button, F, or X / right bumper on a gamepad.</summary>
+    public static bool AttackPressed
+    {
+        get
+        {
+            if (overrideActive) return overrideAttack;
+            var k = Kb; var m = Ms; var g = Gp;
+            return (m != null && m.leftButton.wasPressedThisFrame && Cursor.lockState == CursorLockMode.Locked)
+                || (k != null && k.fKey.wasPressedThisFrame)
+                || (g != null && (g.buttonWest.wasPressedThisFrame || g.rightShoulder.wasPressedThisFrame));
         }
     }
 
