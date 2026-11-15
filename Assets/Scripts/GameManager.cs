@@ -204,6 +204,7 @@ public class GameManager : MonoBehaviour
 
         player = PlayerController.Create();
         player.onStep = OnStep;
+        player.canStand = CanStandAt;
         player.Teleport(rooms[0].TileCenter(rooms[0].SpawnTile), 0f);
 
         fx = new GameObject("Fx").AddComponent<Fx>();
@@ -688,6 +689,16 @@ public class GameManager : MonoBehaviour
         player.AddTrauma(0.3f);
         hud.Bonk(side);
         Hurt("Caught by a guard! The old game cannot see them: keep an eye on the 3D world.", ref firstGuardHit, 0.11f);
+    }
+
+    /// <summary>Is there something to stand on at this spot of the current room? (Stops a shove at an edge.)</summary>
+    bool CanStandAt(Vector3 pos)
+    {
+        Room room = rooms[cur];
+        if (pos.z < room.MinZ || pos.z >= room.MaxZ) return true;       // doorways and corridors have real floor
+        int x, r;
+        room.WorldToTile(pos, out x, out r);
+        return room.In(x, r) && IsSolidNow(cur, x, r);
     }
 
     // ------------------------------------------------------------------ hazards
