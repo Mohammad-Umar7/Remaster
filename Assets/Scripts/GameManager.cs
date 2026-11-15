@@ -228,6 +228,52 @@ public class GameManager : MonoBehaviour
         intro.PlayIntro(() => StartGame(0));
     }
 
+    bool quitting;
+
+    /// <summary>
+    /// The start screen: START or QUIT. Up / down (W S, arrows, d-pad, stick) or the mouse picks one,
+    /// Enter / Space / A or a click confirms it. Esc only points at QUIT: it never quits by itself.
+    /// </summary>
+    void TickTitle()
+    {
+        if (quitting) return;
+        // the test driver has no hands: it just starts
+        if (GameInput.overrideActive) { if (GameInput.AnyKeyPressed) BeginIntro(); return; }
+
+        int sel = hud.menuIndex;
+        if (GameInput.MenuUpPressed) sel = 0;
+        else if (GameInput.MenuDownPressed || GameInput.PausePressed) sel = 1;
+        int over = hud.MenuAt(GameInput.PointerPosition);
+        if (over >= 0 && GameInput.PointerMoved) sel = over;
+        bool click = GameInput.ClickPressed && over >= 0;
+        if (click) sel = over;
+        if (sel != hud.menuIndex) { hud.SetMenu(sel); sound.Play("ui_move", 0.6f); }
+
+        if (click || GameInput.ConfirmPressed)
+        {
+            hud.PunchMenu();
+            sound.Play("ui_ok", 0.7f);
+            if (sel == 0) BeginIntro();
+            else StartCoroutine(QuitRoutine());
+        }
+    }
+
+    /// <summary>QUIT: the dev finally does the "TODO: sleep" on the wall. Lights out, then the game closes.</summary>
+    IEnumerator QuitRoutine()
+    {
+        quitting = true;
+        hud.SetCaption("TODO: sleep.   Done.   Goodnight!");
+        yield return new WaitForSecondsRealtime(0.75f);
+        hud.SetFadeSpeed(2.6f);
+        hud.SetFade(1f, Pal.K);
+        yield return new WaitForSecondsRealtime(0.6f);
+#if UNITY_EDITOR
+        UnityEditor.EditorApplication.isPlaying = false;
+#else
+        Application.Quit();
+#endif
+    }
+
     public void StartGame(int roomIndex)
     {
         state = State.Playing;
@@ -299,7 +345,7 @@ public class GameManager : MonoBehaviour
         switch (state)
         {
             case State.Title:
-                if (GameInput.AnyKeyPressed && num == 0) BeginIntro();
+                if (num == 0) TickTitle();
                 break;
             case State.Playing:
                 if (GameInput.PausePressed) SetPaused(!paused);
