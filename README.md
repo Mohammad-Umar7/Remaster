@@ -27,7 +27,24 @@ You walk in first person through eight short rooms. Each room has one note from 
 7. **Ship It** - the unfinished floor deletes itself behind you. Run.
 8. **The Captain** - the last room is a fight. The Captain of the guards is new in the remake, so the old game shows an empty hall.
 
-The keys get harder to reach and the guards get faster as you go: in room 1 the key hangs in plain sight with one slow guard circling it; by room 6 it sits inside a guard's ring under the lasers, and in the last room it is a detour while the floor is deleting itself.
+The keys get harder to reach and the guards get faster as you go: in room 1 the key hangs in plain sight with one slow guard circling it; in room 6 you fetch it from one end of the start floor before you can solve the maze from the other, and in room 7 it is a detour while the floor is deleting itself.
+
+### The Captain
+
+He drops in front of the last exit, the camera pulls out of your head, and you see yourself for the first time: the 1989 game's little hero, in 3D. The two of you have words, shot like a film: a short voiced scene where he acts every line (he points his spear at you, laughs at you, stamps), his mouth moves to the sound of his own voice, and the camera cuts between the two of you. The remake never modelled a sword, so you draw the old game's one. Every coin you picked up in the old game takes a little off his health.
+
+Then the fight, in third person, with the view locked on him and a health bar each:
+
+- **left click** - a three-hit combo: slash, slash, overhead smash.
+- **space** - a dodge roll. Nothing can hit you while you roll.
+
+He blocks while he is ready ("CLANG!"), so you dodge first and hit him while he is stuck or dizzy. His health bar comes in three parts, and each part has its own attack. Where each one will land is drawn on the floor in red before it does:
+
+- **the charge** - a red lane. Step out of it.
+- **the spin** - a red circle round him. Back away, then hit him while he is dizzy.
+- **the leap** - a red circle where he will come down. Run or roll out.
+
+When his health is gone he comes apart, and every piece tumbles away under real physics. If you lose your hearts you start again from the door, but the parts of his health you had already beaten stay beaten.
 
 The soundtrack is one tune in two arrangements. It starts as a chip tune, and every room you clear adds a "remastered" instrument, so finishing the game finishes its soundtrack.
 
