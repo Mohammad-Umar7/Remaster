@@ -35,9 +35,9 @@ public class World3D
         public readonly List<Transform> rings = new List<Transform>();
         public readonly List<Transform> discs = new List<Transform>(), bursts = new List<Transform>();
         public readonly List<Vector3> gateBase = new List<Vector3>(), keyBase = new List<Vector3>();
-        public readonly List<List<Transform>> guards = new List<List<Transform>>();     // [guard][copy]
+        public readonly List<List<GuardRig>> guards = new List<List<GuardRig>>();       // [guard][copy]
         public readonly List<List<Transform>> guardRings = new List<List<Transform>>();
-        public readonly List<float> guardYaw = new List<float>();
+        public readonly List<GuardAnim> guardAnim = new List<GuardAnim>();
         public readonly List<float> copyOffset = new List<float>();
         public Collider gateCol;
         public Vector3 gatePos;
@@ -408,7 +408,7 @@ public class World3D
         }
         for (int g = 0; g < room.def.guards.Length; g++)
         {
-            var list = new List<Transform>();
+            var list = new List<GuardRig>();
             var rings = new List<Transform>();
             Vector2Int at = room.def.guards[g].loop[0];
             // the red pencil ring under a guard is exactly how close it can catch you
@@ -416,14 +416,14 @@ public class World3D
             foreach (float ox in d.copyOffset)
             {
                 Vector3 gp = room.TileCenter(at) + new Vector3(ox, 0, 0);
-                list.Add(Props.Spawn("guard", holder, gp, 0f, GuardScale).transform);
+                list.Add(GuardRig.Build(holder));
                 var ring = Quad(holder, "guardring", TexLib.QuadUp, gp + new Vector3(0, 0.03f, 0), Quaternion.identity, new Vector3(ringSize, 1f, ringSize),
                     TexLib.DecalMat(TexLib.ring, Pal.A(Pal.Red, 0.6f)));
                 rings.Add(ring.transform);
             }
             d.guards.Add(list);
             d.guardRings.Add(rings);
-            d.guardYaw.Add(float.NaN);
+            d.guardAnim.Add(new GuardAnim());
         }
     }
 
@@ -512,29 +512,21 @@ public class World3D
 
             for (int g = 0; g < s.guards.Count && g < d.guards.Count; g++)
             {
+                // one pose per guard, worked out from its state, then given to every copy of it
                 Slime gs = s.guards[g];
+                GuardPose pose = GuardRig.Compute(room, gs, d.guardAnim[g], dt);
                 Vector3 wp = room.TileFToWorld(gs.pos);
-                // tile space has y pointing down the screen, which is -Z in the world
-                float yawTarget = Mathf.Atan2(gs.dir.x, -gs.dir.y) * Mathf.Rad2Deg;
-                float yaw = float.IsNaN(d.guardYaw[g]) ? yawTarget : Mathf.MoveTowardsAngle(d.guardYaw[g], yawTarget, 520f * dt);
-                d.guardYaw[g] = yaw;
-                float hop = Mathf.Sin(Mathf.Clamp01(gs.hopClock / gs.hopPeriod) * Mathf.PI);
-                float side = (gs.steps % 2 == 0) ? 1f : -1f;
-                float bump = gs.hitFlash > 0f ? gs.hitFlash / 0.4f : 0f;
                 var list = d.guards[g];
                 var rings = d.guardRings[g];
                 for (int k = 0; k < list.Count; k++)
                 {
-                    bool show = !gs.gone;
-                    if (list[k].gameObject.activeSelf != show) { list[k].gameObject.SetActive(show); rings[k].gameObject.SetActive(show); }
-                    if (!show) continue;
-                    rings[k].position = wp + new Vector3(d.copyOffset[k], 0.03f, 0);
+                    Vector3 shift = new Vector3(d.copyOffset[k], 0, 0);
+                    list[k].Apply(pose, shift, eye);
+                    if (rings[k].gameObject.activeSelf != pose.visible) rings[k].gameObject.SetActive(pose.visible);
+                    if (!pose.visible) continue;
+                    // the ring stays on the patrol line: it is the reach, wherever the lunge takes the body
+                    rings[k].position = wp + shift + new Vector3(0, 0.03f, 0);
                     rings[k].rotation = Quaternion.Euler(0, Mathf.Floor(t * 6f) * 23f + g * 40f, 0);
-                    // a toy-soldier waddle: hop, rock from foot to foot, lean into the walk
-                    list[k].position = wp + new Vector3(d.copyOffset[k], hop * 0.15f, 0);
-                    list[k].rotation = Quaternion.Euler(4f + hop * 3f, yaw, side * hop * 6f);
-                    float sy = GuardScale * (1f + hop * 0.05f + bump * 0.18f), sxz = GuardScale * (1f - hop * 0.03f + bump * 0.10f);
-                    list[k].localScale = new Vector3(sxz, sy, sxz);
                 }
             }
         }
