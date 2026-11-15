@@ -629,8 +629,55 @@ public class GameManager : MonoBehaviour
             float dist = Vector2.Distance(pf, g.pos);
             g.lookAt = pf;
 
+            // ---- the chase: off its patrol and after you; then, far enough from its post, back the way it came
+            if (g.mode == 1)
+            {
+                g.chaseClock += dt;
+                g.alerted = true;
+                bool planted = g.attackT >= 0f && g.attackT < Maps.GuardWindup + Maps.GuardStrike + 0.22f;    // it stands still to strike
+                bool tooFar = Vector2.Distance(g.pos, g.trail[0]) > Maps.ChaseLeash;
+                if (g.attackT < 0f && (tooFar || g.chaseClock > Maps.ChaseSeconds || dist > Maps.ChaseLose))
+                {
+                    // that is as far as it goes: it gives up with a grunt and turns back to its post
+                    g.mode = 2; g.alerted = false;
+                    sound.PlayAt("guard_alert", wp + Vector3.up * 1.6f, 0.5f, 0.02f, 0.66f, 0.35f);
+                    fx.Puff(wp + Vector3.up * 2.3f, Pal.A(Pal.Pencil, 0.85f), 0.8f, 0.55f);
+                }
+                else if (!planted && dist > 0.4f)
+                {
+                    Vector2 run = (pf - g.pos).normalized;
+                    float sp = Mathf.Clamp(g.def.speed * 1.3f, 1.3f, 2.0f) * dt;       // quicker than its patrol, slower than your walk
+                    Vector2 full = g.pos + run * sp, alongX = g.pos + new Vector2(run.x, 0f) * sp, alongY = g.pos + new Vector2(0f, run.y) * sp;
+                    // it only walks on plain floor, so it slides along walls and stops at the edge of a pit
+                    if (GuardCanStand(room, s, full)) g.pos = full;
+                    else if (Mathf.Abs(run.x) > 0.15f && GuardCanStand(room, s, alongX)) g.pos = alongX;
+                    else if (Mathf.Abs(run.y) > 0.15f && GuardCanStand(room, s, alongY)) g.pos = alongY;
+                    g.dir = run;
+                    if (Vector2.Distance(g.pos, g.trail[g.trail.Count - 1]) > 0.3f) g.trail.Add(g.pos);
+                }
+            }
+            else if (g.mode == 2)
+            {
+                Vector2 back = g.trail[g.trail.Count - 1];
+                Vector2 to = back - g.pos;
+                float sp = Mathf.Max(1.2f, g.def.speed * 1.15f) * dt;
+                if (to.magnitude <= sp)
+                {
+                    g.pos = back;
+                    g.trail.RemoveAt(g.trail.Count - 1);
+                    if (g.trail.Count == 0) g.mode = 0;     // back on its loop: the patrol carries on from where it stopped
+                }
+                else { g.dir = to.normalized; g.pos += g.dir * sp; }
+            }
+            if (g.mode != 0)
+            {
+                wp = room.TileFToWorld(g.pos);
+                dist = Vector2.Distance(pf, g.pos);
+            }
+            g.chaseT = Mathf.MoveTowards(g.chaseT, g.mode == 1 ? 1f : 0f, dt / 0.25f);
+
             // ---- it notices you
-            if (!g.alerted && dist < Maps.GuardAlert)
+            if (!g.alerted && g.mode != 2 && dist < Maps.GuardAlert)
             {
                 g.alerted = true;
                 g.bangT = 0f;
@@ -644,7 +691,7 @@ public class GameManager : MonoBehaviour
                 }
                 if (!firstGuardSeen) { firstGuardSeen = true; hud.Popup("A guard! Guards are NEW too: the old game cannot see them. Watch the 3D world.", 4.4f); }
             }
-            else if (g.alerted && dist > Maps.GuardCalm) g.alerted = false;
+            else if (g.alerted && g.mode != 1 && dist > Maps.GuardCalm) g.alerted = false;
             g.alertT = Mathf.MoveTowards(g.alertT, g.alerted ? 1f : 0f, dt / 0.22f);
             if (g.bangT >= 0f) { g.bangT += dt; if (g.bangT > 0.9f) g.bangT = -1f; }
 
