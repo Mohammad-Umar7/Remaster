@@ -1134,16 +1134,32 @@ def render_previews(sc, objs, preview_dir, only=None):
     return [render_shot(sc, cam, os.path.join(preview_dir, f), loc, target, lens) for (f, loc, target, lens) in shots]
 
 
-def main(export=True, preview=True, preview_dir=None, out_dir=OUT_DIR):
+def main(export=True, preview=True, preview_dir=None, out_dir=OUT_DIR, only=None):
+    """only: list of prop names to export and preview (everything is still built, which is cheap)."""
     sc = get_scene()
     objs = build_all(sc)
-    out = {"props": {name: stats_of(obj) for name, obj in objs.items()}}
+    chosen = {n: o for n, o in objs.items() if (not only or n in only)}
+    out = {"props": {name: stats_of(obj) for name, obj in chosen.items()}}
     if export:
-        out["fbx"] = export_all(sc, objs, out_dir)
+        out["fbx"] = export_all(sc, chosen, out_dir)
     if preview:
-        out["previews"] = render_previews(sc, objs, preview_dir or DEFAULT_PREVIEW_DIR)
+        out["previews"] = render_previews(sc, objs, preview_dir or DEFAULT_PREVIEW_DIR, only)
     return out
 
 
 if __name__ == "__main__":
-    print(main())
+    # blender -b --python tools/gen_props_blender.py -- [--only guard,key] [--preview-dir <dir>] [--no-export]
+    import sys
+    argv = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else []
+    kw = {}
+    for i, a in enumerate(argv):
+        if a == "--only" and i + 1 < len(argv):
+            kw["only"] = [s for s in argv[i + 1].split(",") if s]
+        elif a == "--preview-dir" and i + 1 < len(argv):
+            kw["preview_dir"] = argv[i + 1]
+        elif a == "--no-export":
+            kw["export"] = False
+        elif a == "--no-preview":
+            kw["preview"] = False
+    import json
+    print("RESULT " + json.dumps(main(**kw)))
