@@ -68,6 +68,11 @@ public class BossFight
     static readonly string[] HitWords = { "SLASH!", "WHAM!", "CLONK!", "BAM!" };
     static readonly Color YouColor = Pal.Hex("1f8f84");
 
+    // where the scene has got to (read by the test scripts that take its pictures)
+    public int LineNow { get { return line; } }
+    public float TalkClock { get { return talkT; } }
+    public float StateClock { get { return t; } }
+
     public bool Visible { get { return st != St.Asleep && st != St.Gone; } }
     public bool Fighting { get { return st >= St.Stalk && st <= St.Dizzy; } }
     public bool InScene { get { return st == St.Drop || st == St.Talk || (st == St.Dying && t > 0.9f); } }
