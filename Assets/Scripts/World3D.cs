@@ -44,7 +44,8 @@ public class World3D
         public float open, keyGone, rattle;
     }
     RoomDyn[] dyn;
-    const float GuardScale = 1.12f, KeyScale = 1.45f, KeyHeight = 1.2f;
+    public const float GuardScale = 1.12f;
+    const float KeyScale = 1.45f, KeyHeight = 1.2f;
 
     static int Key(int room, int x, int r) { return room * 10000 + r * 100 + x; }
     static int RowKey(int room, int r) { return room * 100 + r; }
