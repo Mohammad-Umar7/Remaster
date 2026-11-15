@@ -700,6 +700,8 @@ public class GameManager : MonoBehaviour
         player.Kick(-9f, side * 10f, 9f);
         player.AddTrauma(0.3f);
         hud.Bonk(side);
+        // it gloats, unless that was your last heart (the game-over jingle has the floor then)
+        if (hearts > 1) StartCoroutine(After(0.55f, () => sound.Play("guard_say_gotcha", 0.9f)));
         Hurt("Caught by a guard! The old game cannot see them: keep an eye on the 3D world.", ref firstGuardHit, 0.11f);
     }
 
