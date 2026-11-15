@@ -582,11 +582,18 @@ public class GameManager : MonoBehaviour
         }
     }
 
-    /// <summary>Guards are new in the remake too, so the old game cannot see them: watch the 3D world.</summary>
+    /// <summary>
+    /// Guards are new in the remake too, so the old game cannot see them: watch the 3D world.
+    /// A guard notices you when you come close (a chirp, a "!", its head turns, the spear comes down).
+    /// Step inside its ring and it strikes: it cocks the spear back, lunges, and the heart is lost
+    /// when the spear lands, with a shove and a bonk. Its footsteps get louder the nearer it is.
+    /// </summary>
     void TickGuards(Room room, RoomState s, Vector3 p, float dt)
     {
         if (s.guards.Count == 0) return;
         Vector2 pf = room.WorldToTileF(p);
+        bool striking = false;
+        foreach (var g in s.guards) if (!g.gone && g.attackT >= 0f && !g.attackLanded) striking = true;
         foreach (var g in s.guards)
         {
             if (g.gone) continue;
@@ -601,24 +608,86 @@ public class GameManager : MonoBehaviour
                 continue;
             }
             float dist = Vector2.Distance(pf, g.pos);
-            if (g.hopped && dist < 6.5f)
+            g.lookAt = pf;
+
+            // ---- it notices you
+            if (!g.alerted && dist < Maps.GuardAlert)
             {
-                // you hear a guard before you see it; the quick ones only clank on every other step
-                // so a room with two of them does not turn into a drum roll
-                if (g.hopPeriod >= 0.42f || g.steps % 2 == 0) sound.PlayAt("guard_step", wp + Vector3.up * 0.4f, 0.8f, 0.07f);
+                g.alerted = true;
+                g.bangT = 0f;
+                sound.PlayAt("guard_alert", wp + Vector3.up * 1.6f, 0.9f, 0.03f, 1f, 0.35f);
+                sound.Duck(0.6f, 0.3f);
+                if (!firstGuardSeen) { firstGuardSeen = true; hud.Popup("A guard! Guards are NEW too: the old game cannot see them. Watch the 3D world.", 4.4f); }
+            }
+            else if (g.alerted && dist > Maps.GuardCalm) g.alerted = false;
+            g.alertT = Mathf.MoveTowards(g.alertT, g.alerted ? 1f : 0f, dt / 0.22f);
+            if (g.bangT >= 0f) { g.bangT += dt; if (g.bangT > 0.9f) g.bangT = -1f; }
+
+            // ---- footsteps: quiet far away, loud and heavy up close, so your ears tell you it is coming
+            if (g.hopped && dist < GuardEarshot)
+            {
+                float near = 1f - Mathf.Clamp01(dist / GuardEarshot);
+                // the quick ones only clank on every other step, unless they are right on you
+                if (g.hopPeriod >= 0.42f || g.alerted || g.steps % 2 == 0)
+                    sound.PlayAt("guard_step", wp + Vector3.up * 0.4f, Mathf.Lerp(0.14f, 1f, near * near), 0.05f, g.alerted ? 0.82f : 1f, 0.55f);
+                // while it is on to you the music dips under each stomp, so the steps always cut through
+                if (g.alerted) sound.Duck(0.7f, 0.2f);
                 fx.Puff(wp + Vector3.up * 0.06f, Pal.A(Pal.Pencil, 0.6f), 0.4f, 0.35f);
             }
-            if (!firstGuardSeen && dist < 4.2f)
+
+            // ---- the strike
+            if (g.attackT < 0f && !striking && invuln <= 0f && dist < Maps.GuardHit)
             {
-                firstGuardSeen = true;
-                hud.Popup("A guard! Guards are NEW too: the old game cannot see them. Watch the 3D world.", 4.4f);
+                g.attackT = 0f; g.attackSwung = false; g.attackLanded = false;
+                striking = true;
+                sound.PlayAt("guard_windup", wp + Vector3.up * 1.2f, 0.9f, 0.04f, 1f, 0.3f);
             }
-            if (invuln <= 0f && dist < Maps.GuardHit)
+            if (g.attackT >= 0f)
             {
-                g.hitFlash = 0.4f;
-                Hurt("Caught by a guard! The old game cannot see them: keep an eye on the 3D world.", ref firstGuardHit);
+                g.attackT += dt;
+                // it keeps the spear on you until the moment it lands
+                Vector2 toYou = pf - g.pos;
+                if (!g.attackLanded && toYou.sqrMagnitude > 0.0004f)
+                {
+                    g.attackDir = toYou.normalized;
+                    g.attackReach = Mathf.Clamp(toYou.magnitude * Maps.TS - 1.05f, -0.3f, 0.75f);
+                }
+                if (!g.attackSwung && g.attackT >= Maps.GuardWindup)
+                {
+                    g.attackSwung = true;
+                    sound.PlayAt("guard_swing", wp + Vector3.up * 1.2f, 0.9f, 0.05f, 1f, 0.3f);
+                }
+                if (!g.attackLanded && g.attackT >= Maps.GuardImpactAt)
+                {
+                    g.attackLanded = true;
+                    GuardImpact(g);
+                }
+                if (g.attackT >= Maps.GuardWindup + Maps.GuardStrike + Maps.GuardRecover) g.attackT = -1f;
             }
         }
+    }
+
+    const float GuardEarshot = 7f;      // tiles: beyond this you cannot hear a guard's steps
+
+    /// <summary>The spear lands: bonk, a shove away from the guard, the camera snaps back, and a heart goes.</summary>
+    void GuardImpact(Slime g)
+    {
+        if (invuln > 0f) return;        // something else got you first: the spear swishes past
+        Vector3 away = new Vector3(g.attackDir.x, 0f, -g.attackDir.y);      // tile space: y points down the screen
+        Vector3 p = player.transform.position;
+        g.hitFlash = 0.4f;
+        sound.Play("guard_bonk", 0.95f);
+        sound.Duck(0.4f, 0.45f);
+        Vector3 hit = p + Vector3.up * 1.15f - away * 0.4f;
+        fx.Star(hit, Pal.Yellow, 1.4f, 0.5f);
+        fx.Star(hit, Pal.White, 0.8f, 0.34f);
+        fx.Puff(hit, Pal.A(Pal.Ink, 0.8f), 1.1f, 0.45f);
+        float side = Vector3.Dot(away, player.transform.right);     // which side of you the blow came from
+        player.Knock(away * 7.2f, 3.6f);
+        player.Kick(-9f, side * 10f, 9f);
+        player.AddTrauma(0.3f);
+        hud.Bonk(side);
+        Hurt("Caught by a guard! The old game cannot see them: keep an eye on the 3D world.", ref firstGuardHit, 0.11f);
     }
 
     // ------------------------------------------------------------------ hazards
