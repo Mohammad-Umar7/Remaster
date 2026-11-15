@@ -55,7 +55,7 @@ public class Hud : MonoBehaviour
     int lastW, lastH, pulseIndex = -1;
 
     // the handheld fills the lower left of the view, so the messages along the bottom sit on the right
-    const float BottomShift = 400f;
+    const float BottomShift = 300f;
 
     // ------------------------------------------------------------------ helpers
     RectTransform Rect(string name, Transform parent, Vector2 aMin, Vector2 aMax, Vector2 offMin, Vector2 offMax)

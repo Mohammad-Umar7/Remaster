@@ -6,7 +6,7 @@ using UnityEngine.Rendering;
 /// The 1989 original runs on a chunky handheld that you carry in your left hand, low in the 3D view.
 /// It is real geometry parented to the player's camera, so the remake draws it with the same ink
 /// lines as everything else. It lags behind when you turn, dips with your steps and jumps when
-/// things happen. Tab raises it (big) or lowers it (small).
+/// things happen. It hangs low and small so it stays out of the way; Tab raises it for a closer look.
 /// </summary>
 public class HandheldConsole : MonoBehaviour
 {
@@ -19,8 +19,8 @@ public class HandheldConsole : MonoBehaviour
 
     // ---- where it sits in the view ----
     const float Depth = 0.19f;                          // metres from the eye: closer than a wall can ever get, so nothing cuts into it
-    const float BigWidth = 0.68f, SmallWidth = 0.46f;   // body width, as a fraction of the view height (raised / lowered)
-    const float BigLift = 0.10f, SmallLift = 0.09f;     // gap under the screen, same unit
+    const float BigWidth = 0.58f, SmallWidth = 0.46f;   // body width, as a fraction of the view height (raised / lowered)
+    const float BigLift = 0.10f, SmallLift = 0.075f;     // gap under the screen, same unit
     const float HandRoom = 0.34f;                       // from the left edge of the view to the screen, in body widths: room for the hand
     const float MaxReach = 0.25f;                       // ... but never further out than this (metres), even on a very wide screen
     // How it is held: tipped back a little, turned a little toward your eyes, leaning a little to the right.
@@ -36,8 +36,8 @@ public class HandheldConsole : MonoBehaviour
     Camera cam;
     Transform inHand;           // device + hand; all the sway happens here, in body units
     RenderTexture screenRT;
-    bool raised = true;
-    float rise = 1f, size = 1f;
+    bool raised;                // lowered (small, out of the way) unless you hold it up with Tab
+    float rise = 1f, size;
     float lastYaw, lastPitch, yawVel, pitchVel, swayX, swayY, swayRoll, bump, coinPulse, hurt, bobPhase, bobAmt;
 
     public static HandheldConsole Create(GameManager gm)
@@ -64,7 +64,7 @@ public class HandheldConsole : MonoBehaviour
         gameObject.SetActive(on);
     }
 
-    /// <summary>Tab: hold it up (big) or let it hang lower (small).</summary>
+    /// <summary>Tab: hold it up for a closer look (big) or let it hang low again (small).</summary>
     public void Toggle() { raised = !raised; bump = Mathf.Max(bump, 0.03f); }
 
     /// <summary>A jolt downward, in body widths (a step, a coin, a hit).</summary>
