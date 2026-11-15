@@ -18,6 +18,8 @@ public class PlayerController : MonoBehaviour
     public System.Func<Vector3, bool> canStand;     // is there floor at this spot? (a hit never throws you into a pit)
     float kickPitch, kickRoll, kickFov;
     public bool lookLocked;             // the mouse does not turn you (the last fight keeps the view on the Captain)
+    public float zoom;                  // degrees taken off the field of view (the camera leans in on whoever is talking)
+    float zoomNow;
 
     public const float WalkSpeed = 4.6f, SprintSpeed = 7.4f, EyeHeight = 1.62f;
     const float Accel = 46f, Decel = 40f, Gravity = 26f;
@@ -159,7 +161,8 @@ public class PlayerController : MonoBehaviour
         kickPitch = Mathf.Lerp(kickPitch, 0f, 1f - Mathf.Exp(-7f * udt));
         kickRoll = Mathf.Lerp(kickRoll, 0f, 1f - Mathf.Exp(-6f * udt));
         kickFov = Mathf.Lerp(kickFov, 0f, 1f - Mathf.Exp(-9f * udt));
-        cam.fieldOfView = fov + kickFov;
+        zoomNow = Mathf.Lerp(zoomNow, zoom, 1f - Mathf.Exp(-5f * udt));
+        cam.fieldOfView = fov + kickFov - zoomNow;
 
         // shake: trauma squared, on unscaled time, small rotation only
         trauma = Mathf.Max(0f, trauma - 1.4f * Time.unscaledDeltaTime);
