@@ -171,6 +171,10 @@ public class GuardRig
         p.shieldOut = alert * 16f;
         p.lean += alert * 5f;
 
+        // --- the "!" pops, holds, and shrinks away
+        if (gs.bangT >= 0f)
+            p.bang = gs.bangT < 0.14f ? OutBack(gs.bangT / 0.14f) : (gs.bangT < 0.62f ? 1f : Mathf.Clamp01(1f - (gs.bangT - 0.62f) / 0.26f));
+
         return p;
     }
 }
