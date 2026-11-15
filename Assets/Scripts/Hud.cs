@@ -17,7 +17,11 @@ public class Hud : MonoBehaviour
 
     RawImage fullView, pixelView;
     GameObject playUi, titleUi, pauseUi, resultsUi, pixelFloat;
-    RectTransform floatRect, noteRect, checkRow;
+    RectTransform floatRect, noteRect, checkRow, keyRect;
+    RawImage keyIcon, keyCheck;
+    Text keyText, keySub;
+    Image keyBack;
+    float keyPulse;
     Text timerText, roomText, hintText, popupText, toastText, captionText, noteHead, noteBody;
     Image popupBack, captionBack;
     RawImage crosshair, hurtBurst;
@@ -148,6 +152,22 @@ public class Hud : MonoBehaviour
         noteBody = Txt(nb, "", 30, Pal.Hex("4a3d1e"), TextAnchor.UpperLeft);
         noteBody.lineSpacing = 0.9f;
         noteRect.gameObject.AddComponent<Boil>().degrees = 0.3f;
+
+        // the key tag: keys are new in the remake, so this lives in the 3D view and never in the old game
+        // (the outer rect takes the pulse when something happens; the inner one "boils" like the other paper bits)
+        keyRect = Box("KeyTag", pu, new Vector2(0, 1), new Vector2(0.5f, 0.5f), new Vector2(48 + 215, -386 - 42), new Vector2(430, 84));
+        var kin = Rect("Inner", keyRect, Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
+        keyBack = Img(kin, TexLib.panelSprite, Pal.A(Pal.Paper, 0.95f), true);
+        var ki = Box("Icon", kin, new Vector2(0, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(62, 0), new Vector2(92, 46));
+        keyIcon = Raw(ki, TexLib.keyIcon, Pal.Ink);
+        ki.localRotation = Quaternion.Euler(0, 0, -8f);
+        var kc = Box("Check", kin, new Vector2(1, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(-44, 4), new Vector2(58, 58));
+        keyCheck = Raw(kc, TexLib.check, Pal.Hex("1f8f84"));
+        var kt = Box("Text", kin, new Vector2(0, 1), new Vector2(0, 1), new Vector2(122, -8), new Vector2(300, 40));
+        keyText = Txt(kt, "", 31, Pal.Ink, TextAnchor.MiddleLeft, TexLib.title);
+        var ks = Box("Sub", kin, new Vector2(0, 0), new Vector2(0, 0), new Vector2(122, 9), new Vector2(300, 32));
+        keySub = Txt(ks, "", 24, Pal.Hex("6a6280"), TextAnchor.MiddleLeft);
+        kin.gameObject.AddComponent<Boil>().degrees = 0.3f;
 
         var tm = Box("Timer", pu, new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(0, -22), new Vector2(300, 54));
         timerText = Txt(tm, "0:00.0", 42, Pal.Ink, TextAnchor.MiddleCenter);
@@ -336,13 +356,33 @@ public class Hud : MonoBehaviour
         }
         noteHead.text = "note to self  #" + (cur + 1);
         noteBody.text = Maps.Defs[cur].note;
+        RefreshKey();
     }
+
+    /// <summary>The key tag under the note: locked until you find this room's key in the 3D world.</summary>
+    public void RefreshKey()
+    {
+        if (keyRect == null) return;
+        int cur = Mathf.Clamp(gm.cur, 0, Maps.Defs.Length - 1);
+        bool has = gm.rooms[cur].HasKey;
+        keyRect.gameObject.SetActive(has);
+        if (!has) return;
+        bool got = gm.rs[cur].keyTaken;
+        keyCheck.enabled = got;
+        keyIcon.color = got ? (Color)Pal.Hex("d19a00") : (Color)Pal.Ink;
+        keyText.text = got ? "exit open" : "exit locked";
+        keyText.color = got ? (Color)Pal.Hex("1f8f84") : (Color)Pal.Red;
+        keySub.text = got ? "you have the key" : "find the key  (3D only!)";
+    }
+
+    public void KeyPulse() { keyPulse = 1f; }
 
     public void ShowRoomTitle(int i)
     {
         roomText.text = (i + 1) + "/" + Maps.Defs.Length + "   " + Maps.Defs[i].title;
         RefreshTodo();
         noteRect.localScale = new Vector3(1.18f, 0.8f, 1f);
+        keyPulse = 0.6f;
     }
 
     public void ShowControlsHint() { hintTimer = 10f; }
@@ -437,6 +477,13 @@ public class Hud : MonoBehaviour
 
         // the note pops back to rest after a new room
         noteRect.localScale = Vector3.Lerp(noteRect.localScale, Vector3.one, 1f - Mathf.Exp(-12f * dt));
+        if (keyRect != null)
+        {
+            keyPulse = Mathf.Max(0f, keyPulse - dt * 2.4f);
+            float kp = keyPulse * keyPulse;
+            keyRect.localScale = new Vector3(1f + kp * 0.22f, 1f + kp * 0.22f, 1f);
+            keyRect.localRotation = Quaternion.Euler(0, 0, 1.3f + Mathf.Sin(Time.unscaledTime * 38f) * 5f * kp);
+        }
         if (checkPulse > 0f && pulseIndex >= 0)
         {
             checkPulse = Mathf.Max(0f, checkPulse - dt * 2.2f);
