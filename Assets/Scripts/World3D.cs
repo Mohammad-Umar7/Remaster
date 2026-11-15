@@ -402,6 +402,24 @@ public class World3D
                 disc.GetComponent<Renderer>().receiveShadows = false; burst.GetComponent<Renderer>().receiveShadows = false;
                 d.discs.Add(disc.transform); d.bursts.Add(burst.transform);
             }
+            // the collider reaches forward to the arch, so you stop a step back from the bars and can read the padlock
+            d.gateCol = Box(col, "c_gate", d.gatePos + new Vector3(0, WH * 0.5f, -0.3f), new Vector3(TS, WH, 0.9f), null, true).GetComponent<Collider>();
+        }
+        for (int g = 0; g < room.def.guards.Length; g++)
+        {
+            var list = new List<Transform>();
+            var rings = new List<Transform>();
+            Vector2Int at = room.def.guards[g].loop[0];
+            // the red pencil ring under a guard is exactly how close it can catch you
+            float ringSize = Maps.GuardHit * TS / 0.42f;
+            foreach (float ox in d.copyOffset)
+            {
+                Vector3 gp = room.TileCenter(at) + new Vector3(ox, 0, 0);
+                list.Add(Props.Spawn("guard", holder, gp, 0f, GuardScale).transform);
+                var ring = Quad(holder, "guardring", TexLib.QuadUp, gp + new Vector3(0, 0.03f, 0), Quaternion.identity, new Vector3(ringSize, 1f, ringSize),
+                    TexLib.DecalMat(TexLib.ring, Pal.A(Pal.Red, 0.6f)));
+                rings.Add(ring.transform);
+            }
         }
     }
 
