@@ -256,8 +256,11 @@ public class Autopilot : MonoBehaviour
         if (d.magnitude < reach) { GameInput.overrideMove = Vector2.zero; return true; }
         float yawTarget = Mathf.Atan2(d.x, d.z) * Mathf.Rad2Deg;
         GameInput.overrideYaw = yawTarget;
-        float err = Mathf.Abs(Mathf.DeltaAngle(gm.player.yaw, yawTarget));
-        GameInput.overrideMove = err > 30f ? Vector2.zero : new Vector2(0, 1);
+        // Head straight for the point even while still turning to face it (a sidestep), so a corner costs
+        // no time. The plan budgets half a second a tile; standing still to turn first used to eat a tenth
+        // of that, which was enough to miss the tightest windows (the blinking planks, a guard's ring).
+        float rel = Mathf.DeltaAngle(gm.player.yaw, yawTarget) * Mathf.Deg2Rad;
+        GameInput.overrideMove = new Vector2(Mathf.Sin(rel), Mathf.Cos(rel));
         return false;
     }
 
