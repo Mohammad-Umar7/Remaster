@@ -15,3 +15,9 @@ public struct GuardPose
     public float bang;              // the "!" above its head: 0 hidden, 1 full size
 }
 
+/// <summary>What a guard's animation remembers between frames (one per guard, shared by its copies).</summary>
+public class GuardAnim
+{
+    public float yaw = float.NaN, headYaw;
+}
+
