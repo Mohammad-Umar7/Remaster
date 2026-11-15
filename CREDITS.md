@@ -23,6 +23,7 @@ Everything in the game was made during the SHIFT Game Jam (13 to 15 November 202
 
 - All music and sound effects are synthesized by our own script (`tools/gen_audio.py`, Python with NumPy and SciPy). No samples and no audio libraries were used. See `tools/audio_manifest.md`.
 - **The guard's voice** (five short lines: "HALT!", "HEY! You there!", "Stop right there!", "HYAH!", "Gotcha!") was generated during the jam with **ElevenLabs** text-to-speech (elevenlabs.io; voice "Harry - Fierce Warrior", model Eleven v4). Our script `tools/gen_voice.py` then crushes each line to 11 kHz, 8 bits, so it sounds like a 1989 speech sample. The original clips are in `tools/voice_src`.
+- **The words before the last fight** (six lines) were generated the same way, with the same tool, during the jam: the Captain's four lines in the guard's voice ("Harry - Fierce Warrior"), and the dev's two lines in the voice "Will - Relaxed Optimist". We wrote the lines; the exact text sent to ElevenLabs is listed at the top of `tools/gen_voice.py`, and the original clips are in `tools/voice_src`.
 
 ## Fonts (third-party, open licence)
 
@@ -33,7 +34,7 @@ Everything in the game was made during the SHIFT Game Jam (13 to 15 November 202
 ## AI tools
 
 - **Claude (Anthropic), through Claude Code**: wrote the game code and shaders, and generated the pixel-art grids, the audio synthesis script and the Blender modelling script, under the team's direction.
-- **ElevenLabs** (AI text-to-speech): the guard's five voice lines, as described under Audio.
+- **ElevenLabs** (AI text-to-speech): the guard's five voice lines and the six spoken lines of the scene before the last fight, as described under Audio.
 - **Gemini**: used once for a concept video while choosing the idea. Nothing from it is in the game.
 
 ## Reference material
