@@ -565,7 +565,7 @@ public class BossFight
         gm.hud.PlaceWord(new Vector2(0.5f, 0.72f), 0.9f);
         gm.sound.Play("jingle_hurry", 0.7f);
         gm.hud.Hint("LEFT CLICK  sword combo       SPACE  dodge roll       he BLOCKS until he is stuck or dizzy", 18f);
-        if (maxHp < 12) gm.hud.Toast("old-game coins:  " + gm.coins + "     the Captain starts  " + (12 - maxHp) + "  hits down");
+        if (maxHp < 12) gm.hud.Toast("old-game coins:  " + gm.coins + "     the Captain starts  " + (12 - maxHp) + (12 - maxHp == 1 ? "  hit down" : "  hits down"));
     }
 
     /// <summary>His weapon found you.</summary>
