@@ -171,6 +171,12 @@ public class GuardRig
         p.shieldOut = alert * 16f;
         p.lean += alert * 5f;
 
+        // --- the chase: it has left its patrol and is coming for you, leaning into the run, spear levelled
+        float chase = Smooth(gs.chaseT);
+        p.lean += chase * 11f;
+        p.spear += chase * 14f;
+        p.bob *= 1f + chase * 0.8f;
+
         // --- the "!" pops, holds, and shrinks away
         if (gs.bangT >= 0f)
             p.bang = gs.bangT < 0.14f ? OutBack(gs.bangT / 0.14f) : (gs.bangT < 0.62f ? 1f : Mathf.Clamp01(1f - (gs.bangT - 0.62f) / 0.26f));
