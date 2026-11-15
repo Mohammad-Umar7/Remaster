@@ -227,45 +227,6 @@ public static class Maps
         },
         new RoomDef
         {
-            title = "THREE SECONDS LATE",
-            todo = "fix the 3 second lag",
-            note = "TODO: fix 3 second lag.\nThe old game is AHEAD:\nit shows lasers first.",
-            finish = 0.4f,
-            laserPeriod = 12f,
-            // the key is in the far corner inside a guard's ring, with the lasers on top;
-            // a second guard circles the coin in the middle
-            key = K(2, 2),
-            guards = new[]
-            {
-                new SlimeDef(1.5f, 0.00f, 1,1, 3,1, 3,3, 1,3),
-                new SlimeDef(1.5f, 0.50f, 4,4, 8,4, 8,6, 4,6),
-            },
-            lasers = new[]
-            {
-                new LaserVolley(0.5f,  L(7, 5, 3, 1), null),
-                new LaserVolley(2.5f,  L(6, 4, 2), null),
-                new LaserVolley(4.5f,  null, L(2, 4, 6, 8, 10)),
-                new LaserVolley(6.5f,  null, L(1, 3, 5, 7, 9, 11)),
-                new LaserVolley(8.5f,  L(7, 4, 1), L(3, 6, 9)),
-                new LaserVolley(10.5f, L(6, 3), L(5, 7)),
-            },
-            rows = new[]
-            {
-                "######X######",
-                "#...........#",
-                "#...........#",
-                "#..C.....C..#",
-                "#...........#",
-                "#.....C.....#",
-                "#...........#",
-                "#...........#",
-                "#....N......#",
-                "#...........#",
-                "######S######",
-            }
-        },
-        new RoomDef
-        {
             // A real maze. Planks sit on a lattice (junctions on odd columns and even rows) so corridors only
             // ever touch at junctions. Three ways in from the start floor (columns 1, 5 and 9); only the one
             // at column 9 reaches the single exit plank at (6,2), and it has to wind right, up, left, down,
