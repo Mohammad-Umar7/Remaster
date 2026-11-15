@@ -977,6 +977,16 @@ public class GameManager : MonoBehaviour
                     if (Vector2.Distance(sl.PosIn(t), c) < 0.86f) return false;
             }
         }
+        if (s.guards.Count > 0)
+        {
+            Vector2 c = new Vector2(x + 0.5f, r + 0.5f);
+            for (int k = 0; k <= 5; k++)
+            {
+                float t = Mathf.Lerp(Mathf.Max(0f, t0), t1, k / 5f);
+                foreach (var g in s.guards)
+                    if (!g.gone && Vector2.Distance(g.PosIn(t), c) < Maps.GuardClear) return false;
+            }
+        }
         return true;
     }
 
