@@ -47,6 +47,7 @@ public class Hud : MonoBehaviour
     Image bossFillImg, youFillImg;
     float bossFrac = 1f, bossLagFrac = 1f, bossHold, bossPunch, youFrac = 1f, youLagFrac = 1f, youHold, youPunch;
     bool fightUi;
+    GameObject skipHint;
     // (what the fight hides: the room title, the checklist, the hearts and the sticky note)
     readonly System.Collections.Generic.List<GameObject> exploreUi = new System.Collections.Generic.List<GameObject>();
     // ...and the talking box for the scene before it: words arrive one by one, in time with the voice
@@ -229,6 +230,11 @@ public class Hud : MonoBehaviour
         var hn = Box("Hint", pu, new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(BottomShift, 34), new Vector2(1100, 48));
         hintText = Txt(hn, ControlsHint, 28, Pal.Ink, TextAnchor.MiddleCenter);
         Halo(hintText, Pal.A(Pal.Paper, 0.92f), 3f);
+        // for anyone who is stuck: the skip keys, small, in the corner (not in the last room: there is nothing to skip to)
+        var sk = Box("SkipHint", pu, new Vector2(1, 0), new Vector2(1, 0), new Vector2(-26, 4), new Vector2(700, 30));
+        var skText = Txt(sk, "stuck?     N  next room       B  boss fight", 27, Pal.Ink, TextAnchor.MiddleRight);
+        Halo(skText, Pal.A(Pal.Paper, 0.9f), 2f);
+        skipHint = sk.gameObject;
         var pb = Box("PopupBack", pu, new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(BottomShift, 170), new Vector2(1040, 92));
         popupBack = Img(pb, TexLib.panelSprite, Pal.Paper, true);
         var pt = Rect("PopupText", pb, Vector2.zero, Vector2.one, new Vector2(24, 8), new Vector2(-24, -8));
@@ -479,6 +485,7 @@ public class Hud : MonoBehaviour
         if (keyRect == null) return;
         int cur = Mathf.Clamp(gm.cur, 0, Maps.Defs.Length - 1);
         bool boss = gm.rooms[cur].def.boss;     // the last exit has no key: it opens when the Captain is beaten
+        if (skipHint != null && skipHint.activeSelf == boss) skipHint.SetActive(!boss);
         bool has = gm.rooms[cur].HasKey || boss;
         keyRect.gameObject.SetActive(has && !fightUi);
         if (!has) return;
