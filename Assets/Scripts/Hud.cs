@@ -227,7 +227,7 @@ public class Hud : MonoBehaviour
         timerText = Txt(tm, "0:00.0", 42, Pal.Ink, TextAnchor.MiddleCenter);
         Halo(timerText, Pal.A(Pal.Paper, 0.92f), 3f);
         var hn = Box("Hint", pu, new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(0, 34), new Vector2(1500, 48));
-        hintText = Txt(hn, "WASD  move      mouse  look      Shift  run      Tab  resize the old game      Esc  pause", 32, Pal.Ink, TextAnchor.MiddleCenter);
+        hintText = Txt(hn, ControlsHint, 32, Pal.Ink, TextAnchor.MiddleCenter);
         Halo(hintText, Pal.A(Pal.Paper, 0.92f), 3f);
         var pb = Box("PopupBack", pu, new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(0, 170), new Vector2(1040, 92));
         popupBack = Img(pb, TexLib.panelSprite, Pal.Paper, true);
@@ -717,7 +717,9 @@ public class Hud : MonoBehaviour
         keyPulse = 0.6f;
     }
 
-    public void ShowControlsHint() { hintTimer = 10f; }
+    public void ShowControlsHint() { hintText.text = ControlsHint; hintTimer = 10f; }
+    /// <summary>A one-off line of instructions where the controls hint goes (how to fight the Captain).</summary>
+    public void Hint(string text, float seconds) { hintText.text = text; hintTimer = seconds; }
 
     public void Popup(string text, float seconds)
     {
