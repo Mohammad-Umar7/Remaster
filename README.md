@@ -56,13 +56,16 @@ The soundtrack is one tune in two arrangements. It starts as a chip tune, and ev
 | W A S D / arrows | move |
 | Mouse | look |
 | Shift | run |
+| Left click (or F) | sword, in the last room: keep clicking for the three-hit combo |
+| Space | dodge roll, in the last room |
+| Enter or click | next line, in the scene before the last fight |
 | Tab | resize the floating old-game window |
 | Esc | pause |
 | In the pause menu: R | restart the room |
 | In the pause menu or on the title: 1 to 8 | jump to a room (for demos) |
 | F11 | toggle full screen |
 
-A gamepad also works (left stick move, right stick look).
+A gamepad also works (left stick move, right stick look, X or the right bumper to swing, B to dodge).
 
 ## Run it
 
