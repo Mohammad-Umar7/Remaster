@@ -16,6 +16,7 @@ public class PlayerController : MonoBehaviour
     public System.Action<bool> onStep;  // bool = sprinting
     public Vector3 knock;               // extra speed from being hit; it dies away in a quarter of a second
     public System.Func<Vector3, bool> canStand;     // is there floor at this spot? (a hit never throws you into a pit)
+    float kickPitch, kickRoll, kickFov;
 
     public const float WalkSpeed = 4.6f, SprintSpeed = 7.4f, EyeHeight = 1.62f;
     const float Accel = 46f, Decel = 40f, Gravity = 26f;
@@ -75,6 +76,12 @@ public class PlayerController : MonoBehaviour
     {
         knock = new Vector3(push.x, 0f, push.z);
         if (cc.isGrounded) velocity.y = hop;
+    }
+
+    /// <summary>The camera snaps back from a hit: head up, a tilt to one side, a punch of field of view.</summary>
+    public void Kick(float pitchDegrees, float rollDegrees, float fovDegrees)
+    {
+        kickPitch = pitchDegrees; kickRoll = rollDegrees; kickFov = fovDegrees;
     }
 
     void ApplyRotation()
@@ -143,7 +150,11 @@ public class PlayerController : MonoBehaviour
         float strafe = controlEnabled ? move.x : 0f;
         roll = Mathf.Lerp(roll, -strafe * 1.6f, 1f - Mathf.Exp(-8f * dt));
         fov = Mathf.Lerp(fov, (sprint && speedNow > WalkSpeed + 0.5f) ? SprintFov : BaseFov, 1f - Mathf.Exp(-6f * dt));
-        cam.fieldOfView = fov;
+        float udt = Mathf.Min(Time.unscaledDeltaTime, 0.05f);
+        kickPitch = Mathf.Lerp(kickPitch, 0f, 1f - Mathf.Exp(-7f * udt));
+        kickRoll = Mathf.Lerp(kickRoll, 0f, 1f - Mathf.Exp(-6f * udt));
+        kickFov = Mathf.Lerp(kickFov, 0f, 1f - Mathf.Exp(-9f * udt));
+        cam.fieldOfView = fov + kickFov;
 
         // shake: trauma squared, on unscaled time, small rotation only
         trauma = Mathf.Max(0f, trauma - 1.4f * Time.unscaledDeltaTime);
