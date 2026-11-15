@@ -796,6 +796,37 @@ public class GameManager : MonoBehaviour
         return true;
     }
 
+    /// <summary>The Captain's weapon found you: the same bonk, shove and lost heart as a guard's spear, only harder.</summary>
+    public void HitPlayer(Vector3 away, float shove)
+    {
+        if (invuln > 0f) return;
+        Vector3 p = player.transform.position;
+        sound.Play("guard_bonk", 1f, 0f, 0.85f);
+        sound.Duck(0.4f, 0.45f);
+        Vector3 hit = p + Vector3.up * 1.15f - away * 0.4f;
+        fx.Star(hit, Pal.Yellow, 1.6f, 0.5f);
+        fx.Star(hit, Pal.White, 0.9f, 0.34f);
+        fx.Puff(hit, Pal.A(Pal.Ink, 0.8f), 1.2f, 0.45f);
+        float side = Vector3.Dot(away, player.transform.right);
+        player.Knock(away * shove, 4.2f);
+        player.Kick(-11f, side * 12f, 11f);
+        hud.Bonk(side);
+        bool told = true;
+        Hurt(null, ref told, 0.13f);
+    }
+
+    /// <summary>The Captain is beaten: the last gate opens.</summary>
+    public void OnBossDefeated()
+    {
+        hearts = MaxHearts;
+        sound.Play("door_unlock", 0.9f);
+        hud.KeyPulse();
+        hud.RefreshKey();
+        hud.Toast("the Captain is beaten!     BUILD & RUN is open");
+    }
+
+    /// <summary>Hold the whole game still for a moment (a heavy hit).</summary>
+    public void Freeze(float seconds) { StartCoroutine(HitStop(seconds)); }
 
     /// <summary>Is there something to stand on at this spot of the current room? (Stops a shove at an edge.)</summary>
     bool CanStandAt(Vector3 pos)
