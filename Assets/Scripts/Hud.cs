@@ -42,6 +42,13 @@ public class Hud : MonoBehaviour
     static readonly string[] BonkWords = { "BONK!", "POW!", "WHACK!", "OOF!" };
     Color wordFill = Pal.Yellow, wordInk = Pal.Red;
     float wordScale = 1f;
+    // the last fight: the Captain's health bar across the top and yours at the bottom...
+    RectTransform bossRect, bossFill, bossLag, youRect, youFill, youLag;
+    Image bossFillImg, youFillImg;
+    float bossFrac = 1f, bossLagFrac = 1f, bossHold, bossPunch, youFrac = 1f, youLagFrac = 1f, youHold, youPunch;
+    bool fightUi;
+    // (what the fight hides: the room title, the checklist, the hearts and the sticky note)
+    readonly System.Collections.Generic.List<GameObject> exploreUi = new System.Collections.Generic.List<GameObject>();
     // start menu: two sticky notes, START and QUIT
     public int menuIndex;
     RectTransform[] menuNotes;
@@ -234,6 +241,24 @@ public class Hud : MonoBehaviour
         bonkText = Txt(bt, "BONK!", 132, Pal.Red, TextAnchor.MiddleCenter, TexLib.title);
         Halo(bonkText, Pal.Ink, 3.5f);
         bonkRect.gameObject.SetActive(false);
+
+        // the last fight: the Captain's health bar across the top, yours at the bottom left.
+        // While you fight, the exploring HUD (room title, checklist, hearts, sticky note) steps aside.
+        exploreUi.Add(rt.gameObject); exploreUi.Add(ru.gameObject); exploreUi.Add(checkRow.gameObject); exploreUi.Add(noteRect.gameObject);
+        foreach (var heart in heartRects) exploreUi.Add(heart.gameObject);
+        bossRect = Box("Boss", pu, new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(-170, -84), new Vector2(840, 104));
+        var bsn = Box("Name", bossRect, new Vector2(0, 1), new Vector2(0, 1), new Vector2(6, 2), new Vector2(600, 50));
+        var bsnText = Txt(bsn, "THE CAPTAIN", 44, Pal.Purple, TextAnchor.MiddleLeft, TexLib.title);
+        Halo(bsnText, Pal.A(Pal.Paper, 0.95f), 3f);
+        Bar(bossRect, new Vector2(840, 46), Pal.Red, 3, out bossFill, out bossLag, out bossFillImg);
+        bossRect.gameObject.SetActive(false);
+
+        youRect = Box("You", pu, new Vector2(0, 0), new Vector2(0, 0), new Vector2(60, 100), new Vector2(480, 92));
+        var yon = Box("Name", youRect, new Vector2(0, 1), new Vector2(0, 1), new Vector2(6, 2), new Vector2(300, 46));
+        var yonText = Txt(yon, "YOU", 40, Pal.Hex("1f8f84"), TextAnchor.MiddleLeft, TexLib.title);
+        Halo(yonText, Pal.A(Pal.Paper, 0.95f), 3f);
+        Bar(youRect, new Vector2(480, 40), Pal.Hex("3fbf6a"), GameManager.MaxHearts, out youFill, out youLag, out youFillImg);
+        youRect.gameObject.SetActive(false);
 
         // ---------- the 1989 original, floating in its own window ----------
         float fw = PixelW + Pad * 2f, fh = PixelH + TitleH + Pad * 2f;
@@ -487,6 +512,60 @@ public class Hud : MonoBehaviour
         float w = root.rect.width, h = root.rect.height;
         bonkRect.anchoredPosition = new Vector2((Mathf.Clamp(viewport.x, 0.1f, 0.9f) - 0.5f) * w, (Mathf.Clamp(viewport.y, 0.2f, 0.86f) - 0.5f) * h);
         wordScale = scale;
+    }
+
+    // ---- the last fight
+    /// <summary>
+    /// A hand-drawn health bar along the bottom of <paramref name="parent"/>: dark back, a pale strip that
+    /// lags behind the damage, the coloured fill, a notch between each part, and an ink frame.
+    /// </summary>
+    void Bar(RectTransform parent, Vector2 size, Color color, int parts, out RectTransform fill, out RectTransform lag, out Image fillImg)
+    {
+        var bar = Box("Bar", parent, new Vector2(0, 0), new Vector2(0, 0), Vector2.zero, size);
+        Img(bar, TexLib.whiteSprite, Pal.A(Pal.Ink, 0.9f));
+        var inner = Rect("Inner", bar, Vector2.zero, Vector2.one, new Vector2(6, 6), new Vector2(-6, -6));
+        lag = Rect("Lag", inner, Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
+        Img(lag, TexLib.whiteSprite, Pal.Paper);
+        fill = Rect("Fill", inner, Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
+        fillImg = Img(fill, TexLib.whiteSprite, color);
+        for (int i = 1; i < parts; i++)
+        {
+            float x = i / (float)parts;
+            var notch = Rect("Notch" + i, inner, new Vector2(x, 0), new Vector2(x, 1), new Vector2(-2.5f, 0), new Vector2(2.5f, 0));
+            Img(notch, TexLib.whiteSprite, Pal.A(Pal.Ink, 0.9f));
+        }
+        var frame = Rect("Frame", bar, Vector2.zero, Vector2.one, new Vector2(-5, -5), new Vector2(5, 5));
+        Img(frame, TexLib.frameSprite, Pal.Ink, true);
+    }
+
+    public void ShowBoss(bool on)
+    {
+        if (bossRect == null) return;
+        bossRect.gameObject.SetActive(on);
+        if (on) { bossFrac = 1f; bossLagFrac = 1f; bossPunch = 0.6f; }
+    }
+
+    /// <summary>The Captain's health, as a part of the whole bar.</summary>
+    public void SetBoss(int hp, int max)
+    {
+        float f = Mathf.Clamp01(hp / (float)Mathf.Max(1, max));
+        if (f < bossFrac) bossHold = 0.4f;
+        if (f > bossFrac) bossLagFrac = f;
+        bossFrac = f;
+    }
+
+    /// <summary>The health bar jumps when a hit lands on him.</summary>
+    public void BossPunch() { bossPunch = 1f; }
+
+    /// <summary>The fight has its own HUD: two health bars. The exploring HUD (title, checklist, hearts, note) steps aside.</summary>
+    public void SetFightUi(bool on)
+    {
+        if (fightUi == on) return;
+        fightUi = on;
+        foreach (var g in exploreUi) g.SetActive(!on);
+        youRect.gameObject.SetActive(on);
+        if (on) { youFrac = 1f; youLagFrac = 1f; }
+        RefreshKey();
     }
 
     public void ShowRoomTitle(int i)
