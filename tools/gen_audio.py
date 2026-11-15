@@ -1068,6 +1068,19 @@ def sfx_guard_swing():
     return finish(sweep * np.sin(np.pi * u) ** 0.8, out_ms=8.0)
 
 
+def sfx_guard_bonk():
+    """The spear lands: a big comic BONK. A low thump, a wooden 'tok', a bright ping and a puff of noise."""
+    n = int(0.42 * SR)
+    t = np.arange(n) / SR
+    thump = osc_tri(glide(210.0, 62.0, n), drive=1.6) * expdecay(n, 0.075, 1.0)
+    tok = sum(g * np.sin(2 * np.pi * f * t) for f, g in ((640.0, 1.0), (980.0, 0.55), (1530.0, 0.3))) * np.exp(-t / 0.022)
+    ping = osc_pulse(const(hz('G6'), n), 0.25) * expdecay(n, 0.09, 1.0)
+    out = thump + 0.55 * tok + 0.22 * ping
+    m = int(0.05 * SR)
+    out[:m] += 0.5 * sh_noise(m, 7000.0, rng('guard_bonk')) * expdecay(m, 0.012, 0.5)
+    return finish(out, out_ms=25.0)
+
+
 def sfx_ui_move():
     n = int(0.050 * SR)
     return finish(osc_pulse(const(hz('G5'), n), 0.25) * expdecay(n, 0.018, 1.0), out_ms=5.0)
