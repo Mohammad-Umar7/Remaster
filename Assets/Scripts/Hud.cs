@@ -40,6 +40,8 @@ public class Hud : MonoBehaviour
     float bonkT = -1f;
     int bonkCount;
     static readonly string[] BonkWords = { "BONK!", "POW!", "WHACK!", "OOF!" };
+    Color wordFill = Pal.Yellow, wordInk = Pal.Red;
+    float wordScale = 1f;
     // start menu: two sticky notes, START and QUIT
     public int menuIndex;
     RectTransform[] menuNotes;
@@ -463,13 +465,28 @@ public class Hud : MonoBehaviour
     public void KeyPulse() { keyPulse = 1f; }
 
     /// <summary>A guard's spear just landed: a comic word bursts onto the screen, a bit off-centre each time.</summary>
-    public void Bonk(float side)
+    public void Bonk(float side) { Word(BonkWords[bonkCount++ % BonkWords.Length], Pal.Yellow, Pal.Red, side, 1f); }
+
+    /// <summary>Any comic word in a burst (BONK!, CLANG!, K.O.!): its own colours and size.</summary>
+    public void Word(string text, Color fill, Color ink, float side, float scale)
     {
         bonkT = 0f;
-        bonkText.text = BonkWords[bonkCount++ % BonkWords.Length];
+        bonkText.text = text;
+        wordFill = fill; wordInk = ink; wordScale = scale;
         bonkRect.anchoredPosition = new Vector2(Mathf.Clamp(side, -1f, 1f) * -150f + Random.Range(-40f, 40f), -70f + Random.Range(-30f, 40f));
         bonkRect.localRotation = Quaternion.Euler(0, 0, Random.Range(-13f, 13f));
         bonkRect.gameObject.SetActive(true);
+    }
+
+    /// <summary>
+    /// Move the comic word that is showing to a place on the screen (0..1 across and up) and resize it:
+    /// in the last fight a hit pops where it landed instead of covering the fighters.
+    /// </summary>
+    public void PlaceWord(Vector2 viewport, float scale)
+    {
+        float w = root.rect.width, h = root.rect.height;
+        bonkRect.anchoredPosition = new Vector2((Mathf.Clamp(viewport.x, 0.1f, 0.9f) - 0.5f) * w, (Mathf.Clamp(viewport.y, 0.2f, 0.86f) - 0.5f) * h);
+        wordScale = scale;
     }
 
     public void ShowRoomTitle(int i)
@@ -586,10 +603,10 @@ public class Hud : MonoBehaviour
             bonkT += dt;
             float pop = EaseOutBack(Mathf.Clamp01(bonkT / 0.13f));
             float fadeOut = Mathf.Clamp01((bonkT - 0.42f) / 0.22f);
-            float sc = pop * (1f + fadeOut * 0.25f);
+            float sc = pop * (1f + fadeOut * 0.25f) * wordScale;
             bonkRect.localScale = new Vector3(sc, sc, 1f);
             float a = 1f - fadeOut;
-            bonkFill.color = Pal.A(Pal.Yellow, a); bonkLine.color = Pal.A(Pal.Ink, a); bonkText.color = Pal.A(Pal.Red, a);
+            bonkFill.color = Pal.A(wordFill, a); bonkLine.color = Pal.A(Pal.Ink, a); bonkText.color = Pal.A(wordInk, a);
             if (bonkT > 0.66f) { bonkT = -1f; bonkRect.gameObject.SetActive(false); }
         }
         if (checkPulse > 0f && pulseIndex >= 0)
