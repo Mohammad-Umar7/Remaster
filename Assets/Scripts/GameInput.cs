@@ -193,6 +193,11 @@ public static class GameInput
         }
     }
 
+    /// <summary>Skip to the next room (N): for anyone who is stuck.</summary>
+    public static bool SkipRoomPressed { get { var k = Kb; return k != null && k.nKey.wasPressedThisFrame; } }
+    /// <summary>Skip straight to the last fight (B).</summary>
+    public static bool SkipToBossPressed { get { var k = Kb; return k != null && k.bKey.wasPressedThisFrame; } }
+
     public static bool TabPressed { get { var k = Kb; var g = Gp; return (k != null && k.tabKey.wasPressedThisFrame) || (g != null && g.buttonNorth.wasPressedThisFrame); } }
     public static bool F1Pressed { get { var k = Kb; return k != null && k.f1Key.wasPressedThisFrame; } }
     public static bool F11Pressed { get { var k = Kb; return k != null && k.f11Key.wasPressedThisFrame; } }
