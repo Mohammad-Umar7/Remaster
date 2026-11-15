@@ -78,6 +78,9 @@ public static class Maps
     public const float KeyReach = 0.95f;    // metres: how close you have to get to pick the key up
     public const float GuardAlert = 1.9f;   // tiles: a guard notices you this close (it chirps, turns its head, lowers its spear)
     public const float GuardCalm = 2.7f;    // tiles: and forgets you again this far away
+    // a guard's strike, in seconds: cock the spear back, thrust, then wobble back to rest
+    public const float GuardWindup = 0.17f, GuardStrike = 0.09f, GuardRecover = 0.52f;
+    public const float GuardImpactAt = 0.235f;      // when the spear lands and the heart is lost
 
     static int[] L(params int[] v) { return v; }
     static Vector2Int K(int x, int r) { return new Vector2Int(x, r); }
