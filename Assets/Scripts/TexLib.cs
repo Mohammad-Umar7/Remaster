@@ -6,7 +6,7 @@ public static class TexLib
 {
     public static bool built;
     public static Texture2D paper, noise, hatch, grid, tileOutline, bricks, bricksFancy, planks;
-    public static Texture2D footprint, puff, burst, scribble, check, box, dot, ring, arrow, underline, tape, squiggle, star, zed, keyIcon, keyDisc, heartFill, heartLine;
+    public static Texture2D footprint, puff, burst, scribble, check, box, dot, ring, arrow, underline, tape, squiggle, star, zed, keyIcon, keyDisc, heartFill, heartLine, bang, burstFill;
     public static Sprite frameSprite, panelSprite, whiteSprite;
     public static Texture2D frameTex, white;
     public static Font hand, title;
@@ -53,6 +53,7 @@ public static class TexLib
         keyDisc = MakeKeyDisc();
         heartFill = MakeHeart(true);
         heartLine = MakeHeart(false);
+        bang = MakeBang();
 
         frameTex = MakeFrame(96, 53);
         frameSprite = Sprite.Create(frameTex, new Rect(0, 0, 96, 96), new Vector2(0.5f, 0.5f), 100f, 0, SpriteMeshType.FullRect, new Vector4(30, 30, 30, 30));
@@ -408,6 +409,15 @@ public static class TexLib
             for (int k = 0; k + 1 < xs.Count; k += 2)
                 if (xs[k + 1] - xs[k] > 0.5f) d.Seg(new Vector2(xs[k], yy), new Vector2(xs[k + 1], yy), 1.8f, 0.95f);
         }
+        return d.ToAlphaTexture(Color.white);
+    }
+
+    /// <summary>An exclamation mark: what a guard "says" when it notices you.</summary>
+    static Texture2D MakeBang()
+    {
+        var d = new Doodle(64, 128, 149);
+        d.Stroke(new[] { new Vector2(33, 12), new Vector2(31, 50), new Vector2(32, 84) }, 17f, 1.2f, 0.45f);
+        d.Disc(new Vector2(32, 110), 9.5f);
         return d.ToAlphaTexture(Color.white);
     }
 
