@@ -36,12 +36,16 @@ public class GuardRig
     static readonly Vector3 ShoulderSpear = new Vector3(-0.47f, 0.62f, 0f), ShoulderShield = new Vector3(0.47f, 0.62f, 0f);
     const float LegX = 0.19f;
 
-    public static GuardRig Build(Transform parent)
+    float scale = S;                    // the Captain is the same toy soldier, nearly twice the size
+    public Transform Head { get { return head; } }
+
+    public static GuardRig Build(Transform parent, float scale = S)
     {
         var r = new GuardRig();
+        r.scale = scale;
         r.root = new GameObject("guard").transform;
         r.root.SetParent(parent, false);
-        r.root.localScale = Vector3.one * S;
+        r.root.localScale = Vector3.one * scale;
         r.body = Part("guard_body", r.root, Hip);
         r.head = Part("guard_head", r.body, Neck);
         r.armSpear = Part("guard_arm_spear", r.body, ShoulderSpear);
@@ -103,7 +107,7 @@ public class GuardRig
 
         if (showBang)
         {
-            Vector3 at = p.feet + shift + Vector3.up * (2.35f * S);
+            Vector3 at = p.feet + shift + Vector3.up * (2.35f * scale);
             Vector3 toEye = eye - at;
             if (toEye.sqrMagnitude < 0.01f) toEye = Vector3.back;
             toEye.Normalize();
@@ -112,7 +116,7 @@ public class GuardRig
             if (top.sqrMagnitude < 0.0001f) top = Vector3.forward;
             bang.position = at;
             bang.rotation = Quaternion.LookRotation(top.normalized, toEye) * Quaternion.AngleAxis(-8f, Vector3.up);
-            bang.localScale = Vector3.one * p.bang;
+            bang.localScale = Vector3.one * (p.bang * scale / S);
         }
     }
 
