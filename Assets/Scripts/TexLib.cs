@@ -54,6 +54,7 @@ public static class TexLib
         heartFill = MakeHeart(true);
         heartLine = MakeHeart(false);
         bang = MakeBang();
+        burstFill = MakeBurstFill();
 
         frameTex = MakeFrame(96, 53);
         frameSprite = Sprite.Create(frameTex, new Rect(0, 0, 96, 96), new Vector2(0.5f, 0.5f), 100f, 0, SpriteMeshType.FullRect, new Vector4(30, 30, 30, 30));
@@ -418,6 +419,35 @@ public static class TexLib
         var d = new Doodle(64, 128, 149);
         d.Stroke(new[] { new Vector2(33, 12), new Vector2(31, 50), new Vector2(32, 84) }, 17f, 1.2f, 0.45f);
         d.Disc(new Vector2(32, 110), 9.5f);
+        return d.ToAlphaTexture(Color.white);
+    }
+
+    /// <summary>The inside of the comic burst (same spikes as the outline in MakeBurst), coloured in.</summary>
+    static Texture2D MakeBurstFill()
+    {
+        var d = new Doodle(256, 256, 71);
+        var pts = new List<Vector2>();
+        int n = 14;
+        for (int i = 0; i <= n * 2; i++)
+        {
+            float a = i / (float)(n * 2) * Mathf.PI * 2f;
+            float r = (i % 2 == 0) ? 118f : 72f + d.Rand(-8, 8);
+            pts.Add(new Vector2(128 + Mathf.Cos(a) * r, 128 + Mathf.Sin(a) * r));
+        }
+        for (int py = 0; py < 256; py++)
+        {
+            float yy = py + 0.5f;
+            var xs = new List<float>();
+            for (int i = 0; i + 1 < pts.Count; i++)
+            {
+                Vector2 a = pts[i], b = pts[i + 1];
+                if ((a.y <= yy) == (b.y <= yy)) continue;
+                xs.Add(a.x + (yy - a.y) / (b.y - a.y) * (b.x - a.x));
+            }
+            xs.Sort();
+            for (int k = 0; k + 1 < xs.Count; k += 2)
+                if (xs[k + 1] - xs[k] > 0.5f) d.Seg(new Vector2(xs[k], yy), new Vector2(xs[k + 1], yy), 1.8f, 1f);
+        }
         return d.ToAlphaTexture(Color.white);
     }
 
