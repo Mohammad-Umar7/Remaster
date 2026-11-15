@@ -198,7 +198,7 @@ public class BossFight
         resets++;
         foreach (var d in debris) if (d != null) Object.Destroy(d);
         debris.Clear();
-        maxHp = 12 - Mathf.Min(3, gm.coins / 6);            // the old game's coins sharpen the old game's sword
+        maxHp = 12 - Mathf.Min(3, gm.coins / 5);            // the old game's coins sharpen the old game's sword
         hp = keepPhase == 1 ? maxHp : (keepPhase == 2 ? maxHp * 2 / 3 : maxHp / 3);
         st = defeated ? St.Gone : St.Asleep;
         t = 0f; cooldown = 0f; flinch = 0f; blockT = 0f; shockT = -1f; line = -1; attackCount = 0;
