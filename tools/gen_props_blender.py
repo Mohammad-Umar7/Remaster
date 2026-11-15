@@ -1058,6 +1058,12 @@ def build_all(sc):
             obj.location = (x, row_y, ROW_Z.get(obj.name, 0.0))
             x += max(xs) + gap
             objs[obj.name] = obj
+    guard = new_collection(sc, "RM_GuardAssembly")
+    for name, places in GUARD_ASSEMBLY.items():
+        for k, loc in enumerate(places):
+            dup = bpy.data.objects.new("%s_on_guard%d" % (name, k), objs[name].data)
+            dup.location = GUARD_ORIGIN + Vector(loc)
+            guard.objects.link(dup)
     for name, (loc, yaw) in ASSEMBLY.items():
         dup = bpy.data.objects.new(name + "_on_desk", objs[name].data)
         dup.location = ASSEMBLY_ORIGIN + Vector(loc)
