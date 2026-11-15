@@ -62,6 +62,7 @@ public class RoomDef
     public Vector2Int key = new Vector2Int(-1, -1);     // tile the key floats over; the exit stays locked until you hold it
     public SlimeDef[] guards = new SlimeDef[0];         // patrols (tiles per second, start offset, loop of waypoints)
     public bool boss;                                   // the Captain's arena: the exit opens when he is beaten (see BossFight)
+    public bool plankMaze;                              // its one-use planks are meant as a maze: the map checker then insists on a winding route
 }
 
 public static class Maps
@@ -501,11 +502,12 @@ public static class MapValidator
                     }
                 }
             }
-            // a one-use room must be a maze: its quickest route has to turn several times on the planks,
-            // so there is never a straight ladder from the door to the exit
+            // a room that calls itself a plank maze must be one: its quickest route has to turn several times
+            // on the planks, so there is never a straight ladder from the door to the exit.
+            // (Room 1 uses the same snapping planks for a short straight bridge: that is not a maze.)
             bool anyOneUse = false;
             for (int r = 0; r < Maps.H; r++) for (int x = 0; x < Maps.W; x++) if (room.IsOneUse(x, r)) anyOneUse = true;
-            if (anyOneUse)
+            if (anyOneUse && d.plankMaze)
             {
                 int turns = 0;
                 var pts = new List<Vector2Int> { from };
