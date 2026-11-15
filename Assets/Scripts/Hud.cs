@@ -48,6 +48,7 @@ public class Hud : MonoBehaviour
     float bossFrac = 1f, bossLagFrac = 1f, bossHold, bossPunch, youFrac = 1f, youLagFrac = 1f, youHold, youPunch;
     bool fightUi;
     GameObject skipHint;
+    Text skipText;
     // (what the fight hides: the room title, the checklist, the hearts and the sticky note)
     readonly System.Collections.Generic.List<GameObject> exploreUi = new System.Collections.Generic.List<GameObject>();
     // ...and the talking box for the scene before it: words arrive one by one, in time with the voice
@@ -231,9 +232,9 @@ public class Hud : MonoBehaviour
         hintText = Txt(hn, ControlsHint, 28, Pal.Ink, TextAnchor.MiddleCenter);
         Halo(hintText, Pal.A(Pal.Paper, 0.92f), 3f);
         // for anyone who is stuck: the skip keys, small, in the corner (not in the last room: there is nothing to skip to)
-        var sk = Box("SkipHint", pu, new Vector2(1, 0), new Vector2(1, 0), new Vector2(-26, 4), new Vector2(700, 30));
-        var skText = Txt(sk, "stuck?     N  next room       B  boss fight", 27, Pal.Ink, TextAnchor.MiddleRight);
-        Halo(skText, Pal.A(Pal.Paper, 0.9f), 2f);
+        var sk = Box("SkipHint", pu, new Vector2(1, 0), new Vector2(1, 0), new Vector2(-26, 4), new Vector2(1000, 30));
+        skipText = Txt(sk, "stuck?     N  next room       B  boss fight", 27, Pal.Ink, TextAnchor.MiddleRight);
+        Halo(skipText, Pal.A(Pal.Paper, 0.9f), 2f);
         skipHint = sk.gameObject;
         var pb = Box("PopupBack", pu, new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(BottomShift, 170), new Vector2(1040, 92));
         popupBack = Img(pb, TexLib.panelSprite, Pal.Paper, true);
@@ -380,7 +381,7 @@ public class Hud : MonoBehaviour
         var h = Box("H", card, new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(0, -34), new Vector2(740, 110));
         Txt(h, "coffee break", 92, Pal.Ink, TextAnchor.MiddleCenter, TexLib.title);
         var b = Box("B", card, new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(0, 40), new Vector2(700, 320));
-        var bt = Txt(b, "<b>Esc</b>   back to work\n<b>R</b>   restart this room\n<b>N</b>   skip to the next room\n<b>B</b>   skip to the boss fight\n<b>Tab</b>   raise / lower the old game\n<b>1 - " + Maps.Defs.Length + "</b>   jump to a room\n<b>Q</b>   quit to the title", 34, Pal.Ink, TextAnchor.MiddleCenter);
+        var bt = Txt(b, "<b>Esc</b>   back to work\n<b>R</b>   restart this room\n<b>N</b> / <b>P</b>   next / previous room\n<b>B</b>   skip to the boss fight\n<b>Tab</b>   raise / lower the old game\n<b>1 - " + Maps.Defs.Length + "</b>   jump to a room\n<b>Q</b>   quit to the title", 34, Pal.Ink, TextAnchor.MiddleCenter);
         bt.lineSpacing = 1.05f;
         card.gameObject.AddComponent<Boil>().degrees = 0.3f;
     }
@@ -485,7 +486,13 @@ public class Hud : MonoBehaviour
         if (keyRect == null) return;
         int cur = Mathf.Clamp(gm.cur, 0, Maps.Defs.Length - 1);
         bool boss = gm.rooms[cur].def.boss;     // the last exit has no key: it opens when the Captain is beaten
-        if (skipHint != null && skipHint.activeSelf == boss) skipHint.SetActive(!boss);
+        if (skipHint != null)
+        {
+            // which skip keys do something here: no "previous" in the first room, only "previous" in the last
+            if (skipHint.activeSelf == fightUi) skipHint.SetActive(!fightUi);
+            skipText.text = boss ? "stuck?     P  previous room"
+                : (cur == 0 ? "stuck?     N  next room       B  boss fight" : "stuck?     P  previous room       N  next room       B  boss fight");
+        }
         bool has = gm.rooms[cur].HasKey || boss;
         keyRect.gameObject.SetActive(has && !fightUi);
         if (!has) return;
