@@ -692,6 +692,12 @@ public class World3D
             float dist = 46f + (float)rng.NextDouble() * 70f;
             float w = 8f + (float)rng.NextDouble() * 18f, d = 8f + (float)rng.NextDouble() * 18f, h = 16f + (float)rng.NextDouble() * 60f;
             Vector3 p = mid + new Vector3(Mathf.Cos(a) * dist * 1.25f, -22f + h * 0.5f + (float)rng.NextDouble() * 10f, Mathf.Sin(a) * dist * 1.6f);
+            // the background stays in the background: a tower that would stand inside a room is pushed further out
+            for (int k = 0; k < 24 && !ClearOfRooms(p, Mathf.Max(w, d) * 0.75f + 5f); k++)
+            {
+                dist += 10f;
+                p.x = mid.x + Mathf.Cos(a) * dist * 1.25f; p.z = mid.z + Mathf.Sin(a) * dist * 1.6f;
+            }
             var b = Box(parent, "tower", p, new Vector3(w, h, d), grey);
             b.transform.rotation = Quaternion.Euler(0, (float)rng.NextDouble() * 90f, 0);
             if (rng.NextDouble() < 0.45)
@@ -704,9 +710,23 @@ public class World3D
             float dist = 30f + (float)rng.NextDouble() * 45f;
             float s = 1.5f + (float)rng.NextDouble() * 4.5f;
             Vector3 p = mid + new Vector3(Mathf.Cos(a) * dist, 6f + (float)rng.NextDouble() * 26f, Mathf.Sin(a) * dist * 1.5f);
+            for (int k = 0; k < 24 && !ClearOfRooms(p, s + 4f); k++)
+            {
+                dist += 8f;
+                p.x = mid.x + Mathf.Cos(a) * dist; p.z = mid.z + Mathf.Sin(a) * dist * 1.5f;
+            }
             var b = Box(parent, "floater", p, new Vector3(s, s, s), grey);
             b.transform.rotation = Quaternion.Euler((float)rng.NextDouble() * 40f, (float)rng.NextDouble() * 180f, (float)rng.NextDouble() * 40f);
         }
+    }
+
+    /// <summary>Is this spot clear of every room and its corridors, with room to spare?</summary>
+    bool ClearOfRooms(Vector3 p, float margin)
+    {
+        float corridor = Maps.CorridorTiles * TS;
+        foreach (var r in rooms)
+            if (p.x > r.MinX - margin && p.x < r.MaxX + margin && p.z > r.MinZ - margin - corridor && p.z < r.MaxZ + margin + corridor) return false;
+        return true;
     }
 
     // ------------------------------------------------------------------ runtime changes
