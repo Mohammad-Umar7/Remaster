@@ -502,15 +502,17 @@ public class Hud : MonoBehaviour
     {
         if (keyRect == null) return;
         int cur = Mathf.Clamp(gm.cur, 0, Maps.Defs.Length - 1);
-        bool has = gm.rooms[cur].HasKey;
-        keyRect.gameObject.SetActive(has);
+        bool boss = gm.rooms[cur].def.boss;     // the last exit has no key: it opens when the Captain is beaten
+        bool has = gm.rooms[cur].HasKey || boss;
+        keyRect.gameObject.SetActive(has && !fightUi);
         if (!has) return;
-        bool got = gm.rs[cur].keyTaken;
+        bool got = gm.ExitOpen(cur);
         keyCheck.enabled = got;
         keyIcon.color = got ? (Color)Pal.Hex("d19a00") : (Color)Pal.Ink;
         keyText.text = got ? "exit open" : "exit locked";
         keyText.color = got ? (Color)Pal.Hex("1f8f84") : (Color)Pal.Red;
-        keySub.text = got ? "you have the key" : "find the key  (3D only!)";
+        if (boss) keySub.text = got ? "the Captain is beaten" : "beat the Captain";
+        else keySub.text = got ? "you have the key" : "find the key  (3D only!)";
     }
 
     public void KeyPulse() { keyPulse = 1f; }
