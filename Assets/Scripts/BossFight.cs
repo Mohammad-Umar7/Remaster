@@ -214,7 +214,18 @@ public class BossFight
         // put back whatever the scene or the fight had changed
         if (gm.hud != null) { gm.hud.ShowBoss(false); gm.hud.SetFightUi(false); gm.hud.HideDialogue(); gm.hud.SetEyelids(0f); gm.hud.SetCinema(false); }
         if (gm.sound != null) { gm.sound.SetHurry(false); gm.sound.Duck(1f, 0.1f); gm.sound.StopVoice(); }
-        if (gm.player != null) { gm.player.zoom = 0f; gm.player.lookLocked = false; if (wasScene) gm.player.controlEnabled = true; }
+        if (gm.player != null)
+        {
+            gm.player.zoom = 0f; gm.player.lookLocked = false;
+            if (wasScene) gm.player.controlEnabled = true;
+            if (camHeld)
+            {
+                Transform ct = gm.player.cam.transform;
+                ct.localPosition = Vector3.zero; ct.localRotation = Quaternion.identity;
+                camHeld = false; shot = -99;
+            }
+            tp = 0f;
+        }
     }
 
     static Vector3 Dir(float yawDeg) { float a = yawDeg * Mathf.Deg2Rad; return new Vector3(Mathf.Sin(a), 0f, Mathf.Cos(a)); }
