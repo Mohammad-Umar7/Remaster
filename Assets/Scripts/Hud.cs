@@ -441,7 +441,7 @@ public class Hud : MonoBehaviour
             "time            <b>" + FormatTime(time) + "</b>\n" +
             "coins           <b>" + coins + " / " + total + "</b>\n" +
             "fell off        <b>" + falls + "x</b>\n" +
-            "slime bites   <b>" + hits + "x</b>\n" +
+            "got hit         <b>" + hits + "x</b>\n" +
             "<size=32><color=#6a6280>soundtrack: fully remastered</color></size>";
         resFoot.text = "<b>Enter</b>  play again\n" +
                        "SHIFT Game Jam 2026   ·   everything made during the jam   ·   see CREDITS";
