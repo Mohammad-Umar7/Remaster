@@ -80,6 +80,8 @@ public class RoomState
     public float[,] breakIn = new float[Maps.W, Maps.H];        // > 0: this plank snaps in that many seconds
     public float[] rowCrumble = new float[Maps.H];              // -1 intact, 0..1 crumbling, 2 deleted
     public List<Slime> slimes = new List<Slime>();
+    public List<Slime> guards = new List<Slime>();             // new in the remake: only the 3D world shows them
+    public bool keyTaken;                                       // the exit is locked until this is true
     public bool cleared, waveActive;
     public float waveClock;
     public int waveRow;
@@ -168,6 +170,13 @@ public class GameManager : MonoBehaviour
             rs[i] = new RoomState();
             for (int r = 0; r < Maps.H; r++) rs[i].rowCrumble[r] = -1f;
             foreach (var sd in Maps.Defs[i].slimes) rs[i].slimes.Add(new Slime(sd));
+            foreach (var gd in Maps.Defs[i].guards)
+            {
+                // a faster guard takes quicker steps, so you can hear how fast it is
+                var g = new Slime(gd);
+                g.hopPeriod = Mathf.Clamp(0.55f / Mathf.Max(0.1f, gd.speed), 0.27f, 0.8f);
+                rs[i].guards.Add(g);
+            }
             if (Maps.Defs[i].lasers != null) rs[i].hotUntil = new float[Maps.Defs[i].lasers.Length];
             totalCoins += rooms[i].coins.Count;
         }
