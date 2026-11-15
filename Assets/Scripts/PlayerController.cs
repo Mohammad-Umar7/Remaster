@@ -165,7 +165,7 @@ public class PlayerController : MonoBehaviour
         float bobY = Mathf.Abs(Mathf.Sin(bobPhase)) * 0.055f * bobAmt - 0.0275f * bobAmt;
         float bobX = Mathf.Sin(bobPhase) * 0.03f * bobAmt;
         pivot.localPosition = new Vector3(bobX, EyeHeight + bobY - landDip, 0);
-        pivot.localRotation = Quaternion.Euler(pitch + shakeRot.x, shakeRot.y, roll + shakeRot.z);
+        pivot.localRotation = Quaternion.Euler(pitch + shakeRot.x + kickPitch, shakeRot.y, roll + shakeRot.z + kickRoll);
     }
 
     public void AddTrauma(float amount) { trauma = Mathf.Clamp01(trauma + amount); }
