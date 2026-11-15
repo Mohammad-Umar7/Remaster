@@ -233,40 +233,6 @@ public static class Maps
         },
         new RoomDef
         {
-            // A real maze. Planks sit on a lattice (junctions on odd columns and even rows) so corridors only
-            // ever touch at junctions. Three ways in from the start floor (columns 1, 5 and 9); only the one
-            // at column 9 reaches the single exit plank at (6,2), and it has to wind right, up, left, down,
-            // left and up to get there. Because planks snap behind you, every dead end is final.
-            // Two coins lie on the true route; the third is bait at the end of a dead end.
-            title = "ONE-WAY MAZE",
-            todo = "plank durability",
-            note = "TODO: plank durability.\nPlanks snap after ONE\nstep. Solve the maze!",
-            finish = 0.32f, needBridge = true,
-            // fetch first, then solve: the key is at one end of the start floor and the only good way
-            // into the maze is at the other, with a fast guard lapping each end
-            key = K(2, 9),
-            guards = new[]
-            {
-                new SlimeDef(1.6f, 0.60f, 1,8, 4,8, 4,9, 1,9),
-                new SlimeDef(1.6f, 0.10f, 8,8, 11,8, 11,9, 8,9),
-            },
-            rows = new[]
-            {
-                "######X######",
-                "#~~~~~.~~~~~#",
-                "#ooo~~oo~ook#",
-                "#~~o~~~o~o~o#",
-                "#o~ooo~ook~o#",
-                "#o~~~o~~~~~o#",
-                "#ook~o~ooooo#",
-                "#o~~~o~~~o~~#",
-                "#....N......#",
-                "#...........#",
-                "######S######",
-            }
-        },
-        new RoomDef
-        {
             // The last room is a fight, not a puzzle. The Captain of the guards is NEW in the remake,
             // so the old game shows an empty hall. No key here: the exit opens when he is beaten.
             // The remake never modelled a sword, so you fight with the old game's one, and every coin
