@@ -17,6 +17,11 @@ public class Slime
     public bool alerted;                    // it has noticed you
     public float alertT;                    // 0..1, eased: how far it is into its on-guard stance
     public float bangT = -1f;               // seconds since the "!" popped (-1: not showing)
+    public float attackT = -1f;             // seconds into a spear strike (-1: not striking)
+    public bool attackSwung, attackLanded;
+    public Vector2 attackDir = Vector2.up;  // which way the strike goes, in tile space
+    public float attackReach;               // metres it lunges (or hops back) so it ends a spear's length from you
+    public Vector2 lookAt;                  // where you are, in tile units (for its head)
     readonly float[] seg;
 
     public Slime(SlimeDef def)
@@ -36,6 +41,7 @@ public class Slime
     public void Reset()
     {
         d = def.phase * total; hopClock = 0f; hitFlash = 0f; steps = 0; gone = false;
+        alerted = false; alertT = 0f; bangT = -1f; attackT = -1f; attackSwung = false; attackLanded = false;
         pos = PosAtDistance(d);
         Vector2 ahead = PosAtDistance((d + 0.05f) % total) - pos;
         if (ahead.sqrMagnitude > 1e-6f) dir = ahead.normalized;
