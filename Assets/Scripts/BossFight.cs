@@ -588,4 +588,113 @@ public class BossFight
         if (v.z > 0f) gm.hud.PlaceWord(new Vector2(v.x, v.y), scale);
     }
 
+    // ------------------------------------------------------------------ you: sword and dodge
+    float AttackLength { get { return combo == 3 ? 0.5f : 0.34f; } }
+    float AttackHitAt { get { return combo == 3 ? 0.19f : 0.12f; } }
+
+    void Combat(float dt, Vector3 p, float dist, Vector3 dirYou)
+    {
+        var pl = gm.player;
+        Vector3 toBoss = -dirYou;
+
+        // the dodge roll: a quick dive the way you are moving (straight back if you are standing still)
+        if (dodgeCool > 0f) dodgeCool -= dt;
+        if (dodgeT < 0f && dodgeCool <= 0f && GameInput.DodgePressed)
+        {
+            Vector2 mv = GameInput.Move;
+            Vector3 dir = mv.sqrMagnitude > 0.05f ? (pl.transform.forward * mv.y + pl.transform.right * mv.x).normalized : -pl.transform.forward;
+            dodgeT = 0f; dodgeCool = 0.7f;
+            atkT = -1f; atkQueued = false;
+            pl.Knock(dir * 12.5f, 0f);
+            gm.invuln = Mathf.Max(gm.invuln, 0.45f);        // nothing touches you mid-roll
+            gm.sound.Play("wrap", 0.45f, 0.05f, 1.6f);
+            gm.fx.Puff(p + Vector3.up * 0.2f, Pal.A(Pal.Pencil, 0.8f), 1.0f, 0.4f);
+        }
+        if (dodgeT >= 0f) { dodgeT += dt; if (dodgeT > 0.45f) dodgeT = -1f; }
+
+        // the sword: clicks are remembered for a moment, so a quick second and third click chain into the combo
+        if (GameInput.AttackPressed) atkQueued = true;
+        if (atkT >= 0f)
+        {
+            atkT += dt;
+            if (!atkHit && atkT >= AttackHitAt)
+            {
+                atkHit = true;
+                slashT = 0f; slashKind = combo;
+                if (dist < Reach) Land(dirYou, combo == 3 ? 2 : 1);
+            }
+            // the next click cuts the follow-through short
+            if (atkT >= AttackLength || (atkHit && atkQueued && combo < 3 && atkT >= AttackLength * 0.7f)) { atkT = -1f; comboClock = 0.55f; }
+        }
+        if (atkT < 0f)
+        {
+            if (comboClock > 0f) { comboClock -= dt; if (comboClock <= 0f) combo = 0; }
+            if (atkQueued && dodgeT < 0f && swordShow > 0.5f)
+            {
+                atkQueued = false;
+                combo = combo >= 3 ? 1 : combo + 1;
+                atkT = 0f; atkHit = false;
+                gm.sound.Play("guard_swing", 0.75f, 0.04f, combo == 3 ? 0.95f : 1.3f + combo * 0.12f);
+                // a step in toward him with every swing
+                if (dist > 2.3f && dist < 7f) pl.Knock(toBoss * (combo == 3 ? 7.5f : 5.5f), 0f);
+            }
+        }
+    }
+
+    void Land(Vector3 dirYou, int damage)
+    {
+        Vector3 spot = Ground + dirYou * (0.6f * Scale) + Vector3.up * (0.85f * Scale);
+        if (!Open)
+        {
+            // clang: he was ready for that, and the block throws you back
+            blockT = 0.3f;
+            atkQueued = false; combo = 0;
+            gm.sound.Play("gate", 0.85f, 0.05f, 1.2f);
+            gm.fx.Star(spot, Pal.White, 1.2f, 0.3f);
+            gm.fx.Star(spot + Vector3.up * 0.3f, Pal.Yellow, 0.7f, 0.25f);
+            WordAt("CLANG!", Pal.Hex("c8c2e6"), Pal.Ink, spot + Vector3.up * 1.6f, 0.42f);
+            if (!GameInput.overrideActive) gm.player.Knock(dirYou * 7f, 2f);
+            gm.player.AddTrauma(0.2f);
+            return;
+        }
+        hp = Mathf.Max(0, hp - damage);
+        flinch = 0.3f;
+        pos = Clamp(pos - dirYou * (damage > 1 ? 1.1f : 0.6f));
+        gm.sound.Play("guard_bonk", 0.95f, 0.05f, damage > 1 ? 0.9f : 1.3f);
+        gm.sound.Play("coin", 0.5f, 0f, 0.8f);
+        gm.fx.Star(spot, Pal.Yellow, damage > 1 ? 1.7f : 1.1f, 0.45f);
+        gm.fx.Star(spot, Pal.White, damage > 1 ? 1.0f : 0.7f, 0.3f);
+        gm.fx.Puff(spot, Pal.A(Pal.Purple, 0.9f), 1.4f, 0.45f);
+        for (int i = 0; i < (damage > 1 ? 6 : 3); i++)
+            gm.fx.Star(spot + new Vector3(Random.Range(-1f, 1f), Random.Range(-0.4f, 1.2f), Random.Range(-1f, 1f)), Pal.Yellow, 0.45f, 0.4f);
+        WordAt(damage > 1 ? "SMASH!" : HitWords[(maxHp - hp) % HitWords.Length], damage > 1 ? (Color)Pal.Yellow : (Color)Pal.Hex("7bd65a"), damage > 1 ? (Color)Pal.Red : (Color)Pal.Ink,
+            HeadPos + Vector3.up * 1.4f, damage > 1 ? 0.62f : 0.45f);
+        gm.hud.SetBoss(hp, maxHp);
+        gm.hud.BossPunch();
+        gm.player.AddTrauma(damage > 1 ? 0.45f : 0.26f);
+        gm.Freeze(damage > 1 ? 0.13f : 0.06f);
+        if (damage > 1) SketchCamera.Flash(0.22f, Pal.White);
+        if (hp <= 0) Die(dirYou);
+    }
+
+    void Die(Vector3 dirYou)
+    {
+        st = St.Dying; t = 0f;
+        winT = 0f;
+        atkT = -1f; atkQueued = false;
+        gm.sound.SetHurry(false);
+        gm.sound.Play("jingle_room", 0.9f);
+        gm.sound.Play("plank_break", 1f, 0f, 0.7f);
+        gm.hud.Word("K.O.!", Pal.Yellow, Pal.Red, 0f, 1.0f);
+        gm.hud.PlaceWord(new Vector2(0.5f, 0.74f), 1.0f);
+        SketchCamera.Flash(0.8f, Pal.White);
+        gm.player.AddTrauma(0.8f);
+        gm.Freeze(0.25f);
+        // he comes apart: every part is thrown clear and tumbles with real physics
+        debris.AddRange(rig.Shatter(gm.world.root, pos + dirYou * 1.2f + Vector3.up * 0.4f, 7f, gm.player.GetComponent<CharacterController>()));
+        rig.Show(false);
+        for (int i = 0; i < 10; i++)
+            gm.fx.Star(pos + Vector3.up * (1f + i * 0.25f) + Dir(i * 36f) * 1.2f, i % 2 == 0 ? (Color)Pal.Yellow : (Color)Pal.White, 0.8f, 0.7f);
+    }
+
 }
