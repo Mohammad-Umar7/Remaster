@@ -1182,8 +1182,12 @@ def render_previews(sc, objs, preview_dir, only=None):
     shots.append(("props_gameplay_front.png", (mid - 1.6, 9.0 - 5.2, 1.9), (mid, 9.0, 0.95), 34.0))
     shots.append(("props_gameplay_back.png", (mid + 2.2, 9.0 + 5.0, 2.2), (mid, 9.0, 0.95), 34.0))
     shots.append(("props_gameplay_side.png", (lo - 4.2, 9.0 - 1.4, 1.6), (lo + 0.4, 9.0, 0.95), 40.0))
+    go = GUARD_ORIGIN
+    shots.append(("props_guard_front.png", (go.x - 0.9, go.y - 4.2, 1.5), (go.x, go.y, 0.95), 42.0))
+    shots.append(("props_guard_back.png", (go.x + 1.6, go.y + 3.9, 1.9), (go.x, go.y, 0.95), 42.0))
+    shots.append(("props_guard_side.png", (go.x - 4.3, go.y - 0.6, 1.3), (go.x, go.y, 0.95), 42.0))
     if only:
-        shots = [s for s in shots if s[0].startswith("props_gameplay")] if set(only) <= set(GAMEPLAY_NAMES) else shots
+        shots = [s for s in shots if s[0].startswith(("props_gameplay", "props_guard"))] if set(only) <= set(GAMEPLAY_NAMES) else shots
     return [render_shot(sc, cam, os.path.join(preview_dir, f), loc, target, lens) for (f, loc, target, lens) in shots]
 
 
