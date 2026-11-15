@@ -228,4 +228,364 @@ public class BossFight
     Vector3 HeadPos { get { return pos + Vector3.up * (1.32f * Scale); } }
     Vector3 Ground { get { return new Vector3(pos.x, room.FloorY, pos.z); } }
 
+    // ------------------------------------------------------------------ rules
+    public void Tick(float dt, Vector3 p)
+    {
+        if (st == St.Gone) return;
+        int startedAt = resets;
+        Vector3 toYou = p - pos; toYou.y = 0f;
+        float dist = toYou.magnitude;
+        Vector3 dirYou = dist > 0.01f ? toYou / dist : Vector3.back;          // from him to you
+        float yawYou = Mathf.Atan2(dirYou.x, dirYou.z) * Mathf.Rad2Deg;
+        t += dt;
+        if (cooldown > 0f) cooldown -= dt;
+        if (flinch > 0f) flinch -= dt;
+        if (blockT > 0f) blockT -= dt;
+        if (spinHurt > 0f) spinHurt -= dt;
+        if (roundT > 0f) roundT -= dt;
+
+        // from the moment he appears the view is locked on him: forward is toward him, sideways circles him
+        var pl = gm.player;
+        pl.lookLocked = st != St.Asleep;
+        if (pl.lookLocked && dist > 0.9f)
+        {
+            pl.yaw = Mathf.MoveTowardsAngle(pl.yaw, yawYou + 180f, (Fighting ? 300f : 420f) * dt);
+            pl.pitch = Mathf.MoveTowards(pl.pitch, 6f, 60f * dt);
+        }
+        // he is solid: you cannot walk through him
+        if (Fighting && st != St.ThrustDash && st != St.LeapAir && dist < Body && dist > 0.01f)
+            pl.Shift(dirYou * Mathf.Min(Body - dist, 7f * dt));
+
+        switch (st)
+        {
+            case St.Asleep:
+                {
+                    int x, r;
+                    room.WorldToTile(p, out x, out r);
+                    if (r <= 7 && p.z >= room.MinZ) Begin();
+                    break;
+                }
+            case St.Drop:
+                {
+                    pl.controlEnabled = false;
+                    float u = Mathf.Clamp01((t - 0.55f) / 0.55f);       // a beat to look up, then he comes down
+                    pos = home + Vector3.up * (16f * (1f - u * u));
+                    if (u >= 1f)
+                    {
+                        pos = home;
+                        pl.AddTrauma(0.8f);
+                        gm.sound.Play("guard_bonk", 1f, 0f, 0.6f);
+                        gm.sound.Play("tile_delete", 0.9f, 0f, 0.7f);
+                        for (int i = 0; i < 8; i++) gm.fx.Puff(pos + Dir(i * 45f) * 1.7f + Vector3.up * 0.2f, Pal.A(Pal.Ink, 0.7f), 1.5f, 0.6f);
+                        shockT = 0f; shock.position = pos + Vector3.up * 0.05f; shock.gameObject.SetActive(true);
+                        st = St.Talk; t = 0f; line = -1; talkT = 0f; talkHold = 0.7f;      // a breath before the first word
+                    }
+                    break;
+                }
+            case St.Talk:
+                {
+                    pl.controlEnabled = false;
+                    yaw = Mathf.MoveTowardsAngle(yaw, yawYou, 200f * dt);
+                    talkT += dt;
+                    bool skip = line >= 0 && talkT > 0.35f && (GameInput.ConfirmPressed || GameInput.AttackPressed || GameInput.overrideActive);
+                    if (talkT > talkHold || skip) NextLine();
+                    // line four: you reach into the old game and the sword comes out
+                    if (line == 3 && !swordDrawn && talkT > 1.0f) DrawSword(p);
+                    break;
+                }
+            case St.Stalk:
+                {
+                    yaw = Mathf.MoveTowardsAngle(yaw, yawYou, 210f * dt);
+                    if (dist > 2.9f)
+                    {
+                        float sp = 2.3f + 0.35f * (Phase - 1);
+                        pos = Clamp(pos + Dir(yaw) * sp * dt);
+                        walk += sp * dt;
+                    }
+                    if (cooldown <= 0f && roundT <= 0f)
+                    {
+                        int k = attackCount;
+                        bool near = dist < 5.0f, far = dist > 9f;
+                        if (Phase == 1) { if (near) Go(St.ThrustWind); }
+                        else if (Phase == 2)
+                        {
+                            // angry: the first thing he does is his new move, the spin; after that he mixes
+                            if (newMove) { if (dist < 5.8f) { newMove = false; Go(St.SpinWind); } }
+                            else if (far) Go(St.LeapWind);
+                            else if (near) Go(k % 2 == 0 ? St.ThrustWind : St.SpinWind);
+                        }
+                        else
+                        {
+                            // furious: he opens with the leap, from wherever he stands
+                            if (newMove) { newMove = false; Go(St.LeapWind); }
+                            else if (far || k % 3 == 0) Go(St.LeapWind);
+                            else if (near) Go(k % 3 == 1 ? St.ThrustWind : St.SpinWind);
+                        }
+                    }
+                    break;
+                }
+            case St.ThrustWind:
+                {
+                    // he lines you up, then commits: from there the red lane is where he will go
+                    if (t < ThrustLock) yaw = Mathf.MoveTowardsAngle(yaw, yawYou, 420f * dt);
+                    if (t >= ThrustWindup)
+                    {
+                        dashDir = Dir(yaw); dashHit = false;
+                        gm.sound.PlayAt("guard_swing", pos + Vector3.up * 2f, 1f, 0f, 0.75f, 0.2f);
+                        st = St.ThrustDash; t = 0f;
+                    }
+                    break;
+                }
+            case St.ThrustDash:
+                {
+                    pos = Clamp(pos + dashDir * (DashLength / 0.3f) * dt);
+                    walk += DashLength / 0.3f * dt;
+                    if (((int)(t * 30f)) != ((int)((t - dt) * 30f))) gm.fx.Puff(pos + Vector3.up * 0.25f, Pal.A(Pal.Ink, 0.5f), 1.1f, 0.4f);
+                    if (t >= 0.3f) { st = St.Recover; t = 0f; gm.fx.Puff(pos + Vector3.up * 0.2f, Pal.A(Pal.Ink, 0.6f), 1.6f, 0.5f); }
+                    if (!dashHit && dist < DashHit) { dashHit = true; Hit(dirYou, 9.5f); }
+                    break;
+                }
+            case St.Recover:
+                if (t >= 1.5f) AfterOpening(dist, dirYou);
+                break;
+            case St.SpinWind:
+                yaw = Mathf.MoveTowardsAngle(yaw, yawYou, 300f * dt);
+                if (t >= 0.7f) { st = St.Spin; t = 0f; spinHurt = 0f; gm.sound.PlayAt("guard_swing", pos + Vector3.up * 2f, 1f, 0f, 0.6f, 0.2f); }
+                break;
+            case St.Spin:
+                {
+                    yaw += 820f * dt;
+                    pos = Clamp(pos + dirYou * 1.8f * dt);
+                    if (((int)(t * 5f)) != ((int)((t - dt) * 5f))) gm.sound.PlayAt("guard_swing", pos + Vector3.up * 2f, 0.6f, 0.1f, 0.9f, 0.3f);
+                    if (t >= 1.5f) { st = St.Dizzy; t = 0f; }
+                    else if (spinHurt <= 0f && dist < SpinHit) { spinHurt = 0.75f; Hit(dirYou, 10f); }
+                    break;
+                }
+            case St.LeapWind:
+                yaw = Mathf.MoveTowardsAngle(yaw, yawYou, 300f * dt);
+                if (t >= 0.6f)
+                {
+                    leapFrom = pos; leapTo = Clamp(p);
+                    gm.sound.Play("fall", 0.6f, 0f, 1.3f);
+                    st = St.LeapAir; t = 0f;
+                }
+                break;
+            case St.LeapAir:
+                {
+                    float u = Mathf.Clamp01(t / 0.9f);
+                    pos = Vector3.Lerp(leapFrom, leapTo, u) + Vector3.up * (5f * Mathf.Sin(u * Mathf.PI));
+                    if (u >= 1f)
+                    {
+                        pos = leapTo;
+                        st = St.Dizzy; t = 0f;
+                        shockT = 0f;
+                        shock.position = pos + Vector3.up * 0.05f;
+                        shock.gameObject.SetActive(true);
+                        pl.AddTrauma(0.75f);
+                        gm.sound.Play("guard_bonk", 1f, 0f, 0.55f);
+                        gm.sound.Play("tile_delete", 0.9f, 0f, 0.6f);
+                        for (int i = 0; i < 10; i++) gm.fx.Puff(pos + Dir(i * 36f) * 2.2f + Vector3.up * 0.2f, Pal.A(Pal.Ink, 0.7f), 1.6f, 0.6f);
+                        Vector3 d2 = p - pos; d2.y = 0f;
+                        if (d2.magnitude < ShockRadius) Hit(d2.sqrMagnitude > 0.01f ? d2.normalized : Vector3.back, 11f);
+                    }
+                    break;
+                }
+            case St.Dizzy:
+                if (t >= 2.0f) AfterOpening(dist, dirYou);
+                break;
+            case St.Dying:
+                {
+                    KeepPiecesIn();
+                    if (t > 0.9f) pl.controlEnabled = false;
+                    if (!saidLast && t > 2.0f)
+                    {
+                        // his head lies on the floor, and still has the last word
+                        saidLast = true;
+                        gm.hud.SetCinema(true);
+                        gm.hud.SetEyelids(0.1f);
+                        var c = gm.sound.Clip("boss_line_4");
+                        float len = c != null ? c.length : 3.2f;
+                        gm.hud.Dialogue("THE CAPTAIN", Pal.Purple, "Fine... ship it. But fix that bridge.", false, len);
+                        gm.sound.PlayVoice("boss_line_4", 1f, 1f);
+                        talkHold = 2.0f + len + 0.6f;
+                    }
+                    if (saidLast && (t > talkHold || (t > 3.2f && (GameInput.ConfirmPressed || GameInput.AttackPressed || GameInput.overrideActive))))
+                    {
+                        defeated = true;
+                        st = St.Gone;
+                        gm.hud.Hint("", 0f);
+                        gm.sound.StopVoice();
+                        gm.hud.HideDialogue();
+                        gm.hud.SetEyelids(0f);
+                        gm.hud.SetCinema(false);
+                        pl.zoom = 0f;
+                        pl.lookLocked = false;
+                        pl.controlEnabled = true;
+                        gm.OnBossDefeated();
+                    }
+                    break;
+                }
+        }
+        if (resets != startedAt) return;        // you lost your last heart in there: the fight has been put back
+
+        // the "he has changed gear" moment
+        if (Fighting && Phase != lastPhase)
+        {
+            lastPhase = Phase;
+            gm.hud.Toast(Phase == 2 ? "the Captain is ANGRY:     now he SPINS" : "the Captain is FURIOUS:     now he LEAPS");
+            gm.sound.PlayVoice("guard_say_stop", 1f, 0.72f);
+            pl.AddTrauma(0.35f);
+            steamClock = 0f;
+            // that was the end of this opening: he shakes it off, throws you back, and comes at you with a new move
+            newMove = true;
+            st = St.Stalk; t = 0f; cooldown = 0.9f;
+            blockT = 0.35f;
+            if (dist < 4.5f && !GameInput.overrideActive) pl.Knock(dirYou * 11f, 3f);
+            SketchCamera.Flash(0.25f, Pal.Red);
+            for (int i = 0; i < 8; i++) gm.fx.Puff(Ground + Dir(i * 45f) * 1.9f + Vector3.up * 0.3f, Pal.A(Pal.Red, 0.8f), 1.3f, 0.5f);
+        }
+        if (Fighting) Combat(dt, p, dist, dirYou);
+    }
+
+    /// <summary>His pieces bounce off the edge of the arena instead of sailing over the wall.</summary>
+    void KeepPiecesIn()
+    {
+        float m = Maps.TS + 0.5f;
+        foreach (var d in debris)
+        {
+            if (d == null) continue;
+            var rb = d.GetComponent<Rigidbody>();
+            if (rb == null) continue;
+            Vector3 q = rb.position, v = rb.linearVelocity;
+            bool hit = false;
+            if (q.x < room.MinX + m) { q.x = room.MinX + m; v.x = Mathf.Abs(v.x) * 0.4f; hit = true; }
+            else if (q.x > room.MaxX - m) { q.x = room.MaxX - m; v.x = -Mathf.Abs(v.x) * 0.4f; hit = true; }
+            if (q.z < room.MinZ + m) { q.z = room.MinZ + m; v.z = Mathf.Abs(v.z) * 0.4f; hit = true; }
+            else if (q.z > room.MaxZ - m) { q.z = room.MaxZ - m; v.z = -Mathf.Abs(v.z) * 0.4f; hit = true; }
+            if (hit) { rb.position = q; rb.linearVelocity = v; }
+        }
+    }
+
+    void Go(St next)
+    {
+        st = next; t = 0f; attackCount++;
+        gm.sound.PlayAt("guard_windup", pos + Vector3.up * 2f, 1f, 0f, 0.7f, 0.2f);
+        if (next == St.ThrustWind) gm.sound.PlayVoice("guard_say_hyah", 0.95f, 0.78f);
+    }
+
+    void AfterOpening(float dist, Vector3 dirYou)
+    {
+        st = St.Stalk; t = 0f;
+        cooldown = Mathf.Lerp(1.0f, 0.55f, (Phase - 1) / 2f);
+        if (dist < 2.8f && !GameInput.overrideActive)
+        {
+            // he shoves you off with the shield: no harm done, but the opening is over
+            blockT = 0.35f;
+            gm.player.Knock(dirYou * 9f, 2.6f);
+            gm.sound.Play("gate", 0.8f);
+            WordAt("BACK OFF!", Pal.Hex("c8c2e6"), Pal.Ink, HeadPos + Vector3.up * 1.2f, 0.45f);
+        }
+    }
+
+    void Begin()
+    {
+        rig.Show(true);
+        gm.sound.SetHurry(false);
+        lastHits = gm.hits;
+        if (introSeen)
+        {
+            pos = home; yaw = 180f;
+            st = St.Stalk; t = 0f; cooldown = 1.3f; roundT = 1.3f;
+            swordShow = 1f;
+            gm.hud.SetFightUi(true);
+            gm.hud.ShowBoss(true);
+            gm.hud.SetBoss(hp, maxHp);
+            gm.hud.Toast(hp < maxHp ? "again!     he is still hurt" : "round two!");
+            gm.sound.SetHurry(true);
+            return;
+        }
+        st = St.Drop; t = 0f;
+        pos = home + Vector3.up * 16f; yaw = 180f;
+        gm.player.controlEnabled = false;
+        gm.hud.SetCinema(true);
+        gm.hud.SetEyelids(0.1f);
+        gm.sound.Duck(0.3f, 40f);
+        gm.sound.Play("fall", 0.8f);
+    }
+
+    void NextLine()
+    {
+        line++;
+        talkT = 0f;
+        if (line >= Lines.Length) { StartFight(); return; }
+        Line l = Lines[line];
+        var c = gm.sound.Clip(l.voice);
+        float len = c != null ? c.length : 3f;
+        gm.hud.Dialogue(l.captain ? "THE CAPTAIN" : "YOU", l.captain ? (Color)Pal.Purple : YouColor, l.text, l.captain, len);
+        gm.sound.PlayVoice(l.voice, 1f, 1f);
+        talkHold = len + 0.45f;
+        steamClock = 0f;
+        if (l.captain) { gm.player.AddTrauma(line == 0 ? 0.5f : 0.3f); SketchCamera.Flash(line == 0 ? 0.3f : 0.16f, Pal.Red); }
+        if (line == 4) { gm.sound.Play("tile_delete", 0.8f, 0f, 0.7f); gm.player.AddTrauma(0.45f); }
+    }
+
+    /// <summary>The remake has no sword, so you take the old game's: it comes out of the pixel window in a flash.</summary>
+    void DrawSword(Vector3 p)
+    {
+        swordDrawn = true;
+        gm.sound.Play("key_get", 0.8f);
+        gm.sound.Play("coin", 0.6f, 0f, 1.3f);
+        SketchCamera.Flash(0.4f, Pal.Teal);
+        gm.player.AddTrauma(0.25f);
+        Vector2 tile = room.WorldToTileF(p);
+        gm.pixel.AddFx("sparkle", 3, 0.5f, tile, room.index);
+        for (int i = 0; i < 6; i++) gm.fx.Star(p + Vector3.up * (1.6f + i * 0.22f) + Dir(i * 60f) * 0.5f, i % 2 == 0 ? (Color)Pal.Teal : (Color)Pal.White, 0.7f, 0.6f);
+    }
+
+    void StartFight()
+    {
+        introSeen = true;
+        if (!swordDrawn) { swordDrawn = true; }
+        swordShow = Mathf.Max(swordShow, 0.01f);
+        gm.sound.StopVoice();
+        gm.hud.HideDialogue();
+        gm.hud.SetEyelids(0f);
+        gm.hud.SetCinema(false);
+        gm.player.zoom = 0f;
+        gm.player.controlEnabled = true;
+        st = St.Stalk; t = 0f; cooldown = 1.1f;
+        gm.sound.Duck(1f, 0.1f);
+        gm.sound.SetHurry(true);
+        gm.hud.SetFightUi(true);
+        gm.hud.ShowBoss(true);
+        gm.hud.SetBoss(hp, maxHp);
+        gm.hud.Word("FIGHT!", Pal.Yellow, Pal.Red, 0f, 0.9f);
+        gm.hud.PlaceWord(new Vector2(0.5f, 0.72f), 0.9f);
+        gm.sound.Play("jingle_hurry", 0.7f);
+        gm.hud.Hint("LEFT CLICK  sword  (keep clicking: 3-hit combo)        SPACE  dodge roll        he BLOCKS until he is stuck or dizzy", 18f);
+        if (maxHp < 12) gm.hud.Toast("old-game coins:  " + gm.coins + "     the Captain starts  " + (12 - maxHp) + "  hits down");
+    }
+
+    /// <summary>His weapon found you.</summary>
+    void Hit(Vector3 away, float shove)
+    {
+        if (GameInput.overrideActive) return;       // the test driver checks the fight's flow, not whether it can dodge
+        int before = gm.hits;
+        gm.HitPlayer(away, shove);
+        if (gm.hits != before) PlaceWord(gm.player.transform.position + Vector3.up * 2.3f, 0.5f);
+    }
+
+    /// <summary>A comic word pops where the blow landed (small, so it never hides the two of you).</summary>
+    void WordAt(string text, Color fill, Color ink, Vector3 world, float scale)
+    {
+        gm.hud.Word(text, fill, ink, 0f, scale);
+        PlaceWord(world, scale);
+    }
+
+    void PlaceWord(Vector3 world, float scale)
+    {
+        Vector3 v = gm.player.cam.WorldToViewportPoint(world);
+        if (v.z > 0f) gm.hud.PlaceWord(new Vector2(v.x, v.y), scale);
+    }
+
 }
