@@ -81,7 +81,7 @@ public static class GameInput
         get
         {
             var k = Kb; var g = Gp;
-            return (k != null && (k.escapeKey.wasPressedThisFrame || k.pKey.wasPressedThisFrame))
+            return (k != null && k.escapeKey.wasPressedThisFrame)
                 || (g != null && g.startButton.wasPressedThisFrame);
         }
     }
@@ -195,6 +195,8 @@ public static class GameInput
 
     /// <summary>Skip to the next room (N): for anyone who is stuck.</summary>
     public static bool SkipRoomPressed { get { var k = Kb; return k != null && k.nKey.wasPressedThisFrame; } }
+    /// <summary>Go back to the previous room (P).</summary>
+    public static bool PrevRoomPressed { get { var k = Kb; return k != null && k.pKey.wasPressedThisFrame; } }
     /// <summary>Skip straight to the last fight (B).</summary>
     public static bool SkipToBossPressed { get { var k = Kb; return k != null && k.bKey.wasPressedThisFrame; } }
 
