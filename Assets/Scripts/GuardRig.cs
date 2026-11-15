@@ -116,4 +116,17 @@ public class GuardRig
         }
     }
 
+    // ------------------------------------------------------------------ the animation
+    static float Smooth(float t) { t = Mathf.Clamp01(t); return t * t * (3f - 2f * t); }
+    static float OutCubic(float t) { t = 1f - Mathf.Clamp01(t); return 1f - t * t * t; }
+    static float OutBack(float t)
+    {
+        const float c1 = 1.70158f, c3 = c1 + 1f;
+        t = Mathf.Clamp01(t) - 1f;
+        return 1f + c3 * t * t * t + c1 * t * t;
+    }
+
+    /// <summary>Yaw (degrees) of a direction given in tile space, where y points down the screen (-Z).</summary>
+    public static float YawOf(Vector2 tileDir) { return Mathf.Atan2(tileDir.x, -tileDir.y) * Mathf.Rad2Deg; }
+
 }
