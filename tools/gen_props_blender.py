@@ -892,8 +892,23 @@ def make_key():
     return p, dict(ground=False)
 
 
+def make_padlock():
+    """Chunky padlock, 0.40 wide and 0.52 tall.  Origin at the centre of the body, keyhole toward -Y."""
+    p = Prop("padlock", 35, rough=0.03)
+    p.box((0.40, 0.16, 0.30), "yellow", loc=(0, 0, 0), bevel=0.035)
+    for sx in (-1.0, 1.0):
+        p.box((0.06, 0.06, 0.22), "metal", loc=(sx * 0.115, 0, 0.22), rough=0.02)
+    p.box((0.29, 0.06, 0.06), "metal", loc=(0, 0, 0.34), rough=0.02, bevel=0.012)
+    p.add(P_lathe([(0, 0), (0.048, 0), (0.048, 0.022), (0, 0.022)], 8), "ink", loc=(0, -0.08, 0.035),
+          rot=(R(90), 0, 0))
+    p.box((0.036, 0.022, 0.11), "ink", loc=(0, -0.091, -0.045), rough=0.0)
+    return p, dict(ground=False)
+
+
 DUNGEON = [make_torch, make_pillar, make_door_arch, make_gate, make_crate, make_barrel, make_banner,
            make_signpost, make_rubble, make_placeholder_cube]
+GAMEPLAY = [make_guard, make_key, make_padlock]
+GAMEPLAY_NAMES = ["guard", "key", "padlock"]
 DESK = [make_desk, make_monitor, make_keyboard, make_mouse, make_mug, make_lamp, make_clock, make_plant, make_books]
 DUNGEON_NAMES = ["torch", "pillar", "door_arch", "gate", "crate", "barrel", "banner", "signpost", "rubble",
                  "placeholder_cube"]
@@ -901,7 +916,7 @@ DESK_NAMES = ["desk", "monitor", "keyboard", "mouse", "mug", "lamp", "clock", "p
 
 # preview height offsets for wall-mounted props, and a suggested arrangement on the desk
 # (Blender coordinates relative to the desk origin; yaw in degrees about +Z)
-ROW_Z = {"torch": 1.30, "banner": 2.40}
+ROW_Z = {"torch": 1.30, "banner": 2.40, "key": 0.90, "padlock": 0.90}
 DESK_TOP = 0.74
 ASSEMBLY = {
     "desk": ((0.0, 0.0, 0.0), 0.0),
@@ -986,7 +1001,7 @@ def build_all(sc):
     props = new_collection(sc, "RM_Props")
     asm = new_collection(sc, "RM_DeskAssembly")
     objs = {}
-    for row_y, row_x, makers, gap in ((0.0, 0.0, DUNGEON, 0.55), (-6.0, -40.0, DESK, 0.16)):
+    for row_y, row_x, makers, gap in ((0.0, 0.0, DUNGEON, 0.55), (-6.0, -40.0, DESK, 0.16), (9.0, 0.0, GAMEPLAY, 0.7)):
         x = row_x
         for maker in makers:
             prop, opts = maker()
@@ -1085,7 +1100,7 @@ def render_shot(sc, cam, path, loc, target, lens, size=(1500, 800)):
     return path
 
 
-def render_previews(sc, objs, preview_dir):
+def render_previews(sc, objs, preview_dir, only=None):
     os.makedirs(preview_dir, exist_ok=True)
     cam = setup_preview(sc)
 
@@ -1109,6 +1124,13 @@ def render_previews(sc, objs, preview_dir):
     ao = ASSEMBLY_ORIGIN
     shots.append(("props_desk_assembled.png", (ao.x - 0.9, ao.y - 1.9, 1.75), (ao.x, ao.y + 0.05, 0.86), 38.0))
     shots.append(("props_desk_first_person.png", (ao.x, ao.y - 0.72, 1.22), (ao.x, ao.y + 0.14, 1.02), 24.0))
+    lo, hi = row_span(GAMEPLAY_NAMES)
+    mid = (lo + hi) / 2.0
+    shots.append(("props_gameplay_front.png", (mid - 1.6, 9.0 - 5.2, 1.9), (mid, 9.0, 0.95), 34.0))
+    shots.append(("props_gameplay_back.png", (mid + 2.2, 9.0 + 5.0, 2.2), (mid, 9.0, 0.95), 34.0))
+    shots.append(("props_gameplay_side.png", (lo - 4.2, 9.0 - 1.4, 1.6), (lo + 0.4, 9.0, 0.95), 40.0))
+    if only:
+        shots = [s for s in shots if s[0].startswith("props_gameplay")] if set(only) <= set(GAMEPLAY_NAMES) else shots
     return [render_shot(sc, cam, os.path.join(preview_dir, f), loc, target, lens) for (f, loc, target, lens) in shots]
 
 
