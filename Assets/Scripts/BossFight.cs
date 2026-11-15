@@ -1126,4 +1126,57 @@ public class BossFight
         ct.rotation = Quaternion.Slerp(pl.pivot.rotation, rot, e);
     }
 
+    /// <summary>His acting during the talk: every line gets its own body language.</summary>
+    void Act(ref GuardPose p, bool hisLine)
+    {
+        float tt = talkT;
+        float talk = hisLine ? mouthOpen : 0f;          // his whole head nods to his own voice
+        p.legL = 0f; p.legR = 0f; p.bob = 0f; p.roll = 0f; p.twist = 0f;
+        p.headPitch = 10f + talk * 9f;                  // he looks down at you
+        p.squash = 1f + talk * 0.04f;
+        switch (line)
+        {
+            case -1:    // just landed: he rises out of the crouch
+                p.squash = 1f - 0.25f * Mathf.Exp(-6f * tt) * Mathf.Cos(tt * 16f); p.spear = -10f;
+                break;
+            case 0:     // HALT!  spear straight at your face, leaning in
+                p.spear = Mathf.Lerp(-30f, 78f, Out(tt / 0.25f)); p.spearAim = 18f; p.lean = 14f + talk * 5f; p.shieldOut = 30f;
+                p.bang = tt < 0.9f ? Mathf.Clamp01(tt / 0.1f) : Mathf.Clamp01(1f - (tt - 0.9f) / 0.2f);
+                p.roll = Mathf.Sin(tt * 43f) * 1.6f;                // he is shaking with rage
+                break;
+            case 1:     // you talk: he tilts his head and taps a foot
+                p.spear = -4f; p.roll = 7f; p.headYaw = 14f; p.lean = 2f; p.legR = -Mathf.Abs(Mathf.Sin(tt * 7f)) * 16f;
+                break;
+            case 2:     // he laughs at you, head thrown back, belly shaking
+                {
+                    float laugh = Smooth((tt - 2.4f) / 0.3f);
+                    p.lean = Mathf.Lerp(8f, -16f, laugh) + Mathf.Sin(tt * 19f) * 5f * laugh;
+                    p.headPitch = Mathf.Lerp(10f + talk * 9f, -24f, laugh);
+                    p.squash = 1f + Mathf.Sin(tt * 19f) * 0.06f * laugh + talk * 0.04f;
+                    p.spear = Mathf.Lerp(52f, -8f, laugh) + Mathf.Sin(tt * 19f) * 6f * laugh; p.spearAim = 14f * (1f - laugh);
+                    p.shield = -30f * laugh; p.shieldOut = 50f * laugh;
+                    break;
+                }
+            case 3:     // you draw the sword: he starts back
+                {
+                    float jolt = tt > 1.0f ? Out((tt - 1.0f) / 0.2f) : 0f;
+                    p.lean = -14f * jolt; p.spear = Mathf.Lerp(-4f, 30f, jolt); p.shieldOut = -20f * jolt; p.shield = -40f * jolt; p.headPitch = 10f - 16f * jolt;
+                    p.bang = tt > 1.0f && tt < 2.1f ? Mathf.Clamp01((tt - 1.0f) / 0.1f) : 0f;
+                    break;
+                }
+            case 4:     // TAKE your build!  a stomp, the spear shaken overhead, then levelled at you
+                {
+                    float hop = tt < 0.4f ? Mathf.Sin(tt / 0.4f * Mathf.PI) : 0f;
+                    p.feet += Vector3.up * hop * 0.9f;
+                    p.squash = tt < 0.4f ? 1.1f : 1f - 0.22f * Mathf.Exp(-7f * (tt - 0.4f)) * Mathf.Cos((tt - 0.4f) * 18f) + talk * 0.04f;
+                    float shake = tt < 1.5f ? 1f : 0f;
+                    p.spear = Mathf.Lerp(74f, -34f + Mathf.Sin(tt * 30f) * 9f, shake); p.spearAim = 18f * (1f - shake); p.lean = Mathf.Lerp(14f, -6f, shake); p.shieldOut = 40f;
+                    p.roll = Mathf.Sin(tt * 43f) * 2f;
+                    break;
+                }
+        }
+    }
+
+    static float Out(float x) { x = 1f - Mathf.Clamp01(x); return 1f - x * x * x; }
+    static float Smooth(float x) { x = Mathf.Clamp01(x); return x * x * (3f - 2f * x); }
 }
