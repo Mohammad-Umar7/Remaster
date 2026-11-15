@@ -400,6 +400,7 @@ public class GameManager : MonoBehaviour
         }
 
         TickKey(room, s, p, dt);
+        TickGuards(room, s, p, dt);
         TickSlimes(room, s, p, dt);
         TickWave(room, s, dt);
         TickFlicker(room, s);
@@ -521,6 +522,45 @@ public class GameManager : MonoBehaviour
             hud.KeyPulse();
             if (!firstLocked) { firstLocked = true; hud.Popup("Locked! The key is NEW in the remake: look for it in the 3D world.", 4.2f); }
             else hud.Popup("Locked. Find the key first: only the 3D world shows it.", 2.6f);
+        }
+    }
+
+    /// <summary>Guards are new in the remake too, so the old game cannot see them: watch the 3D world.</summary>
+    void TickGuards(Room room, RoomState s, Vector3 p, float dt)
+    {
+        if (s.guards.Count == 0) return;
+        Vector2 pf = room.WorldToTileF(p);
+        foreach (var g in s.guards)
+        {
+            if (g.gone) continue;
+            g.Tick(dt);
+            Vector3 wp = room.TileFToWorld(g.pos);
+            // a guard whose floor has been deleted drops out of the level
+            int gx = Mathf.FloorToInt(g.pos.x), gr = Mathf.FloorToInt(g.pos.y);
+            if (room.In(gx, gr) && s.rowCrumble[gr] >= 2f)
+            {
+                g.gone = true;
+                fx.Puff(wp + Vector3.up * 0.8f, Pal.A(Pal.Magenta, 0.9f), 1.2f, 0.5f);
+                continue;
+            }
+            float dist = Vector2.Distance(pf, g.pos);
+            if (g.hopped && dist < 6.5f)
+            {
+                // you hear a guard before you see it; the quick ones only clank on every other step
+                // so a room with two of them does not turn into a drum roll
+                if (g.hopPeriod >= 0.42f || g.steps % 2 == 0) sound.PlayAt("guard_step", wp + Vector3.up * 0.4f, 0.8f, 0.07f);
+                fx.Puff(wp + Vector3.up * 0.06f, Pal.A(Pal.Pencil, 0.6f), 0.4f, 0.35f);
+            }
+            if (!firstGuardSeen && dist < 4.2f)
+            {
+                firstGuardSeen = true;
+                hud.Popup("A guard! Guards are NEW too: the old game cannot see them. Watch the 3D world.", 4.4f);
+            }
+            if (invuln <= 0f && dist < Maps.GuardHit)
+            {
+                g.hitFlash = 0.4f;
+                Hurt("Caught by a guard! The old game cannot see them: keep an eye on the 3D world.", ref firstGuardHit);
+            }
         }
     }
 
@@ -772,6 +812,7 @@ public class GameManager : MonoBehaviour
         var s = rs[i];
         Room room = rooms[i];
         foreach (var sl in s.slimes) sl.Reset();
+        foreach (var g in s.guards) g.Reset();
         s.clock = 0f;
         s.flickerPhase = -1;
         s.warnTicks = 0;
