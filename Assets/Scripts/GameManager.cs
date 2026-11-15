@@ -558,7 +558,7 @@ public class GameManager : MonoBehaviour
             s.revealed[x, r] = true;
             fx.RevealBridge(world.BridgeRenderers(cur, x, r));
             sound.Play((x + r) % 2 == 0 ? "scribble_1" : "scribble_2", 0.5f, 0.06f);
-            if (!firstBridge) { firstBridge = true; hud.Popup("It holds! The old game says there's a bridge here.", 3.4f); }
+            if (!firstBridge && !room.IsOneUse(x, r)) { firstBridge = true; hud.Popup("It holds! Trust the old game.", 2.2f); }
         }
         if (room.IsFake(x, r) && !s.fakeFound[x, r])
         {
@@ -947,7 +947,7 @@ public class GameManager : MonoBehaviour
                 sound.PlayAt("plank_break", c, 0.9f, 0.06f);
                 fx.Puff(c + Vector3.up * 0.1f, Pal.A(Pal.Magenta, 0.9f), 0.9f, 0.5f);
                 pixel.AddFx("poof", 3, 0.3f, new Vector2(x + 0.5f, r + 0.5f), room.index);
-                if (!firstBreak) { firstBreak = true; hud.Popup("It snapped behind you. No going back: solve the maze in the old game first.", 4.2f); }
+                if (!firstBreak) { firstBreak = true; hud.Popup("It holds... but it snaps behind you!", 2.4f); }
             }
     }
 
@@ -993,7 +993,7 @@ public class GameManager : MonoBehaviour
         if (ExitReachable(room, s, tileX, tileR)) { strandWarned = false; strandTimer = 0f; return; }
         if (room.IsOneUse(tileX, tileR))
         {
-            if (!strandWarned) { strandWarned = true; hud.Popup("Dead end. Step off the plank to try the maze again.", 3.6f); }
+            if (!strandWarned) { strandWarned = true; hud.Popup("Dead end. Step off to try again.", 2.2f); }
         }
         else
         {
