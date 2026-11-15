@@ -25,6 +25,27 @@ public class World3D
     readonly Dictionary<int, List<Renderer>> fakeVis = new Dictionary<int, List<Renderer>>();
     MaterialPropertyBlock mpb;
 
+    // things that are NEW in the remake (the old game never had them): one set per room.
+    // Rooms that wrap are drawn three times side by side, so each thing has up to three copies.
+    class RoomDyn
+    {
+        public readonly List<Transform> gates = new List<Transform>();
+        public readonly List<GameObject> padlocks = new List<GameObject>();
+        public readonly List<Transform> keys = new List<Transform>();
+        public readonly List<Transform> rings = new List<Transform>();
+        public readonly List<Transform> discs = new List<Transform>(), bursts = new List<Transform>();
+        public readonly List<Vector3> gateBase = new List<Vector3>(), keyBase = new List<Vector3>();
+        public readonly List<List<Transform>> guards = new List<List<Transform>>();     // [guard][copy]
+        public readonly List<List<Transform>> guardRings = new List<List<Transform>>();
+        public readonly List<float> guardYaw = new List<float>();
+        public readonly List<float> copyOffset = new List<float>();
+        public Collider gateCol;
+        public Vector3 gatePos;
+        public float open, keyGone, rattle;
+    }
+    RoomDyn[] dyn;
+    const float GuardScale = 1.12f, KeyScale = 1.45f, KeyHeight = 1.2f;
+
     static int Key(int room, int x, int r) { return room * 10000 + r * 100 + x; }
     static int RowKey(int room, int r) { return room * 100 + r; }
 
@@ -57,6 +78,7 @@ public class World3D
             }
         }
 
+        dyn = new RoomDyn[rooms.Length];
         for (int i = 0; i < rooms.Length; i++) BuildRoom(rooms[i]);
         for (int i = 0; i < rooms.Length; i++) BuildCorridor(rooms[i], i == rooms.Length - 1);
         BuildSkyline();
@@ -322,6 +344,7 @@ public class World3D
         }
 
         RegisterVis(vis, ri);
+        BuildDyn(room, parent, col);
 
         // rooms that wrap are drawn three times side by side, so the "bug" bends space seamlessly
         if (room.def.wrap)
@@ -336,6 +359,182 @@ public class World3D
                 var dcopy = Object.Instantiate(deco.gameObject, parent);
                 dcopy.name = "DecoCopy" + (s < 0 ? "W" : "E");
                 dcopy.transform.position += new Vector3(s * Maps.W * TS, 0, 0);
+            }
+        }
+    }
+
+    /// <summary>
+    /// The locked exit, the key and the guards. They are new in the remake, so nothing here is ever
+    /// drawn by the pixel game: you find the key and dodge the guards with your own eyes.
+    /// </summary>
+    void BuildDyn(Room room, Transform parent, Transform col)
+    {
+        var d = new RoomDyn();
+        dyn[room.index] = d;
+        var holder = new GameObject("New").transform;
+        holder.SetParent(parent, false);
+        int copies = room.def.wrap ? 3 : 1;
+        for (int k = 0; k < copies; k++) d.copyOffset.Add(room.def.wrap ? (k - 1) * Maps.W * TS : 0f);
+
+        d.gatePos = room.TileCenter(room.exit) + new Vector3(0, 0, -TS * 0.5f + 0.78f);
+        if (room.HasKey)
+        {
+            Vector3 kp = room.TileCenter(room.def.key);
+            foreach (float ox in d.copyOffset)
+            {
+                Vector3 off = new Vector3(ox, 0, 0);
+                // a portcullis across the exit, with a padlock at eye height
+                var gate = Props.Spawn("gate", holder, d.gatePos + off, 0f, 1f);
+                var padlock = Props.Spawn("padlock", gate.transform, d.gatePos + off + new Vector3(0, 1.3f, -0.16f), 180f, 1.35f);
+                d.gates.Add(gate.transform); d.gateBase.Add(d.gatePos + off); d.padlocks.Add(padlock);
+                // the key turns slowly above a pencilled ring, so it catches the eye from across the room
+                var key = Props.Spawn("key", holder, kp + off + new Vector3(0, KeyHeight, 0), 0f, KeyScale);
+                d.keys.Add(key.transform); d.keyBase.Add(kp + off + new Vector3(0, KeyHeight, 0));
+                var ring = Quad(holder, "keyring", TexLib.QuadUp, kp + off + new Vector3(0, 0.035f, 0), Quaternion.identity, new Vector3(1.5f, 1f, 1.5f),
+                    TexLib.DecalMat(TexLib.ring, Pal.A(Pal.Hex("d19a00"), 0.9f)));
+                d.rings.Add(ring.transform);
+                // a yellow key on pale paper is easy to miss, so it floats in front of a purple badge
+                // with a comic burst round it; both always face you
+                var disc = Quad(holder, "keydisc", TexLib.QuadUp, d.keyBase[d.keyBase.Count - 1], Quaternion.identity, new Vector3(1.35f, 1f, 1.35f),
+                    TexLib.DecalMat(TexLib.keyDisc, Pal.A(Pal.Purple, 0.92f)));
+                var burst = Quad(holder, "keyburst", TexLib.QuadUp, d.keyBase[d.keyBase.Count - 1], Quaternion.identity, new Vector3(2.1f, 1f, 2.1f),
+                    TexLib.DecalMat(TexLib.burst, Pal.A(Pal.Hex("e0a400"), 0.95f)));
+                disc.GetComponent<Renderer>().receiveShadows = false; burst.GetComponent<Renderer>().receiveShadows = false;
+                d.discs.Add(disc.transform); d.bursts.Add(burst.transform);
+            }
+            // the collider reaches forward to the arch, so you stop a step back from the bars and can read the padlock
+            d.gateCol = Box(col, "c_gate", d.gatePos + new Vector3(0, WH * 0.5f, -0.3f), new Vector3(TS, WH, 0.9f), null, true).GetComponent<Collider>();
+        }
+        for (int g = 0; g < room.def.guards.Length; g++)
+        {
+            var list = new List<Transform>();
+            var rings = new List<Transform>();
+            Vector2Int at = room.def.guards[g].loop[0];
+            // the red pencil ring under a guard is exactly how close it can catch you
+            float ringSize = Maps.GuardHit * TS / 0.42f;
+            foreach (float ox in d.copyOffset)
+            {
+                Vector3 gp = room.TileCenter(at) + new Vector3(ox, 0, 0);
+                list.Add(Props.Spawn("guard", holder, gp, 0f, GuardScale).transform);
+                var ring = Quad(holder, "guardring", TexLib.QuadUp, gp + new Vector3(0, 0.03f, 0), Quaternion.identity, new Vector3(ringSize, 1f, ringSize),
+                    TexLib.DecalMat(TexLib.ring, Pal.A(Pal.Red, 0.6f)));
+                rings.Add(ring.transform);
+            }
+            d.guards.Add(list);
+            d.guardRings.Add(rings);
+            d.guardYaw.Add(float.NaN);
+        }
+    }
+
+    /// <summary>Where the locked exit's gate stands (also when the room has no key).</summary>
+    public Vector3 GatePos(int room) { return dyn[room].gatePos; }
+
+    /// <summary>The gate shakes when you walk into it without the key.</summary>
+    public void RattleGate(int room) { dyn[room].rattle = 0.45f; }
+
+    /// <summary>Put every gate straight into its right state (new run, room jump): no opening animation.</summary>
+    public void SnapDoors(GameManager gm)
+    {
+        for (int i = 0; i < rooms.Length; i++)
+        {
+            bool open = gm.ExitOpen(i);
+            dyn[i].open = open ? 1f : 0f;
+            dyn[i].keyGone = open ? 1f : 0f;
+            dyn[i].rattle = 0f;
+        }
+        Animate(gm, 0f);
+    }
+
+    /// <summary>Every frame: keys turn and bob, gates sink once unlocked, guards hop along their patrols.</summary>
+    public void Animate(GameManager gm, float dt)
+    {
+        if (dyn == null) return;
+        float t = Time.time;
+        Vector3 eye = (gm.player != null && gm.player.cam != null) ? gm.player.cam.transform.position : Vector3.zero;
+        for (int i = 0; i < rooms.Length; i++)
+        {
+            var d = dyn[i];
+            if (d == null) continue;
+            Room room = rooms[i];
+            RoomState s = gm.rs[i];
+
+            if (room.HasKey)
+            {
+                bool open = s.keyTaken;
+                d.open = Mathf.MoveTowards(d.open, open ? 1f : 0f, dt / 0.8f);
+                d.keyGone = open ? Mathf.Min(1f, d.keyGone + dt / 0.4f) : 0f;
+                if (d.rattle > 0f) d.rattle = Mathf.Max(0f, d.rattle - dt);
+                float e = d.open * d.open * (3f - 2f * d.open);
+                float shake = d.rattle > 0f ? Mathf.Sin(t * 70f) * 0.035f * (d.rattle / 0.45f) : 0f;
+                for (int k = 0; k < d.gates.Count; k++)
+                {
+                    bool show = d.open < 0.999f;
+                    if (d.gates[k].gameObject.activeSelf != show) d.gates[k].gameObject.SetActive(show);
+                    // unlocked bars sink into the floor
+                    d.gates[k].position = d.gateBase[k] + new Vector3(shake, -3.15f * e, 0);
+                    if (d.padlocks[k].activeSelf == open) d.padlocks[k].SetActive(!open);
+                    bool keyShow = d.keyGone < 0.999f;
+                    if (d.keys[k].gameObject.activeSelf != keyShow) d.keys[k].gameObject.SetActive(keyShow);
+                    if (d.rings[k].gameObject.activeSelf == open) d.rings[k].gameObject.SetActive(!open);
+                    if (d.discs[k].gameObject.activeSelf != keyShow) { d.discs[k].gameObject.SetActive(keyShow); d.bursts[k].gameObject.SetActive(keyShow); }
+                    if (keyShow)
+                    {
+                        // picked up: it shoots upward, spins fast and shrinks away
+                        float g = d.keyGone;
+                        d.keys[k].position = d.keyBase[k] + new Vector3(0, Mathf.Sin(t * 2.3f + i) * 0.13f + g * 1.3f, 0);
+                        d.keys[k].rotation = Quaternion.Euler(0, t * 130f + g * 720f, Mathf.Sin(t * 1.7f + i) * 8f);
+                        d.keys[k].localScale = Vector3.one * (KeyScale * (1f - g));
+                        // the badge sits just behind the key as seen from where you stand
+                        Vector3 kp = d.keys[k].position;
+                        Vector3 toEye = eye - kp;
+                        if (toEye.sqrMagnitude < 0.01f) toEye = Vector3.back;
+                        toEye.Normalize();
+                        Quaternion face = Quaternion.FromToRotation(Vector3.up, toEye);
+                        float fade = 1f - g;
+                        d.discs[k].position = kp - toEye * 0.42f;
+                        d.discs[k].rotation = face * Quaternion.AngleAxis(Mathf.Sin(t * 0.9f + i) * 12f, Vector3.up);
+                        d.discs[k].localScale = new Vector3(1.35f, 1f, 1.35f) * fade;
+                        d.bursts[k].position = kp - toEye * 0.5f;
+                        d.bursts[k].rotation = face * Quaternion.AngleAxis(Mathf.Floor(t * 6f) * 17f, Vector3.up);
+                        float bs = 2.1f * (1f + 0.07f * Mathf.Sin(t * 5f)) * fade;
+                        d.bursts[k].localScale = new Vector3(bs, 1f, bs);
+                    }
+                    if (!open)
+                    {
+                        float pulse = 1.5f * (1f + 0.09f * Mathf.Sin(t * 3.1f));
+                        d.rings[k].localScale = new Vector3(pulse, 1f, pulse);
+                        d.rings[k].rotation = Quaternion.Euler(0, t * 25f, 0);
+                    }
+                }
+                if (d.gateCol != null) d.gateCol.enabled = d.open < 0.55f;
+            }
+
+            for (int g = 0; g < s.guards.Count && g < d.guards.Count; g++)
+            {
+                Slime gs = s.guards[g];
+                Vector3 wp = room.TileFToWorld(gs.pos);
+                // tile space has y pointing down the screen, which is -Z in the world
+                float yawTarget = Mathf.Atan2(gs.dir.x, -gs.dir.y) * Mathf.Rad2Deg;
+                float yaw = float.IsNaN(d.guardYaw[g]) ? yawTarget : Mathf.MoveTowardsAngle(d.guardYaw[g], yawTarget, 520f * dt);
+                d.guardYaw[g] = yaw;
+                float hop = Mathf.Sin(Mathf.Clamp01(gs.hopClock / gs.hopPeriod) * Mathf.PI);
+                float side = (gs.steps % 2 == 0) ? 1f : -1f;
+                float bump = gs.hitFlash > 0f ? gs.hitFlash / 0.4f : 0f;
+                var list = d.guards[g];
+                var rings = d.guardRings[g];
+                for (int k = 0; k < list.Count; k++)
+                {
+                    bool show = !gs.gone;
+                    if (list[k].gameObject.activeSelf != show) { list[k].gameObject.SetActive(show); rings[k].gameObject.SetActive(show); }
+                    if (!show) continue;
+                    rings[k].position = wp + new Vector3(d.copyOffset[k], 0.03f, 0);
+                    rings[k].rotation = Quaternion.Euler(0, Mathf.Floor(t * 6f) * 23f + g * 40f, 0);
+                    // a toy-soldier waddle: hop, rock from foot to foot, lean into the walk
+                    list[k].position = wp + new Vector3(d.copyOffset[k], hop * 0.15f, 0);
+                    list[k].rotation = Quaternion.Euler(4f + hop * 3f, yaw, side * hop * 6f);
+                    float sy = GuardScale * (1f + hop * 0.05f + bump * 0.18f), sxz = GuardScale * (1f - hop * 0.03f + bump * 0.10f);
+                    list[k].localScale = new Vector3(sxz, sy, sxz);
+                }
             }
         }
     }

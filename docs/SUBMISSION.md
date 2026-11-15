@@ -19,26 +19,28 @@ Deadline: **Sunday 15 November 2026, 14:45**, on the jam's itch.io page. Late en
 >
 > Bridges you never modelled are invisible but solid. Fancy walls you added are only decoration. Slimes and coins exist only in the old game. And the 1989 screen-wrap bug still works.
 >
+> But the remake has things the old game never had: every exit is locked until you find the room's key, and guards patrol the rooms. The old game cannot see either, so you need both worlds at once: the pixel window for where the floor really is, your own eyes for the key and the guards.
+>
 > Eight short rooms, about ten minutes: invisible bridges, fake walls, slimes only the old game can see, the screen-wrap bug, flickering planks, lasers the old game shows three seconds early, planks that snap after one step, and a floor that deletes itself. Clearing rooms adds remastered instruments to the chip-tune soundtrack.
 >
-> **Controls:** WASD move, mouse look, Shift run, Tab resize the old-game window, Esc pause. In the pause menu: R restarts the room, 1 to 8 jump to a room.
+> **Controls:** on the start screen pick START or QUIT with W / S and Enter, or click a note. In the game: WASD move, mouse look, Shift run, Tab resize the old-game window, Esc pause. In the pause menu: R restarts the room, 1 to 8 jump to a room.
 
 ## The 3-minute slot
 
 **Intro (1 min)**
 - "Everyone made a game about travelling between two worlds. In ours you are stuck between two versions of the same world: a game and its unfinished remake."
-- "The old 1989 game is the truth. The 3D remake lies, because we never finished it."
+- "The old 1989 game knows what is really there. The 3D remake lies, because we never finished it. But the remake has new things, keys and guards, that the old game cannot see. So you have to read both worlds at once."
 - Name the team and who did what.
 
 **Live demo (1 min)** - from the title screen:
-1. Press a key. Let the 8-second opening play (desk, falling asleep, pulled into the monitor).
-2. Room 1: point at the pixel window ("there is a bridge here"), then walk across thin air. The bridge is sketched in under your feet.
+1. On the start screen press Enter on START. Let the 8-second opening play (desk, falling asleep, pulled into the monitor).
+2. Room 1: point at the pixel window ("there is a bridge here"), then walk across thin air. The bridge is sketched in under your feet. Walk into the locked exit, then point at the key and the guard: "these are only in the 3D world". Slip past the guard, take the key, and the gate drops.
 3. Press **Esc, then 2**: walk straight through the fancy wall.
 4. Press **Esc, then 6**: stand in the safe zone, point at the red lines in the old game, and let the lasers fire three seconds later.
 5. If there is time, **Esc, then 4** (walk off the left edge, appear behind the gate) or **Esc, then 8** (run from the deleting floor).
 
 **Scoring (1 min)** - answer questions. Useful facts:
-- Theme: two worlds on screen at once, and you must trust the one that looks worse.
+- Theme: two worlds on screen at once, and neither is enough alone. The old one knows the floor, the slimes and the lasers; the new one has the keys and the guards.
 - The soundtrack is "remastered" one layer per room.
 - All art, audio and code were made during the jam; every tool is listed in the credits.
 

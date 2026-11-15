@@ -57,6 +57,10 @@ public class RoomDef
     public LaserVolley[] lasers;            // null when the room has no lasers
     public float laserPeriod = 12f;         // length of the laser loop in seconds
     public bool needBridge, needFake, needWrap;   // what the map checker expects the room to require
+
+    // NEW in the remake: the old game has never heard of these, so only the 3D world shows them.
+    public Vector2Int key = new Vector2Int(-1, -1);     // tile the key floats over; the exit stays locked until you hold it
+    public SlimeDef[] guards = new SlimeDef[0];         // patrols (tiles per second, start offset, loop of waypoints)
 }
 
 public static class Maps
@@ -69,8 +73,12 @@ public static class Maps
     public const float LaserLead = 3.0f;    // the old game shows a laser this long before the remake fires it
     public const float LaserHot = 0.35f;    // how long a fired beam can hurt
     public const int LaserLobbyRow = 8;     // rows from here down are never hit by column beams
+    public const float GuardHit = 0.5f;     // a guard catches you within this many tiles (one metre)
+    public const float GuardClear = 0.74f;  // what the auto-walker keeps away from a guard (it is not always dead centre)
+    public const float KeyReach = 0.95f;    // metres: how close you have to get to pick the key up
 
     static int[] L(params int[] v) { return v; }
+    static Vector2Int K(int x, int r) { return new Vector2Int(x, r); }
 
     public static readonly RoomDef[] Defs =
     {
@@ -80,6 +88,9 @@ public static class Maps
             todo = "model the bridge",
             note = "TODO: model the bridge.\nCollision already works!\n(check the old game  -->)",
             finish = 0.92f, needBridge = true,
+            // the key hangs in plain sight across the pit; one slow guard circles it
+            key = K(9, 2),
+            guards = new[] { new SlimeDef(0.7f, 0.55f, 8,1, 10,1, 10,3, 8,3) },
             rows = new[]
             {
                 "######X######",
@@ -101,6 +112,9 @@ public static class Maps
             todo = "give walls collision",
             note = "TODO: some walls are\nonly decoration.\nNo collision yet.",
             finish = 0.85f, needFake = true,
+            // the key is a few steps down the first hidden passage; a slow guard paces in front of the exit
+            key = K(2, 6),
+            guards = new[] { new SlimeDef(0.9f, 0.30f, 1,1, 11,1) },
             rows = new[]
             {
                 "######X######",
@@ -122,6 +136,10 @@ public static class Maps
             todo = "model the slimes",
             note = "TODO: model the slimes.\nThey only exist in the\nold game. They still bite.",
             finish = 0.6f, needBridge = true,
+            // the key floats over a bridge that only the old game shows, right on the slimes' lap;
+            // a guard paces the ledge in front of the exit
+            key = K(7, 3),
+            guards = new[] { new SlimeDef(1.0f, 0.15f, 4,1, 11,1) },
             slimes = new[]
             {
                 new SlimeDef(1.45f, 0.55f, 6,6, 10,6, 10,7, 6,7),
@@ -149,6 +167,14 @@ public static class Maps
             note = "KNOWN BUG since 1989:\nexit LEFT, appear RIGHT.\nWON'T FIX.",
             wrap = true, needWrap = true,
             finish = 0.5f,
+            // the key is at the far end of the hall behind the gate, and a guard laps that hall;
+            // another one circles the way to the screen edge
+            key = K(2, 1),
+            guards = new[]
+            {
+                new SlimeDef(1.1f, 0.00f, 1,5, 4,5, 4,7, 1,7),
+                new SlimeDef(1.2f, 0.25f, 1,1, 11,1, 11,2, 1,2),
+            },
             rows = new[]
             {
                 "######X######",
@@ -171,6 +197,14 @@ public static class Maps
             note = "BUG: sprite flicker.\nSome planks only exist\nhalf the time. Listen!",
             finish = 0.45f, needBridge = true,
             flickerPeriod = 2.3f,
+            // the key sits on the side island, a detour over blinking planks; one guard walks past the
+            // first plank (so you cannot just stand and wait for the beat), one paces the exit ledge
+            key = K(10, 5),
+            guards = new[]
+            {
+                new SlimeDef(1.3f, 0.45f, 7,8, 11,8, 11,9, 7,9),
+                new SlimeDef(1.3f, 0.10f, 1,1, 11,1),
+            },
             rows = new[]
             {
                 "######X######",
@@ -193,6 +227,14 @@ public static class Maps
             note = "TODO: fix 3 second lag.\nThe old game is AHEAD:\nit shows lasers first.",
             finish = 0.4f,
             laserPeriod = 12f,
+            // the key is in the far corner inside a guard's ring, with the lasers on top;
+            // a second guard circles the coin in the middle
+            key = K(2, 2),
+            guards = new[]
+            {
+                new SlimeDef(1.5f, 0.00f, 1,1, 3,1, 3,3, 1,3),
+                new SlimeDef(1.5f, 0.50f, 4,4, 8,4, 8,6, 4,6),
+            },
             lasers = new[]
             {
                 new LaserVolley(0.5f,  L(7, 5, 3, 1), null),
@@ -228,6 +270,14 @@ public static class Maps
             todo = "plank durability",
             note = "TODO: plank durability.\nPlanks snap after ONE\nstep. Solve the maze!",
             finish = 0.32f, needBridge = true,
+            // fetch first, then solve: the key is at one end of the start floor and the only good way
+            // into the maze is at the other, with a fast guard lapping each end
+            key = K(2, 9),
+            guards = new[]
+            {
+                new SlimeDef(1.6f, 0.60f, 1,8, 4,8, 4,9, 1,9),
+                new SlimeDef(1.6f, 0.10f, 8,8, 11,8, 11,9, 8,9),
+            },
             rows = new[]
             {
                 "######X######",
@@ -251,10 +301,19 @@ public static class Maps
             wrap = true,
             deleteWave = true,
             finish = 0.25f, needBridge = true, needFake = true, needWrap = true,
+            // the key is a detour to the far end of the ledge while the floor is deleting itself;
+            // one fast guard paces in front of the bridge you have to start from, and a second one
+            // paces the landing in front of the way out: cross its lane like a road
+            key = K(11, 4),
+            guards = new[]
+            {
+                new SlimeDef(1.7f, 0.20f, 1,8, 5,8),
+                new SlimeDef(1.7f, 0.65f, 7,1, 11,1),
+            },
             rows = new[]
             {
                 "#########X###",
-                "########...##",
+                "#######.....#",
                 ".C....#......",
                 "###f#####W###",
                 "#..........C#",
@@ -375,11 +434,14 @@ public class Room
     }
 
     public Vector2Int SpawnTile => new Vector2Int(start.x, start.y - 1);
+    public bool HasKey => def.key.x >= 0;
+    /// <summary>Real floor that the remake draws and a guard may walk on (no notes, doors, planks or fake walls).</summary>
+    public bool GuardFloor(int x, int r) { return In(x, r) && (c[x, r] == '.' || c[x, r] == 'C'); }
 
     // ---------- path finding (used by the map checker) ----------
     public struct Step { public Vector2Int tile; public bool wrapped; }
 
-    public List<Step> FindPath(Vector2Int from, Vector2Int to, bool allowBridge = true, bool allowFake = true, bool allowWrap = true)
+    public List<Step> FindPath(Vector2Int from, Vector2Int to, bool allowBridge = true, bool allowFake = true, bool allowWrap = true, bool blockExit = false)
     {
         var prev = new Dictionary<Vector2Int, Step>();
         var q = new Queue<Vector2Int>();
@@ -404,6 +466,7 @@ public class Room
                 if (!TruthWalkable(nx, nr)) continue;
                 if (!allowBridge && IsBridge(nx, nr)) continue;
                 if (!allowFake && IsFake(nx, nr)) continue;
+                if (blockExit && nx == exit.x && nr == exit.y) continue;
                 var n = new Vector2Int(nx, nr);
                 if (prev.ContainsKey(n)) continue;
                 prev[n] = new Step { tile = cur, wrapped = wrapped };
@@ -471,6 +534,33 @@ public static class MapValidator
                     foreach (int x in v.cols) if (x < 1 || x > Maps.W - 2) { sb.AppendLine("FAIL room " + (i + 1) + ": laser column " + x + " is outside the room"); ok = false; }
                     if (v.t < 0f || v.t >= d.laserPeriod) { sb.AppendLine("FAIL room " + (i + 1) + ": laser time " + v.t + " is outside the loop"); ok = false; }
                 }
+            // keys and guards (new in the remake)
+            if (room.HasKey)
+            {
+                var kt = d.key;
+                if (!room.TruthWalkable(kt.x, kt.y) || room.IsDynamic(kt.x, kt.y) || kt == room.exit || kt == room.start)
+                { sb.AppendLine("FAIL room " + (i + 1) + ": the key at " + kt + " is not on a tile you can stand on"); ok = false; }
+                else if (room.FindPath(from, kt, true, true, true, true) == null)
+                { sb.AppendLine("FAIL room " + (i + 1) + ": the key at " + kt + " cannot be reached"); ok = false; }
+            }
+            else { sb.AppendLine("FAIL room " + (i + 1) + ": no key"); ok = false; }
+            if (d.guards.Length == 0) { sb.AppendLine("FAIL room " + (i + 1) + ": no guard"); ok = false; }
+            foreach (var g in d.guards)
+            {
+                int n = g.loop.Length;
+                for (int k = 0; k < n; k++)
+                {
+                    Vector2Int a = g.loop[k], b = g.loop[(k + 1) % n];
+                    if (a.x != b.x && a.y != b.y) { sb.AppendLine("FAIL room " + (i + 1) + ": guard leg " + a + " to " + b + " is not straight"); ok = false; continue; }
+                    int steps = Mathf.Abs(a.x - b.x) + Mathf.Abs(a.y - b.y);
+                    for (int q = 0; q <= steps; q++)
+                    {
+                        int gx = a.x + (steps == 0 ? 0 : (b.x - a.x) * q / steps), gr = a.y + (steps == 0 ? 0 : (b.y - a.y) * q / steps);
+                        if (!room.GuardFloor(gx, gr)) { sb.AppendLine("FAIL room " + (i + 1) + ": guard walks over (" + gx + "," + gr + "), which is not plain floor"); ok = false; }
+                        if (gx == from.x && gr == from.y) { sb.AppendLine("FAIL room " + (i + 1) + ": a guard walks over the spawn tile"); ok = false; }
+                    }
+                }
+            }
             // a one-use room must be a maze: its quickest route has to turn several times on the planks,
             // so there is never a straight ladder from the door to the exit
             bool anyOneUse = false;

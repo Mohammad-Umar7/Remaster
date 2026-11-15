@@ -835,8 +835,80 @@ def make_books():
     return p, dict(ground=True)
 
 
+# ------------------------------------------------------------------------------------------
+# things that are NEW in the remake: the old game has never heard of them
+# ------------------------------------------------------------------------------------------
+def make_guard():
+    """Keep guard: a stubby toy knight with a spear and a shield.  1.38 to the top of the helmet,
+    about 2.0 with the spear.  Origin on the ground between the feet, face toward -Y."""
+    p = Prop("guard", 31, rough=0.04)
+    for sx in (-1.0, 1.0):
+        p.box((0.26, 0.38, 0.16), "ink", loc=(sx * 0.20, -0.03, 0.08), bevel=0.03, flat_bottom=True)
+    # body, belt, and a red tabard with a yellow diamond so the front reads from far away
+    p.box((0.78, 0.58, 0.74), "metal", loc=(0, 0, 0.53), bevel=0.07)
+    p.box((0.81, 0.61, 0.09), "ink", loc=(0, 0, 0.36), rough=0.02)
+    p.box((0.36, 0.05, 0.46), "red", loc=(0, -0.295, 0.62), rough=0.03)
+    p.box((0.15, 0.04, 0.15), "yellow", loc=(0, -0.325, 0.68), rot=(0, R(45), 0), rough=0.0)
+    for sx in (-1.0, 1.0):
+        p.box((0.24, 0.42, 0.20), "metal", loc=(sx * 0.46, 0, 0.84), rot=(0, R(11 * sx), 0), bevel=0.04)
+    # helmet: one dark slit, two bright eyes, a red crest front to back
+    p.box((0.50, 0.46, 0.09), "ink", loc=(0, 0, 0.93), rough=0.02)
+    p.box((0.58, 0.54, 0.44), "metal", loc=(0, -0.01, 1.16), bevel=0.08)
+    p.box((0.44, 0.05, 0.14), "ink", loc=(0, -0.265, 1.17), rough=0.0)
+    for sx in (-1.0, 1.0):
+        p.box((0.095, 0.03, 0.095), "flame", loc=(sx * 0.105, -0.292, 1.17), rough=0.0)
+    p.add(P_prism([(-0.29, 1.35), (-0.25, 1.53), (-0.04, 1.61), (0.19, 1.56), (0.30, 1.35)], 0.09), "red",
+          rot=(0, 0, R(90)), wob=0.006)
+    # spear in the right hand
+    p.box((0.055, 0.055, 1.74), "wood_dark", loc=(0.57, -0.12, 0.89), rot=(R(-2.0), R(1.5), 0), rough=0.03)
+    p.box((0.17, 0.17, 0.15), "ink", loc=(0.55, -0.12, 0.70), bevel=0.03)
+    p.box((0.11, 0.11, 0.06), "yellow", loc=(0.575, -0.15, 1.73), rough=0.0)
+    p.add(P_lathe([(0, 0), (0.085, 0.0), (0.095, 0.06), (0, 0.33)], 4, phase=math.pi / 4.0), "white",
+          loc=(0.578, -0.155, 1.76), rot=(R(-2.0), R(1.5), 0), wob=0.004)
+    # shield on the left arm, turned a little outward
+    p.parent = Matrix.Translation((-0.57, -0.25, 0.62)) @ Euler((0, 0, R(-24.0)), "XYZ").to_matrix().to_4x4()
+    p.box((0.56, 0.05, 0.68), "ink", loc=(0, 0.02, 0), rough=0.02)
+    p.box((0.48, 0.07, 0.60), "red", loc=(0, -0.01, 0), rough=0.03)
+    p.box((0.16, 0.05, 0.16), "yellow", loc=(0, -0.055, 0.02), rot=(0, R(45), 0), rough=0.0)
+    p.parent = Matrix.Identity(4)
+    p.box((0.17, 0.17, 0.15), "ink", loc=(-0.50, -0.10, 0.62), bevel=0.03)
+    return p, dict(ground=True)
+
+
+def make_key():
+    """Big cartoon key, 0.73 tall: bow on top, bit pointing +X.  Flat in the XZ plane so it
+    flashes as it spins.  Origin at its centre."""
+    p = Prop("key", 33, rough=0.03)
+    bow_r, bow_z, n = 0.135, 0.215, 8
+    seg = 2.0 * bow_r * math.tan(math.pi / n) + 0.06
+    for i in range(n):
+        a = 2.0 * math.pi * i / n
+        p.box((seg, 0.085, 0.078), "yellow", loc=(bow_r * math.sin(a), 0, bow_z + bow_r * math.cos(a)),
+              rot=(0, a, 0), rough=0.03)
+    p.box((0.078, 0.078, 0.46), "yellow", loc=(0, 0, -0.125), rough=0.03)
+    p.box((0.14, 0.105, 0.055), "yellow", loc=(0, 0, 0.055), rough=0.02)
+    p.box((0.16, 0.072, 0.075), "yellow", loc=(0.105, 0, -0.315), rough=0.03)
+    p.box((0.115, 0.072, 0.062), "yellow", loc=(0.085, 0, -0.195), rough=0.03)
+    return p, dict(ground=False)
+
+
+def make_padlock():
+    """Chunky padlock, 0.40 wide and 0.52 tall.  Origin at the centre of the body, keyhole toward -Y."""
+    p = Prop("padlock", 35, rough=0.03)
+    p.box((0.40, 0.16, 0.30), "yellow", loc=(0, 0, 0), bevel=0.035)
+    for sx in (-1.0, 1.0):
+        p.box((0.06, 0.06, 0.22), "metal", loc=(sx * 0.115, 0, 0.22), rough=0.02)
+    p.box((0.29, 0.06, 0.06), "metal", loc=(0, 0, 0.34), rough=0.02, bevel=0.012)
+    p.add(P_lathe([(0, 0), (0.048, 0), (0.048, 0.022), (0, 0.022)], 8), "ink", loc=(0, -0.08, 0.035),
+          rot=(R(90), 0, 0))
+    p.box((0.036, 0.022, 0.11), "ink", loc=(0, -0.091, -0.045), rough=0.0)
+    return p, dict(ground=False)
+
+
 DUNGEON = [make_torch, make_pillar, make_door_arch, make_gate, make_crate, make_barrel, make_banner,
            make_signpost, make_rubble, make_placeholder_cube]
+GAMEPLAY = [make_guard, make_key, make_padlock]
+GAMEPLAY_NAMES = ["guard", "key", "padlock"]
 DESK = [make_desk, make_monitor, make_keyboard, make_mouse, make_mug, make_lamp, make_clock, make_plant, make_books]
 DUNGEON_NAMES = ["torch", "pillar", "door_arch", "gate", "crate", "barrel", "banner", "signpost", "rubble",
                  "placeholder_cube"]
@@ -844,7 +916,7 @@ DESK_NAMES = ["desk", "monitor", "keyboard", "mouse", "mug", "lamp", "clock", "p
 
 # preview height offsets for wall-mounted props, and a suggested arrangement on the desk
 # (Blender coordinates relative to the desk origin; yaw in degrees about +Z)
-ROW_Z = {"torch": 1.30, "banner": 2.40}
+ROW_Z = {"torch": 1.30, "banner": 2.40, "key": 0.90, "padlock": 0.90}
 DESK_TOP = 0.74
 ASSEMBLY = {
     "desk": ((0.0, 0.0, 0.0), 0.0),
@@ -929,7 +1001,7 @@ def build_all(sc):
     props = new_collection(sc, "RM_Props")
     asm = new_collection(sc, "RM_DeskAssembly")
     objs = {}
-    for row_y, row_x, makers, gap in ((0.0, 0.0, DUNGEON, 0.55), (-6.0, -40.0, DESK, 0.16)):
+    for row_y, row_x, makers, gap in ((0.0, 0.0, DUNGEON, 0.55), (-6.0, -40.0, DESK, 0.16), (9.0, 0.0, GAMEPLAY, 0.7)):
         x = row_x
         for maker in makers:
             prop, opts = maker()
@@ -1028,7 +1100,7 @@ def render_shot(sc, cam, path, loc, target, lens, size=(1500, 800)):
     return path
 
 
-def render_previews(sc, objs, preview_dir):
+def render_previews(sc, objs, preview_dir, only=None):
     os.makedirs(preview_dir, exist_ok=True)
     cam = setup_preview(sc)
 
@@ -1052,19 +1124,42 @@ def render_previews(sc, objs, preview_dir):
     ao = ASSEMBLY_ORIGIN
     shots.append(("props_desk_assembled.png", (ao.x - 0.9, ao.y - 1.9, 1.75), (ao.x, ao.y + 0.05, 0.86), 38.0))
     shots.append(("props_desk_first_person.png", (ao.x, ao.y - 0.72, 1.22), (ao.x, ao.y + 0.14, 1.02), 24.0))
+    lo, hi = row_span(GAMEPLAY_NAMES)
+    mid = (lo + hi) / 2.0
+    shots.append(("props_gameplay_front.png", (mid - 1.6, 9.0 - 5.2, 1.9), (mid, 9.0, 0.95), 34.0))
+    shots.append(("props_gameplay_back.png", (mid + 2.2, 9.0 + 5.0, 2.2), (mid, 9.0, 0.95), 34.0))
+    shots.append(("props_gameplay_side.png", (lo - 4.2, 9.0 - 1.4, 1.6), (lo + 0.4, 9.0, 0.95), 40.0))
+    if only:
+        shots = [s for s in shots if s[0].startswith("props_gameplay")] if set(only) <= set(GAMEPLAY_NAMES) else shots
     return [render_shot(sc, cam, os.path.join(preview_dir, f), loc, target, lens) for (f, loc, target, lens) in shots]
 
 
-def main(export=True, preview=True, preview_dir=None, out_dir=OUT_DIR):
+def main(export=True, preview=True, preview_dir=None, out_dir=OUT_DIR, only=None):
+    """only: list of prop names to export and preview (everything is still built, which is cheap)."""
     sc = get_scene()
     objs = build_all(sc)
-    out = {"props": {name: stats_of(obj) for name, obj in objs.items()}}
+    chosen = {n: o for n, o in objs.items() if (not only or n in only)}
+    out = {"props": {name: stats_of(obj) for name, obj in chosen.items()}}
     if export:
-        out["fbx"] = export_all(sc, objs, out_dir)
+        out["fbx"] = export_all(sc, chosen, out_dir)
     if preview:
-        out["previews"] = render_previews(sc, objs, preview_dir or DEFAULT_PREVIEW_DIR)
+        out["previews"] = render_previews(sc, objs, preview_dir or DEFAULT_PREVIEW_DIR, only)
     return out
 
 
 if __name__ == "__main__":
-    print(main())
+    # blender -b --python tools/gen_props_blender.py -- [--only guard,key] [--preview-dir <dir>] [--no-export]
+    import sys
+    argv = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else []
+    kw = {}
+    for i, a in enumerate(argv):
+        if a == "--only" and i + 1 < len(argv):
+            kw["only"] = [s for s in argv[i + 1].split(",") if s]
+        elif a == "--preview-dir" and i + 1 < len(argv):
+            kw["preview_dir"] = argv[i + 1]
+        elif a == "--no-export":
+            kw["export"] = False
+        elif a == "--no-preview":
+            kw["preview"] = False
+    import json
+    print("RESULT " + json.dumps(main(**kw)))

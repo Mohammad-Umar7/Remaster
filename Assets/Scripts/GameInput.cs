@@ -123,6 +123,31 @@ public static class GameInput
         get { var m = Ms; return m != null && m.leftButton.wasPressedThisFrame; }
     }
 
+    // ---- start menu
+    public static bool MenuUpPressed
+    {
+        get
+        {
+            var k = Kb; var g = Gp;
+            return (k != null && (k.wKey.wasPressedThisFrame || k.upArrowKey.wasPressedThisFrame))
+                || (g != null && (g.dpad.up.wasPressedThisFrame || g.leftStick.up.wasPressedThisFrame));
+        }
+    }
+
+    public static bool MenuDownPressed
+    {
+        get
+        {
+            var k = Kb; var g = Gp;
+            return (k != null && (k.sKey.wasPressedThisFrame || k.downArrowKey.wasPressedThisFrame))
+                || (g != null && (g.dpad.down.wasPressedThisFrame || g.leftStick.down.wasPressedThisFrame));
+        }
+    }
+
+    /// <summary>Mouse position in screen pixels (off-screen when there is no mouse).</summary>
+    public static Vector2 PointerPosition { get { var m = Ms; return m != null ? m.position.ReadValue() : new Vector2(-9999f, -9999f); } }
+    public static bool PointerMoved { get { var m = Ms; return m != null && m.delta.ReadValue().sqrMagnitude > 0.5f; } }
+
     /// <summary>Returns 1..9 when a room-jump number key was pressed this frame, else 0.</summary>
     public static int NumberPressed
     {
