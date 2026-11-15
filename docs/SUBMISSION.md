@@ -34,7 +34,7 @@ Deadline: **Sunday 15 November 2026, 14:45**, on the jam's itch.io page. Late en
 
 **Live demo (1 min)** - from the title screen:
 1. On the start screen press Enter on START. Let the 8-second opening play (desk, falling asleep, pulled into the monitor).
-2. Room 1: point at the pixel window ("there is a bridge here"), then walk across thin air. The bridge is sketched in under your feet. Walk into the locked exit, then point at the key and the guard: "these are only in the 3D world". Slip past the guard, take the key, and the gate drops.
+2. Room 1: point at the pixel window ("there is a bridge here"), then walk across thin air. The bridge is sketched in under your feet. Walk into the locked exit, then point at the key and the guard: "these are only in the 3D world". Slip past the guard, take the key, and the gate drops. (For a laugh, walk into the guard once: it winds up and bonks you back.)
 3. Press **Esc, then 2**: walk straight through the fancy wall.
 4. Press **Esc, then 6**: stand in the safe zone, point at the red lines in the old game, and let the lasers fire three seconds later.
 5. If there is time, **Esc, then 4** (walk off the left edge, appear behind the gate) or **Esc, then 8** (run from the deleting floor).
