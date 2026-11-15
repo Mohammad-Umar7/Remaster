@@ -673,6 +673,42 @@ public class Hud : MonoBehaviour
         talkRect.localRotation = Quaternion.Euler(0, 0, talkAngry ? Mathf.Sin(tt * 37f) * (0.25f + talkKick * 1.2f) : 0f);
     }
 
+    void UpdateBoss(float dt)
+    {
+        float tt = Time.unscaledTime;
+        if (bossRect != null && bossRect.gameObject.activeSelf)
+        {
+            // the pale strip waits a moment, then drains down to the real health: you see how much that hit took
+            if (bossHold > 0f) bossHold -= dt; else bossLagFrac = Mathf.MoveTowards(bossLagFrac, bossFrac, dt * 0.45f);
+            if (bossLagFrac < bossFrac) bossLagFrac = bossFrac;
+            bossFill.anchorMax = new Vector2(bossFrac, 1f);
+            bossLag.anchorMax = new Vector2(bossLagFrac, 1f);
+            bossPunch = Mathf.Max(0f, bossPunch - dt * 2.6f);
+            float k = bossPunch * bossPunch;
+            bossRect.localScale = new Vector3(1f + k * 0.08f, 1f + k * 0.2f, 1f);
+            bossRect.localRotation = Quaternion.Euler(0, 0, Mathf.Sin(tt * 44f) * 2.2f * k);
+            bossFillImg.color = Color.Lerp(Pal.Red, Pal.White, k);
+        }
+        if (youRect != null && youRect.gameObject.activeSelf)
+        {
+            float f = Mathf.Clamp01(gm.hearts / (float)GameManager.MaxHearts);
+            if (f < youFrac) { youHold = 0.4f; youPunch = 1f; }
+            if (f > youFrac) youLagFrac = f;
+            youFrac = f;
+            if (youHold > 0f) youHold -= dt; else youLagFrac = Mathf.MoveTowards(youLagFrac, youFrac, dt * 0.6f);
+            if (youLagFrac < youFrac) youLagFrac = youFrac;
+            youFill.anchorMax = new Vector2(youFrac, 1f);
+            youLag.anchorMax = new Vector2(youLagFrac, 1f);
+            youPunch = Mathf.Max(0f, youPunch - dt * 2.6f);
+            float k = youPunch * youPunch;
+            youRect.localScale = new Vector3(1f + k * 0.1f, 1f + k * 0.22f, 1f);
+            youRect.localRotation = Quaternion.Euler(0, 0, Mathf.Sin(tt * 44f) * 3f * k);
+            // green while you are fine, red on your last heart
+            Color c = gm.hearts <= 1 ? (Color)Pal.Red : (Color)Pal.Hex("3fbf6a");
+            youFillImg.color = Color.Lerp(c, Pal.White, k);
+        }
+    }
+
     public void ShowRoomTitle(int i)
     {
         roomText.text = (i + 1) + "/" + Maps.Defs.Length + "   " + Maps.Defs[i].title;
@@ -793,6 +829,8 @@ public class Hud : MonoBehaviour
             bonkFill.color = Pal.A(wordFill, a); bonkLine.color = Pal.A(Pal.Ink, a); bonkText.color = Pal.A(wordInk, a);
             if (bonkT > 0.66f) { bonkT = -1f; bonkRect.gameObject.SetActive(false); }
         }
+        UpdateBoss(dt);
+        UpdateTalk(dt);
         if (checkPulse > 0f && pulseIndex >= 0)
         {
             checkPulse = Mathf.Max(0f, checkPulse - dt * 2.2f);
