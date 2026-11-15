@@ -159,6 +159,18 @@ public class GuardRig
         p.yaw = an.yaw;
         p.feet = room.TileFToWorld(gs.pos);
 
+        // --- on guard: it has seen you. Spear lowered at you, shield up, eyes on you.
+        float alert = Smooth(gs.alertT);
+        float lookYaw = 0f;
+        Vector2 toYou = gs.lookAt - gs.pos;
+        if (toYou.sqrMagnitude > 0.0004f) lookYaw = Mathf.Clamp(Mathf.DeltaAngle(p.yaw, YawOf(toYou)), -85f, 85f);
+        an.headYaw = Mathf.Lerp(an.headYaw, lookYaw * alert, 1f - Mathf.Exp(-14f * dt));
+        p.headYaw = Mathf.Lerp(p.headYaw, an.headYaw, alert);
+        p.spear += alert * 44f;
+        p.shield += alert * -24f;
+        p.shieldOut = alert * 16f;
+        p.lean += alert * 5f;
+
         return p;
     }
 }
