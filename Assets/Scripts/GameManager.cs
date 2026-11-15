@@ -722,6 +722,19 @@ public class GameManager : MonoBehaviour
         Hurt("Caught by a guard! The old game cannot see them: keep an eye on the 3D world.", ref firstGuardHit, 0.11f);
     }
 
+    /// <summary>Can a chasing guard stand here (tile units)? Only on plain floor that still exists, a step clear of anything else.</summary>
+    static bool GuardCanStand(Room room, RoomState s, Vector2 c)
+    {
+        const float m = 0.3f;
+        for (int k = 0; k < 4; k++)
+        {
+            int x = Mathf.FloorToInt(c.x + ((k & 1) == 0 ? -m : m)), r = Mathf.FloorToInt(c.y + ((k & 2) == 0 ? -m : m));
+            if (!room.GuardFloor(x, r) || s.rowCrumble[r] >= 2f) return false;
+        }
+        return true;
+    }
+
+
     /// <summary>Is there something to stand on at this spot of the current room? (Stops a shove at an edge.)</summary>
     bool CanStandAt(Vector3 pos)
     {
