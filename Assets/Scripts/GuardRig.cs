@@ -80,4 +80,26 @@ public class GuardRig
         return go.transform;
     }
 
+    /// <summary>Put every joint where the pose says. <paramref name="shift"/> moves a whole copy (wrapped rooms).</summary>
+    public void Apply(GuardPose p, Vector3 shift, Vector3 eye)
+    {
+        if (root.gameObject.activeSelf != p.visible) root.gameObject.SetActive(p.visible);
+        bool showBang = p.visible && p.bang > 0.01f;
+        if (bang.gameObject.activeSelf != showBang) bang.gameObject.SetActive(showBang);
+        if (!p.visible) return;
+
+        root.position = p.feet + shift;
+        root.rotation = Quaternion.Euler(0f, p.yaw, 0f);
+        body.localPosition = Hip + new Vector3(0f, p.bob, 0f);
+        body.localRotation = Quaternion.Euler(p.lean, p.twist, p.roll);
+        // squash and stretch keep the volume: shorter means wider
+        float wide = 1f + (1f - p.squash) * 0.55f;
+        body.localScale = new Vector3(wide, p.squash, wide);
+        head.localRotation = Quaternion.Euler(p.headPitch, p.headYaw, 0f);
+        armSpear.localRotation = Quaternion.Euler(p.spear, p.spearAim, p.spearOut);
+        armShield.localRotation = Quaternion.Euler(p.shield, p.shieldOut, 0f);
+        legL.localRotation = Quaternion.Euler(p.legL, 0f, 0f);
+        legR.localRotation = Quaternion.Euler(p.legR, 0f, 0f);
+
+    }
 }
