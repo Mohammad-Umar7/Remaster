@@ -197,6 +197,14 @@ public static class Maps
             note = "BUG: sprite flicker.\nSome planks only exist\nhalf the time. Listen!",
             finish = 0.45f, needBridge = true,
             flickerPeriod = 2.3f,
+            // the key sits on the side island, a detour over blinking planks; one guard walks past the
+            // first plank (so you cannot just stand and wait for the beat), one paces the exit ledge
+            key = K(10, 5),
+            guards = new[]
+            {
+                new SlimeDef(1.3f, 0.45f, 7,8, 11,8, 11,9, 7,9),
+                new SlimeDef(1.3f, 0.10f, 1,1, 11,1),
+            },
             rows = new[]
             {
                 "######X######",
@@ -219,6 +227,14 @@ public static class Maps
             note = "TODO: fix 3 second lag.\nThe old game is AHEAD:\nit shows lasers first.",
             finish = 0.4f,
             laserPeriod = 12f,
+            // the key is in the far corner inside a guard's ring, with the lasers on top;
+            // a second guard circles the coin in the middle
+            key = K(2, 2),
+            guards = new[]
+            {
+                new SlimeDef(1.5f, 0.00f, 1,1, 3,1, 3,3, 1,3),
+                new SlimeDef(1.5f, 0.50f, 4,4, 8,4, 8,6, 4,6),
+            },
             lasers = new[]
             {
                 new LaserVolley(0.5f,  L(7, 5, 3, 1), null),
@@ -254,6 +270,14 @@ public static class Maps
             todo = "plank durability",
             note = "TODO: plank durability.\nPlanks snap after ONE\nstep. Solve the maze!",
             finish = 0.32f, needBridge = true,
+            // fetch first, then solve: the key is at one end of the start floor and the only good way
+            // into the maze is at the other, with a fast guard lapping each end
+            key = K(2, 9),
+            guards = new[]
+            {
+                new SlimeDef(1.6f, 0.60f, 1,8, 4,8, 4,9, 1,9),
+                new SlimeDef(1.6f, 0.10f, 8,8, 11,8, 11,9, 8,9),
+            },
             rows = new[]
             {
                 "######X######",
