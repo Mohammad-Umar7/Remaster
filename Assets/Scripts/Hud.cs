@@ -28,6 +28,11 @@ public class Hud : MonoBehaviour
     Image lidTop, lidBottom, fade;
     RawImage[] todoBoxes, todoChecks; Text[] todoNums;
     Text pressText;
+    // hearts in the 3D view: guards live in the 3D world, so your health shows here too
+    RectTransform[] heartRects;
+    RawImage[] heartFills, heartLines;
+    readonly float[] heartPunch = new float[GameManager.MaxHearts];
+    int shownHearts = -1;
     float popupTimer, toastTimer, hintTimer, hurtTimer, coinPulse, captionAlpha, captionTarget;
     float fadeTarget, fadeSpeed = 3f;
     float floatIn = 1f, floatScale = 1f, floatScaleTarget = 1f, lastYaw, yawVel, swayX, swayTilt, stepKick, checkPulse;
@@ -136,6 +141,21 @@ public class Hud : MonoBehaviour
             todoNums[i] = Txt(nm, (i + 1).ToString(), 22, Pal.Ink, TextAnchor.MiddleCenter);
             var ck = Box("Check" + i, checkRow, new Vector2(0, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(x + 3, 4), new Vector2(46, 46));
             todoChecks[i] = Raw(ck, TexLib.check, Pal.Red);
+        }
+
+        // hearts, next to the room checklist: guards live in the 3D world, so your hearts show here too
+        heartRects = new RectTransform[GameManager.MaxHearts];
+        heartFills = new RawImage[GameManager.MaxHearts]; heartLines = new RawImage[GameManager.MaxHearts];
+        float hx0 = 40f + checkRow.sizeDelta.x + 44f;
+        for (int i = 0; i < GameManager.MaxHearts; i++)
+        {
+            var hr = Box("Heart" + i, pu, new Vector2(0, 1), new Vector2(0.5f, 0.5f), new Vector2(hx0 + i * 52f, -132f), new Vector2(50, 50));
+            hr.localRotation = Quaternion.Euler(0, 0, (i - 1) * -6f);
+            var hf = Rect("Fill", hr, Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
+            heartFills[i] = Raw(hf, TexLib.heartFill, Pal.Red);
+            var hl = Rect("Line", hr, Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
+            heartLines[i] = Raw(hl, TexLib.heartLine, Pal.Ink);
+            heartRects[i] = hr;
         }
 
         // the dev's sticky note for this room: the instructions
@@ -484,6 +504,7 @@ public class Hud : MonoBehaviour
             keyRect.localScale = new Vector3(1f + kp * 0.22f, 1f + kp * 0.22f, 1f);
             keyRect.localRotation = Quaternion.Euler(0, 0, 1.3f + Mathf.Sin(Time.unscaledTime * 38f) * 5f * kp);
         }
+        UpdateHearts(dt);
         if (checkPulse > 0f && pulseIndex >= 0)
         {
             checkPulse = Mathf.Max(0f, checkPulse - dt * 2.2f);
@@ -523,6 +544,33 @@ public class Hud : MonoBehaviour
         fc.a = Mathf.MoveTowards(fc.a, fadeTarget, dt * fadeSpeed);
         fade.color = fc;
         fade.enabled = fc.a > 0.002f;
+    }
+
+    /// <summary>Three hearts in the 3D view. A lost heart jumps and empties; refilled hearts pop back in.</summary>
+    void UpdateHearts(float dt)
+    {
+        if (heartRects == null || !playUi.activeSelf) return;
+        int now = Mathf.Clamp(gm.hearts, 0, GameManager.MaxHearts);
+        if (now != shownHearts)
+        {
+            if (shownHearts >= 0)
+            {
+                if (now < shownHearts) for (int i = now; i < shownHearts; i++) heartPunch[i] = 1f;
+                else for (int i = shownHearts; i < now; i++) heartPunch[i] = 0.6f;
+            }
+            shownHearts = now;
+        }
+        for (int i = 0; i < heartRects.Length; i++)
+        {
+            bool full = i < now;
+            heartPunch[i] = Mathf.Max(0f, heartPunch[i] - dt * 2.6f);
+            float k = heartPunch[i] * heartPunch[i];
+            heartFills[i].enabled = full;
+            heartLines[i].color = full ? (Color)Pal.Ink : Pal.A(Pal.Ink, 0.4f);
+            float s = (full ? 1f : 0.86f) + k * 0.7f;
+            heartRects[i].localScale = new Vector3(s, s, 1f);
+            heartRects[i].localRotation = Quaternion.Euler(0, 0, (i - 1) * -6f + Mathf.Sin(Time.unscaledTime * 40f) * 14f * k);
+        }
     }
 
     /// <summary>The old game's window hovers: it drifts, lags behind when you turn, and bumps when things happen.</summary>

@@ -51,6 +51,8 @@ public static class TexLib
         zed = MakeZed();
         keyIcon = MakeKeyIcon();
         keyDisc = MakeKeyDisc();
+        heartFill = MakeHeart(true);
+        heartLine = MakeHeart(false);
 
         frameTex = MakeFrame(96, 53);
         frameSprite = Sprite.Create(frameTex, new Rect(0, 0, 96, 96), new Vector2(0.5f, 0.5f), 100f, 0, SpriteMeshType.FullRect, new Vector4(30, 30, 30, 30));
