@@ -301,10 +301,19 @@ public static class Maps
             wrap = true,
             deleteWave = true,
             finish = 0.25f, needBridge = true, needFake = true, needWrap = true,
+            // the key is a detour to the far end of the ledge while the floor is deleting itself;
+            // one fast guard paces in front of the bridge you have to start from, and a second one
+            // paces the landing in front of the way out: cross its lane like a road
+            key = K(11, 4),
+            guards = new[]
+            {
+                new SlimeDef(1.7f, 0.20f, 1,8, 5,8),
+                new SlimeDef(1.7f, 0.65f, 7,1, 11,1),
+            },
             rows = new[]
             {
                 "#########X###",
-                "########...##",
+                "#######.....#",
                 ".C....#......",
                 "###f#####W###",
                 "#..........C#",
