@@ -568,6 +568,14 @@ public class Hud : MonoBehaviour
         RefreshKey();
     }
 
+    /// <summary>The play HUD and the old game's window step aside for a scene, and come back after it.</summary>
+    public void SetCinema(bool on)
+    {
+        if (fullscreen) return;
+        playUi.SetActive(!on);
+        if (pixelFloat.activeSelf == on) { pixelFloat.SetActive(!on); if (!on) floatIn = 0f; }
+    }
+
     public void ShowRoomTitle(int i)
     {
         roomText.text = (i + 1) + "/" + Maps.Defs.Length + "   " + Maps.Defs[i].title;
