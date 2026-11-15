@@ -943,8 +943,18 @@ def make_padlock():
 
 DUNGEON = [make_torch, make_pillar, make_door_arch, make_gate, make_crate, make_barrel, make_banner,
            make_signpost, make_rubble, make_placeholder_cube]
-GAMEPLAY = [make_guard, make_key, make_padlock]
-GAMEPLAY_NAMES = ["guard", "key", "padlock"]
+GAMEPLAY = [make_guard_body, make_guard_head, make_guard_arm_spear, make_guard_arm_shield, make_guard_leg,
+            make_key, make_padlock]
+GAMEPLAY_NAMES = ["guard_body", "guard_head", "guard_arm_spear", "guard_arm_shield", "guard_leg", "key", "padlock"]
+# how the guard's parts go together (Blender coordinates from the guard's feet), for the preview and the game
+GUARD_ASSEMBLY = {
+    "guard_body": [(0.0, 0.0, GUARD_HIP_Z)],
+    "guard_head": [(GUARD_NECK[0], GUARD_NECK[1], GUARD_HIP_Z + GUARD_NECK[2])],
+    "guard_arm_spear": [(GUARD_SHOULDER[0], GUARD_SHOULDER[1], GUARD_HIP_Z + GUARD_SHOULDER[2])],
+    "guard_arm_shield": [(-GUARD_SHOULDER[0], GUARD_SHOULDER[1], GUARD_HIP_Z + GUARD_SHOULDER[2])],
+    "guard_leg": [(GUARD_LEG_X, 0.0, GUARD_HIP_Z), (-GUARD_LEG_X, 0.0, GUARD_HIP_Z)],
+}
+GUARD_ORIGIN = Vector((12.0, 9.0, 0.0))
 DESK = [make_desk, make_monitor, make_keyboard, make_mouse, make_mug, make_lamp, make_clock, make_plant, make_books]
 DUNGEON_NAMES = ["torch", "pillar", "door_arch", "gate", "crate", "barrel", "banner", "signpost", "rubble",
                  "placeholder_cube"]
@@ -952,7 +962,8 @@ DESK_NAMES = ["desk", "monitor", "keyboard", "mouse", "mug", "lamp", "clock", "p
 
 # preview height offsets for wall-mounted props, and a suggested arrangement on the desk
 # (Blender coordinates relative to the desk origin; yaw in degrees about +Z)
-ROW_Z = {"torch": 1.30, "banner": 2.40, "key": 0.90, "padlock": 0.90}
+ROW_Z = {"torch": 1.30, "banner": 2.40, "key": 0.90, "padlock": 0.90, "guard_body": 0.30, "guard_arm_spear": 0.95,
+         "guard_arm_shield": 0.95, "guard_leg": 0.30}
 DESK_TOP = 0.74
 ASSEMBLY = {
     "desk": ((0.0, 0.0, 0.0), 0.0),
