@@ -1057,6 +1057,17 @@ def sfx_guard_windup():
     return finish(hup + creak, out_ms=10.0)
 
 
+def sfx_guard_swing():
+    """The spear comes round: a fast whoosh that rises and cuts."""
+    n = int(0.16 * SR)
+    x = white(n, rng('guard_swing'))
+    u = np.linspace(0.0, 1.0, n)
+    # sweep upward through the noise by cross-fading three bands
+    low, mid, high = bp(x, 300.0, 900.0), bp(x, 900.0, 2600.0), bp(x, 2600.0, 7000.0)
+    sweep = low * np.clip(1.0 - 2.0 * u, 0.0, 1.0) + mid * (1.0 - np.abs(2.0 * u - 1.0)) + high * np.clip(2.0 * u - 1.0, 0.0, 1.0)
+    return finish(sweep * np.sin(np.pi * u) ** 0.8, out_ms=8.0)
+
+
 def sfx_ui_move():
     n = int(0.050 * SR)
     return finish(osc_pulse(const(hz('G5'), n), 0.25) * expdecay(n, 0.018, 1.0), out_ms=5.0)
