@@ -101,5 +101,19 @@ public class GuardRig
         legL.localRotation = Quaternion.Euler(p.legL, 0f, 0f);
         legR.localRotation = Quaternion.Euler(p.legR, 0f, 0f);
 
+        if (showBang)
+        {
+            Vector3 at = p.feet + shift + Vector3.up * (2.35f * S);
+            Vector3 toEye = eye - at;
+            if (toEye.sqrMagnitude < 0.01f) toEye = Vector3.back;
+            toEye.Normalize();
+            // face you, with the top of the "!" kept toward the sky
+            Vector3 top = Vector3.up - toEye * Vector3.Dot(Vector3.up, toEye);
+            if (top.sqrMagnitude < 0.0001f) top = Vector3.forward;
+            bang.position = at;
+            bang.rotation = Quaternion.LookRotation(top.normalized, toEye) * Quaternion.AngleAxis(-8f, Vector3.up);
+            bang.localScale = Vector3.one * p.bang;
+        }
     }
+
 }
