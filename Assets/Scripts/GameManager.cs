@@ -530,7 +530,7 @@ public class GameManager : MonoBehaviour
                 if (after > before)
                 {
                     StartCoroutine(After(0.9f, () => sound.Play("jingle_layer", 0.6f)));
-                    hud.Toast("checkpoint!     soundtrack remastered:  + " + LayerNames[Mathf.Clamp(after - 1, 0, 3)]);
+                    hud.Toast("checkpoint!     + " + LayerNames[Mathf.Clamp(after - 1, 0, 3)]);
                 }
                 else hud.Toast("checkpoint!");
                 hud.RefreshTodo();
@@ -567,7 +567,7 @@ public class GameManager : MonoBehaviour
             sound.Play("ghostwall", 0.8f);
             SketchCamera.Flash(0.30f, Pal.Paper);
             player.AddTrauma(0.22f);
-            if (!firstFake) { firstFake = true; hud.Popup("No collision! That wall was only decoration.", 3.4f); }
+            if (!firstFake) { firstFake = true; hud.Popup("No collision! Only decoration.", 2.2f); }
         }
         if (room.def.deleteWave && !s.waveActive && r <= 7) StartWave(s);
     }
@@ -878,7 +878,7 @@ public class GameManager : MonoBehaviour
             if (invuln <= 0f && Vector2.Distance(pf, sl.pos) < 0.62f)
             {
                 sl.hitFlash = 0.35f;
-                Hurt("Ouch! Something un-modelled bit you. Watch the old game.", ref firstSlime);
+                Hurt("Ouch! Watch the old game.", ref firstSlime);
             }
         }
     }
@@ -904,7 +904,7 @@ public class GameManager : MonoBehaviour
             if (!first)
             {
                 sound.Play(phase == 0 ? "flick_a" : "flick_b", 0.7f);
-                if (!firstFlicker) { firstFlicker = true; hud.Popup("They blink! Cross while a plank is solid. Listen for the beat.", 3.6f); }
+                if (!firstFlicker) { firstFlicker = true; hud.Popup("They blink! Listen for the beat.", 2.2f); }
             }
         }
         // two quick ticks before the planks swap: an audible countdown
@@ -1066,11 +1066,11 @@ public class GameManager : MonoBehaviour
         pixel.Shake(10);
         hud.HurtFlash();
         StartCoroutine(HitStop(stop));
-        if (firstTimeText != null && !firstFlag) { firstFlag = true; hud.Popup(firstTimeText, 3.4f); }
+        if (firstTimeText != null && !firstFlag) { firstFlag = true; hud.Popup(firstTimeText, 2.2f); }
         if (hearts <= 0)
         {
             sound.Play("jingle_gameover", 0.8f);
-            hud.Popup("GAME OVER...   just kidding. Back to the door.", 3f);
+            hud.Popup("GAME OVER...   just kidding.", 2.2f);
             hearts = MaxHearts;
             Respawn(cur, true);
         }
@@ -1080,7 +1080,7 @@ public class GameManager : MonoBehaviour
     {
         falls++;
         sound.Play("fall", 0.7f);
-        if (!firstFall) { firstFall = true; hud.Popup("Nothing there. Check the old game before you step.", 3.2f); }
+        if (!firstFall) { firstFall = true; hud.Popup("Nothing there. Check the old game.", 2.2f); }
         Respawn(cur, true);
         StartCoroutine(After(0.28f, () => sound.Play("respawn", 0.6f)));
     }
@@ -1164,7 +1164,7 @@ public class GameManager : MonoBehaviour
         pixel.AddFx("warp", 3, 0.4f, new Vector2(dir > 0 ? Maps.W - 0.5f : 0.5f, r + 0.5f), cur);
         pixel.AddFx("warp", 3, 0.4f, new Vector2(dir > 0 ? 0.5f : Maps.W - 0.5f, r + 0.5f), cur);
         lastTileX = -99;
-        if (!firstWrap) { firstWrap = true; hud.Popup("SCREEN WRAP! The 1989 bug still works.", 3.2f); }
+        if (!firstWrap) { firstWrap = true; hud.Popup("SCREEN WRAP! The 1989 bug still works.", 2.2f); }
     }
 
     void StartWave(RoomState s)
