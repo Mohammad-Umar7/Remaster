@@ -387,6 +387,12 @@ public class World3D
                 var gate = Props.Spawn("gate", holder, d.gatePos + off, 0f, 1f);
                 var padlock = Props.Spawn("padlock", gate.transform, d.gatePos + off + new Vector3(0, 1.3f, -0.16f), 180f, 1.35f);
                 d.gates.Add(gate.transform); d.gateBase.Add(d.gatePos + off); d.padlocks.Add(padlock);
+                // the key turns slowly above a pencilled ring, so it catches the eye from across the room
+                var key = Props.Spawn("key", holder, kp + off + new Vector3(0, KeyHeight, 0), 0f, KeyScale);
+                d.keys.Add(key.transform); d.keyBase.Add(kp + off + new Vector3(0, KeyHeight, 0));
+                var ring = Quad(holder, "keyring", TexLib.QuadUp, kp + off + new Vector3(0, 0.035f, 0), Quaternion.identity, new Vector3(1.5f, 1f, 1.5f),
+                    TexLib.DecalMat(TexLib.ring, Pal.A(Pal.Hex("d19a00"), 0.9f)));
+                d.rings.Add(ring.transform);
             }
         }
     }
