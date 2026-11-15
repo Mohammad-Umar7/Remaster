@@ -305,9 +305,8 @@ public class IntroDirector : MonoBehaviour
 
     IEnumerator LandingCaption()
     {
+        // no caption when you land in the remake any more: the levels play without subtitles
         yield return new WaitForSeconds(0.5f);
-        gm.hud.SetCaption("I'm INSIDE my unfinished game.   The 1989 original is still in my hand:   trust it.");
-        yield return new WaitForSeconds(3.5f);
         gm.hud.SetCaption(null);
         captionRoutine = null;
     }

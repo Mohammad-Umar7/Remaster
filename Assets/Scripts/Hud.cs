@@ -718,6 +718,8 @@ public class Hud : MonoBehaviour
 
     public void Popup(string text, float seconds)
     {
+        // the levels play without subtitles: only the last room (the Captain) says things in words
+        if (gm == null || gm.rooms == null || !gm.rooms[Mathf.Clamp(gm.cur, 0, gm.rooms.Length - 1)].def.boss) return;
         popupText.text = text;
         popupTimer = seconds;
         popupBack.gameObject.SetActive(true);
