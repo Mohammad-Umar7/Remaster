@@ -91,7 +91,7 @@ public static class Maps
         {
             title = "THE MISSING BRIDGE",
             todo = "model the bridge",
-            note = "TODO: model the bridge.\nCollision already works!\n(check the old game  -->)",
+            note = "TODO: model the bridge.\nCollision already works!\n(check the old game!)",
             finish = 0.92f, needBridge = true,
             // the key hangs in plain sight across the pit; one slow guard circles it
             key = K(9, 2),

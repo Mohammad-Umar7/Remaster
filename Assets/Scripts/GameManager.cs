@@ -348,7 +348,7 @@ public class GameManager : MonoBehaviour
         SketchCamera.flash = Mathf.MoveTowards(SketchCamera.flash, 0f, udt * 2.6f);
 
         if (GameInput.F11Pressed) Screen.fullScreen = !Screen.fullScreen;
-        if (GameInput.TabPressed && state == State.Playing) { hud.ToggleFloatSize(); sound.Play("ui_move", 0.6f); }
+        if (GameInput.TabPressed && state == State.Playing) { hud.ToggleHandheld(); sound.Play("ui_move", 0.6f); }
         // room-jump keys are for demos: only from the title or the pause menu, never by accident mid-run
         int num = GameInput.NumberPressed;
         if (num > 0 && num <= rooms.Length && (state == State.Title || (state == State.Playing && paused))) { if (paused) SetPaused(false); JumpToRoom(num - 1); }

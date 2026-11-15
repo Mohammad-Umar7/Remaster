@@ -15,7 +15,7 @@ Deadline: **Sunday 15 November 2026, 14:45**, on the jam's itch.io page. Late en
 
 > **REMASTER - a game about an unfinished game.**
 >
-> It is 3:47 AM. You are remaking a 1989 pixel game in 3D, you fall asleep at your desk, and you wake up inside the unfinished remake. The old game is still running in a little window floating beside you, and it is the only thing that knows what is really there.
+> It is 3:47 AM. You are remaking a 1989 pixel game in 3D, you fall asleep at your desk, and you wake up inside the unfinished remake. The old game is still running on the handheld in your left hand, and it is the only thing that knows what is really there.
 >
 > Bridges you never modelled are invisible but solid. Fancy walls you added are only decoration. Slimes and coins exist only in the old game. And the 1989 screen-wrap bug still works.
 >
@@ -23,7 +23,7 @@ Deadline: **Sunday 15 November 2026, 14:45**, on the jam's itch.io page. Late en
 >
 > Eight short rooms, about ten minutes: invisible bridges, fake walls, slimes only the old game can see, the screen-wrap bug, flickering planks, lasers the old game shows three seconds early, planks that snap after one step, and a floor that deletes itself. Clearing rooms adds remastered instruments to the chip-tune soundtrack.
 >
-> **Controls:** on the start screen pick START or QUIT with W / S and Enter, or click a note. In the game: WASD move, mouse look, Shift run, Tab resize the old-game window, Esc pause. In the pause menu: R restarts the room, 1 to 8 jump to a room.
+> **Controls:** on the start screen pick START or QUIT with W / S and Enter, or click a note. In the game: WASD move, mouse look, Shift run, Tab raise or lower the handheld, Esc pause. In the pause menu: R restarts the room, 1 to 8 jump to a room.
 
 ## The 3-minute slot
 
@@ -34,7 +34,7 @@ Deadline: **Sunday 15 November 2026, 14:45**, on the jam's itch.io page. Late en
 
 **Live demo (1 min)** - from the title screen:
 1. On the start screen press Enter on START. Let the 8-second opening play (desk, falling asleep, pulled into the monitor).
-2. Room 1: point at the pixel window ("there is a bridge here"), then walk across thin air. The bridge is sketched in under your feet. Walk into the locked exit, then point at the key and the guard: "these are only in the 3D world". Slip past the guard, take the key, and the gate drops. (For a laugh, walk into the guard once: it winds up and bonks you back.)
+2. Room 1: point at the handheld ("there is a bridge here"), then walk across thin air. The bridge is sketched in under your feet. Walk into the locked exit, then point at the key and the guard: "these are only in the 3D world". Slip past the guard, take the key, and the gate drops. (For a laugh, walk into the guard once: it winds up and bonks you back.)
 3. Press **Esc, then 2**: walk straight through the fancy wall.
 4. Press **Esc, then 6**: stand in the safe zone, point at the red lines in the old game, and let the lasers fire three seconds later.
 5. If there is time, **Esc, then 4** (walk off the left edge, appear behind the gate) or **Esc, then 8** (run from the deleting floor).

@@ -2,7 +2,7 @@
 
 *A game about an unfinished game.* Made for the SHIFT Game Jam 2026 (theme: **Between Two Worlds**).
 
-It is 3:47 AM. You are remaking a 1989 pixel game, TINY KEEP, in 3D. You fall asleep at your desk and wake up inside the unfinished remake. The old game is still running in a little window floating beside you, and it knows what is really there. But the remake has things the old game never had, so you need both.
+It is 3:47 AM. You are remaking a 1989 pixel game, TINY KEEP, in 3D. You fall asleep at your desk and wake up inside the unfinished remake. The old game is still running on the handheld in your left hand, and it knows what is really there. But the remake has things the old game never had, so you need both.
 
 ## The two worlds
 
@@ -39,7 +39,7 @@ The soundtrack is one tune in two arrangements. It starts as a chip tune, and ev
 | W A S D / arrows | move |
 | Mouse | look |
 | Shift | run |
-| Tab | resize the floating old-game window |
+| Tab | raise or lower the handheld (the old game) |
 | Esc | pause |
 | In the pause menu: R | restart the room |
 | In the pause menu or on the title: 1 to 8 | jump to a room (for demos) |
@@ -57,6 +57,7 @@ A gamepad also works (left stick move, right stick look).
 - `Assets/Scripts/Maps.cs` holds the eight rooms as text grids. One grid describes both games, so the 3D world and the pixel game can never disagree by accident.
 - `World3D.cs` builds the 3D rooms; collision comes from the old game's truth, not from what is drawn.
 - `PixelGame.cs` / `PixelScreen.cs` draw the 1989 game into a 208x192 software framebuffer from `Assets/Resources/pixelart.txt`.
+- `HandheldConsole.cs` builds the handheld and the hand that holds it out of simple shapes, as part of the 3D view, and shows the old game on its screen.
 - `Sketch.shader` and `SketchPost.shader` give the hand-drawn look: marker colour, pencil hatching, cast shadows drawn as hatching, wobbly double outlines that "boil".
 - `Doodle.cs` / `TexLib.cs` draw every texture and UI frame in code at start-up.
 - `AudioDirector.cs` runs the eight synced music layers.
