@@ -6,7 +6,7 @@ public static class TexLib
 {
     public static bool built;
     public static Texture2D paper, noise, hatch, grid, tileOutline, bricks, bricksFancy, planks;
-    public static Texture2D footprint, puff, burst, scribble, check, box, dot, ring, arrow, underline, tape, squiggle, star, zed;
+    public static Texture2D footprint, puff, burst, scribble, check, box, dot, ring, arrow, underline, tape, squiggle, star, zed, keyIcon, keyDisc, heartFill, heartLine;
     public static Sprite frameSprite, panelSprite, whiteSprite;
     public static Texture2D frameTex, white;
     public static Font hand, title;
@@ -49,6 +49,8 @@ public static class TexLib
         squiggle = MakeSquiggle();
         star = MakeStar();
         zed = MakeZed();
+        keyIcon = MakeKeyIcon();
+        keyDisc = MakeKeyDisc();
 
         frameTex = MakeFrame(96, 53);
         frameSprite = Sprite.Create(frameTex, new Rect(0, 0, 96, 96), new Vector2(0.5f, 0.5f), 100f, 0, SpriteMeshType.FullRect, new Vector4(30, 30, 30, 30));
@@ -361,6 +363,58 @@ public static class TexLib
             pts.Add(new Vector2(48 + Mathf.Cos(a) * r, 48 + Mathf.Sin(a) * r));
         }
         d.Stroke(pts, 5f, 1.2f, 0.4f);
+        return d.ToAlphaTexture(Color.white);
+    }
+
+    static Texture2D MakeKeyIcon()
+    {
+        // a key lying on its side: round bow on the left, two teeth pointing down on the right
+        var d = new Doodle(128, 64, 131);
+        d.Circle(new Vector2(26, 30), 15f, 6.5f, 1.4f, 1.1f);
+        d.Line(41, 30, 114, 30, 6.5f, 1.4f);
+        d.Line(92, 31, 92, 50, 6f, 1.0f);
+        d.Line(110, 31, 110, 46, 6f, 1.0f);
+        return d.ToAlphaTexture(Color.white);
+    }
+
+    /// <summary>A heart: the coloured-in inside, or just its wobbly pencil outline (two textures, two tints).</summary>
+    static Texture2D MakeHeart(bool fill)
+    {
+        var d = new Doodle(64, 64, 139);
+        var pts = new List<Vector2>();
+        const int n = 48;
+        for (int i = 0; i <= n; i++)
+        {
+            float t = i / (float)n * Mathf.PI * 2f;
+            float x = 16f * Mathf.Pow(Mathf.Sin(t), 3f);
+            float y = 13f * Mathf.Cos(t) - 5f * Mathf.Cos(2f * t) - 2f * Mathf.Cos(3f * t) - Mathf.Cos(4f * t);
+            pts.Add(new Vector2(32f + x * 1.62f, 29f - y * 1.62f));
+        }
+        if (!fill) { d.Stroke(pts, 4.4f, 1.0f, 0.35f); return d.ToAlphaTexture(Color.white); }
+        // colour it in: one soft run per pixel row, wherever the row is inside the outline
+        for (int py = 0; py < 64; py++)
+        {
+            float yy = py + 0.5f;
+            var xs = new List<float>();
+            for (int i = 0; i < n; i++)
+            {
+                Vector2 a = pts[i], b = pts[i + 1];
+                if ((a.y <= yy) == (b.y <= yy)) continue;
+                xs.Add(a.x + (yy - a.y) / (b.y - a.y) * (b.x - a.x));
+            }
+            xs.Sort();
+            for (int k = 0; k + 1 < xs.Count; k += 2)
+                if (xs[k + 1] - xs[k] > 0.5f) d.Seg(new Vector2(xs[k], yy), new Vector2(xs[k + 1], yy), 1.8f, 0.95f);
+        }
+        return d.ToAlphaTexture(Color.white);
+    }
+
+    static Texture2D MakeKeyDisc()
+    {
+        // a coloured-in blob with a pencil line round it: the badge the key floats in front of
+        var d = new Doodle(128, 128, 137);
+        d.Disc(new Vector2(64, 64), 50f, 0.9f);
+        d.Circle(new Vector2(64, 64), 54f, 5f, 2.2f, 1.12f);
         return d.ToAlphaTexture(Color.white);
     }
 
