@@ -17,6 +17,7 @@ public class PlayerController : MonoBehaviour
     public Vector3 knock;               // extra speed from being hit; it dies away in a quarter of a second
     public System.Func<Vector3, bool> canStand;     // is there floor at this spot? (a hit never throws you into a pit)
     float kickPitch, kickRoll, kickFov;
+    public bool lookLocked;             // the mouse does not turn you (the last fight keeps the view on the Captain)
 
     public const float WalkSpeed = 4.6f, SprintSpeed = 7.4f, EyeHeight = 1.62f;
     const float Accel = 46f, Decel = 40f, Gravity = 26f;
@@ -97,13 +98,17 @@ public class PlayerController : MonoBehaviour
         Vector2 move = Vector2.zero; bool sprint = false;
         if (controlEnabled)
         {
-            Vector2 look = GameInput.Look;
-            yaw += look.x;
-            pitch = Mathf.Clamp(pitch - look.y, -80f, 80f);
-            if (GameInput.overrideActive && GameInput.overrideYaw.HasValue)
+            // in the last fight the view stays locked on the Captain, so the mouse does not turn you
+            if (!lookLocked)
             {
-                yaw = Mathf.MoveTowardsAngle(yaw, GameInput.overrideYaw.Value, 540f * dt);
-                pitch = Mathf.MoveTowards(pitch, 10f, 120f * dt);
+                Vector2 look = GameInput.Look;
+                yaw += look.x;
+                pitch = Mathf.Clamp(pitch - look.y, -80f, 80f);
+                if (GameInput.overrideActive && GameInput.overrideYaw.HasValue)
+                {
+                    yaw = Mathf.MoveTowardsAngle(yaw, GameInput.overrideYaw.Value, 540f * dt);
+                    pitch = Mathf.MoveTowards(pitch, 10f, 120f * dt);
+                }
             }
             move = GameInput.Move;
             sprint = GameInput.Sprint && move.y > 0.1f;
