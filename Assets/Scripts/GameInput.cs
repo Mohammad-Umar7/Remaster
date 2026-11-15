@@ -132,6 +132,17 @@ public static class GameInput
         }
     }
 
+    /// <summary>Dodge roll (the last fight): Space, or B on a gamepad.</summary>
+    public static bool DodgePressed
+    {
+        get
+        {
+            if (overrideActive) return false;
+            var k = Kb; var g = Gp;
+            return (k != null && k.spaceKey.wasPressedThisFrame) || (g != null && g.buttonEast.wasPressedThisFrame);
+        }
+    }
+
     public static bool ClickPressed
     {
         get { var m = Ms; return m != null && m.leftButton.wasPressedThisFrame; }
