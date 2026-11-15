@@ -143,6 +143,8 @@ public class GameManager : MonoBehaviour
     public AudioDirector sound;
     public IntroDirector intro;
     public Fx fx;
+    public BossFight boss;              // the last room's fight (null if no room is marked as the boss room)
+    int bossRoom = -1;
     public Camera screenCam;
 
     public const float WaveInterval = 1.8f, CrumbleTime = 0.75f, PlankBreakDelay = 0.32f;
@@ -558,7 +560,12 @@ public class GameManager : MonoBehaviour
 
     // ------------------------------------------------------------------ new in the remake: keys and guards
     /// <summary>Is this room's exit open? It is locked until you hold the room's key.</summary>
-    public bool ExitOpen(int ri) { return !rooms[ri].HasKey || rs[ri].keyTaken; }
+    public bool ExitOpen(int ri)
+    {
+        // the last exit has no key: the Captain stands in front of it, and it opens when he is beaten
+        if (rooms[ri].def.boss) return boss == null || boss.defeated;
+        return !rooms[ri].HasKey || rs[ri].keyTaken;
+    }
 
     /// <summary>
     /// The key exists only in the 3D remake: the old game has no idea, so you have to look for it.
@@ -566,12 +573,12 @@ public class GameManager : MonoBehaviour
     /// </summary>
     void TickKey(Room room, RoomState s, Vector3 p, float dt)
     {
-        if (!room.HasKey) return;
+        if (!room.HasKey && !room.def.boss) return;
         if (lockedCooldown > 0f) lockedCooldown -= dt;
-        if (s.keyTaken) return;
+        if (ExitOpen(room.index)) return;
 
-        Vector3 kc = room.TileCenter(room.def.key);
-        if (new Vector2(p.x - kc.x, p.z - kc.z).magnitude < Maps.KeyReach && Mathf.Abs(p.y - room.FloorY) < 1.2f)
+        Vector3 kc = room.HasKey ? room.TileCenter(room.def.key) : Vector3.zero;
+        if (room.HasKey && new Vector2(p.x - kc.x, p.z - kc.z).magnitude < Maps.KeyReach && Mathf.Abs(p.y - room.FloorY) < 1.2f)
         {
             s.keyTaken = true;
             sound.Play("key_get", 0.85f);
@@ -595,7 +602,8 @@ public class GameManager : MonoBehaviour
             player.AddTrauma(0.25f);
             world.RattleGate(room.index);
             hud.KeyPulse();
-            if (!firstLocked) { firstLocked = true; hud.Popup("Locked! The key is NEW in the remake: look for it in the 3D world.", 4.2f); }
+            if (room.def.boss) hud.Popup("Locked! No key for this one: beat the Captain.", 3f);
+            else if (!firstLocked) { firstLocked = true; hud.Popup("Locked! The key is NEW in the remake: look for it in the 3D world.", 4.2f); }
             else hud.Popup("Locked. Find the key first: only the 3D world shows it.", 2.6f);
         }
     }
