@@ -8,6 +8,10 @@ public class Slime
     public float d, total, hopClock, hitFlash;
     public bool hopped;
     public Vector2 pos;     // tile units, centre of the slime
+    public Vector2 dir = Vector2.right;     // which way it is heading (tile units, y points down the screen)
+    public float hopPeriod = 0.44f;         // seconds per hop
+    public int steps;                       // hops so far (left foot, right foot)
+    public bool gone;                       // its floor was deleted under it
     readonly float[] seg;
 
     public Slime(SlimeDef def)
@@ -24,15 +28,24 @@ public class Slime
         Reset();
     }
 
-    public void Reset() { d = def.phase * total; hopClock = 0f; hitFlash = 0f; pos = PosAtDistance(d); }
+    public void Reset()
+    {
+        d = def.phase * total; hopClock = 0f; hitFlash = 0f; steps = 0; gone = false;
+        pos = PosAtDistance(d);
+        Vector2 ahead = PosAtDistance((d + 0.05f) % total) - pos;
+        if (ahead.sqrMagnitude > 1e-6f) dir = ahead.normalized;
+    }
 
     public void Tick(float dt)
     {
         d = (d + def.speed * dt) % total;
+        Vector2 before = pos;
         pos = PosAtDistance(d);
+        Vector2 moved = pos - before;
+        if (moved.sqrMagnitude > 1e-8f) dir = moved.normalized;
         hopped = false;
         hopClock += dt;
-        if (hopClock >= 0.44f) { hopClock -= 0.44f; hopped = true; }
+        if (hopClock >= hopPeriod) { hopClock -= hopPeriod; hopped = true; steps++; }
         if (hitFlash > 0f) hitFlash -= dt;
     }
 
