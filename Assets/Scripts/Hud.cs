@@ -462,6 +462,16 @@ public class Hud : MonoBehaviour
 
     public void KeyPulse() { keyPulse = 1f; }
 
+    /// <summary>A guard's spear just landed: a comic word bursts onto the screen, a bit off-centre each time.</summary>
+    public void Bonk(float side)
+    {
+        bonkT = 0f;
+        bonkText.text = BonkWords[bonkCount++ % BonkWords.Length];
+        bonkRect.anchoredPosition = new Vector2(Mathf.Clamp(side, -1f, 1f) * -150f + Random.Range(-40f, 40f), -70f + Random.Range(-30f, 40f));
+        bonkRect.localRotation = Quaternion.Euler(0, 0, Random.Range(-13f, 13f));
+        bonkRect.gameObject.SetActive(true);
+    }
+
     public void ShowRoomTitle(int i)
     {
         roomText.text = (i + 1) + "/" + Maps.Defs.Length + "   " + Maps.Defs[i].title;
