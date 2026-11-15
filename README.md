@@ -35,6 +35,7 @@ The soundtrack is one tune in two arrangements. It starts as a chip tune, and ev
 
 | Key | Action |
 |---|---|
+| Start screen: W / S or arrows, then Enter (or click a note) | choose START or QUIT |
 | W A S D / arrows | move |
 | Mouse | look |
 | Shift | run |
