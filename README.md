@@ -18,7 +18,7 @@ Neither world is enough on its own. The old game knows everything that is **old*
 
 You walk in first person through six short rooms. Each room has one note from your past self and one thing the remake gets wrong.
 
-1. **The Missing Bridge** - trust the old game and walk across thin air.
+1. **The Missing Bridge** - trust the old game and walk across thin air. The bridge is old planks: each one snaps behind you, so there is no going back the way you came.
 2. **Placeholder Wall** - some walls are only decoration.
 3. **Unmodelled Enemies** - slimes you can only see in the old game.
 4. **Screen Wrap** - use the 1989 bug to get behind a gate.

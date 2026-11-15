@@ -36,7 +36,7 @@ Deadline: **Sunday 15 November 2026, 14:45**, on the jam's itch.io page. Late en
 
 **Live demo (1 min)** - from the title screen:
 1. On the start screen press Enter on START. Let the 8-second opening play (desk, falling asleep, pulled into the monitor).
-2. Room 1: point at the handheld ("there is a bridge here"), then walk across thin air. The bridge is sketched in under your feet. Walk into the locked exit, then point at the key and the guard: "these are only in the 3D world". Slip past the guard, take the key, and the gate drops. (For a laugh, walk into the guard once: it winds up and bonks you back.)
+2. Room 1: point at the handheld ("there is a bridge here"), then walk across thin air. The bridge is sketched in under your feet, and each plank snaps behind you. Walk into the locked exit, then point at the key and the guard: "these are only in the 3D world". Slip past the guard, take the key, and the gate drops. (For a laugh, walk into the guard once: it winds up and bonks you back.)
 3. Press **Esc, then 2**: walk straight through the fancy wall.
 4. Press **B**: the Captain (B skips straight to the last fight from anywhere, N skips one room). Walk forward and let the scene play (Enter skips a line). Then fight: step or roll (Space) out of the red lane of his charge, and click three times while he is bent over or dizzy (stars round his head): slash, slash, smash. He blocks everything else. Three full combos finish him, and he falls to pieces.
 5. If there is time, **Esc, then 4** (walk off the left edge, appear behind the gate).
