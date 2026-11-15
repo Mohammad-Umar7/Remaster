@@ -648,7 +648,8 @@ public class GameManager : MonoBehaviour
             {
                 g.attackT = 0f; g.attackSwung = false; g.attackLanded = false;
                 striking = true;
-                sound.PlayAt("guard_windup", wp + Vector3.up * 1.2f, 0.9f, 0.04f, 1f, 0.3f);
+                sound.PlayAt("guard_windup", wp + Vector3.up * 1.2f, 0.7f, 0.04f, 1f, 0.3f);
+                sound.PlayAt("guard_say_hyah", wp + Vector3.up * 1.5f, 0.95f, 0.04f, 1f, 0.25f);
             }
             if (g.attackT >= 0f)
             {
