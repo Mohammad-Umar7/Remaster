@@ -875,6 +875,23 @@ def make_guard():
     return p, dict(ground=True)
 
 
+def make_key():
+    """Big cartoon key, 0.73 tall: bow on top, bit pointing +X.  Flat in the XZ plane so it
+    flashes as it spins.  Origin at its centre."""
+    p = Prop("key", 33, rough=0.03)
+    bow_r, bow_z, n = 0.135, 0.215, 8
+    seg = 2.0 * bow_r * math.tan(math.pi / n) + 0.06
+    for i in range(n):
+        a = 2.0 * math.pi * i / n
+        p.box((seg, 0.085, 0.078), "yellow", loc=(bow_r * math.sin(a), 0, bow_z + bow_r * math.cos(a)),
+              rot=(0, a, 0), rough=0.03)
+    p.box((0.078, 0.078, 0.46), "yellow", loc=(0, 0, -0.125), rough=0.03)
+    p.box((0.14, 0.105, 0.055), "yellow", loc=(0, 0, 0.055), rough=0.02)
+    p.box((0.16, 0.072, 0.075), "yellow", loc=(0.105, 0, -0.315), rough=0.03)
+    p.box((0.115, 0.072, 0.062), "yellow", loc=(0.085, 0, -0.195), rough=0.03)
+    return p, dict(ground=False)
+
+
 DUNGEON = [make_torch, make_pillar, make_door_arch, make_gate, make_crate, make_barrel, make_banner,
            make_signpost, make_rubble, make_placeholder_cube]
 DESK = [make_desk, make_monitor, make_keyboard, make_mouse, make_mug, make_lamp, make_clock, make_plant, make_books]
