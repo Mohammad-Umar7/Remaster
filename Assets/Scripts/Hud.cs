@@ -222,6 +222,17 @@ public class Hud : MonoBehaviour
         var hb = Rect("Hurt", pu, Vector2.zero, Vector2.one, new Vector2(-80, -80), new Vector2(80, 80));
         hurtBurst = Raw(hb, TexLib.burst, Pal.A(Pal.Red, 0f));
 
+        // BONK! in a comic burst, where the spear lands
+        bonkRect = Box("Bonk", pu, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0, -70), new Vector2(560, 560));
+        var bf = Rect("Fill", bonkRect, Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
+        bonkFill = Raw(bf, TexLib.burstFill, Pal.Yellow);
+        var bl = Rect("Line", bonkRect, Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
+        bonkLine = Raw(bl, TexLib.burst, Pal.Ink);
+        var bt = Rect("Word", bonkRect, Vector2.zero, Vector2.one, new Vector2(-80, 0), new Vector2(80, 0));
+        bonkText = Txt(bt, "BONK!", 132, Pal.Red, TextAnchor.MiddleCenter, TexLib.title);
+        Halo(bonkText, Pal.Ink, 3.5f);
+        bonkRect.gameObject.SetActive(false);
+
         // ---------- the 1989 original, floating in its own window ----------
         float fw = PixelW + Pad * 2f, fh = PixelH + TitleH + Pad * 2f;
         floatRect = Box("PixelFloat", root, new Vector2(1, 1), new Vector2(1, 1), new Vector2(-40, -40), new Vector2(fw, fh));
