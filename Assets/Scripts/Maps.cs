@@ -441,7 +441,7 @@ public class Room
     // ---------- path finding (used by the map checker) ----------
     public struct Step { public Vector2Int tile; public bool wrapped; }
 
-    public List<Step> FindPath(Vector2Int from, Vector2Int to, bool allowBridge = true, bool allowFake = true, bool allowWrap = true)
+    public List<Step> FindPath(Vector2Int from, Vector2Int to, bool allowBridge = true, bool allowFake = true, bool allowWrap = true, bool blockExit = false)
     {
         var prev = new Dictionary<Vector2Int, Step>();
         var q = new Queue<Vector2Int>();
@@ -466,6 +466,7 @@ public class Room
                 if (!TruthWalkable(nx, nr)) continue;
                 if (!allowBridge && IsBridge(nx, nr)) continue;
                 if (!allowFake && IsFake(nx, nr)) continue;
+                if (blockExit && nx == exit.x && nr == exit.y) continue;
                 var n = new Vector2Int(nx, nr);
                 if (prev.ContainsKey(n)) continue;
                 prev[n] = new Step { tile = cur, wrapped = wrapped };
@@ -533,6 +534,33 @@ public static class MapValidator
                     foreach (int x in v.cols) if (x < 1 || x > Maps.W - 2) { sb.AppendLine("FAIL room " + (i + 1) + ": laser column " + x + " is outside the room"); ok = false; }
                     if (v.t < 0f || v.t >= d.laserPeriod) { sb.AppendLine("FAIL room " + (i + 1) + ": laser time " + v.t + " is outside the loop"); ok = false; }
                 }
+            // keys and guards (new in the remake)
+            if (room.HasKey)
+            {
+                var kt = d.key;
+                if (!room.TruthWalkable(kt.x, kt.y) || room.IsDynamic(kt.x, kt.y) || kt == room.exit || kt == room.start)
+                { sb.AppendLine("FAIL room " + (i + 1) + ": the key at " + kt + " is not on a tile you can stand on"); ok = false; }
+                else if (room.FindPath(from, kt, true, true, true, true) == null)
+                { sb.AppendLine("FAIL room " + (i + 1) + ": the key at " + kt + " cannot be reached"); ok = false; }
+            }
+            else { sb.AppendLine("FAIL room " + (i + 1) + ": no key"); ok = false; }
+            if (d.guards.Length == 0) { sb.AppendLine("FAIL room " + (i + 1) + ": no guard"); ok = false; }
+            foreach (var g in d.guards)
+            {
+                int n = g.loop.Length;
+                for (int k = 0; k < n; k++)
+                {
+                    Vector2Int a = g.loop[k], b = g.loop[(k + 1) % n];
+                    if (a.x != b.x && a.y != b.y) { sb.AppendLine("FAIL room " + (i + 1) + ": guard leg " + a + " to " + b + " is not straight"); ok = false; continue; }
+                    int steps = Mathf.Abs(a.x - b.x) + Mathf.Abs(a.y - b.y);
+                    for (int q = 0; q <= steps; q++)
+                    {
+                        int gx = a.x + (steps == 0 ? 0 : (b.x - a.x) * q / steps), gr = a.y + (steps == 0 ? 0 : (b.y - a.y) * q / steps);
+                        if (!room.GuardFloor(gx, gr)) { sb.AppendLine("FAIL room " + (i + 1) + ": guard walks over (" + gx + "," + gr + "), which is not plain floor"); ok = false; }
+                        if (gx == from.x && gr == from.y) { sb.AppendLine("FAIL room " + (i + 1) + ": a guard walks over the spawn tile"); ok = false; }
+                    }
+                }
+            }
             // a one-use room must be a maze: its quickest route has to turn several times on the planks,
             // so there is never a straight ladder from the door to the exit
             bool anyOneUse = false;
