@@ -255,7 +255,7 @@ public class Hud : MonoBehaviour
         // While you fight, the exploring HUD (room title, checklist, hearts, sticky note) steps aside.
         exploreUi.Add(rt.gameObject); exploreUi.Add(ru.gameObject); exploreUi.Add(checkRow.gameObject); exploreUi.Add(noteRect.gameObject);
         foreach (var heart in heartRects) exploreUi.Add(heart.gameObject);
-        bossRect = Box("Boss", pu, new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(-170, -84), new Vector2(840, 104));
+        bossRect = Box("Boss", pu, new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(-170, -138), new Vector2(840, 104));
         var bsn = Box("Name", bossRect, new Vector2(0, 1), new Vector2(0, 1), new Vector2(6, 2), new Vector2(600, 50));
         var bsnText = Txt(bsn, "THE CAPTAIN", 44, Pal.Purple, TextAnchor.MiddleLeft, TexLib.title);
         Halo(bsnText, Pal.A(Pal.Paper, 0.95f), 3f);
