@@ -120,6 +120,84 @@ public class GuardRig
         }
     }
 
+    public void Show(bool on)
+    {
+        if (root.gameObject.activeSelf != on) root.gameObject.SetActive(on);
+        if (!on && bang.gameObject.activeSelf) bang.gameObject.SetActive(false);
+    }
+
+    /// <summary>Repaint every part that has one colour with another (the Captain's dark armour).</summary>
+    public void Tint(Color from, Color to)
+    {
+        foreach (var rd in root.GetComponentsInChildren<Renderer>(true))
+        {
+            var mats = rd.sharedMaterials;
+            bool changed = false;
+            for (int i = 0; i < mats.Length; i++)
+            {
+                if (mats[i] == null) continue;
+                Color c = mats[i].color;
+                if (Mathf.Abs(c.r - from.r) + Mathf.Abs(c.g - from.g) + Mathf.Abs(c.b - from.b) > 0.03f) continue;
+                mats[i] = TexLib.Mat(to, 0, 0f, null, false, false, 0.9f);
+                changed = true;
+            }
+            if (changed) rd.sharedMaterials = mats;
+        }
+    }
+
+    /// <summary>
+    /// It comes apart: a loose copy of each of the six parts, thrown outward from <paramref name="from"/>
+    /// and left to tumble under real physics. The rig itself is untouched (hide it). Returns the pieces.
+    /// </summary>
+    public System.Collections.Generic.List<GameObject> Shatter(Transform parent, Vector3 from, float force, Collider ignore)
+    {
+        var pieces = new System.Collections.Generic.List<GameObject>();
+        Transform[] parts = { body, head, armSpear, armShield, legL, legR };
+        foreach (var part in parts)
+        {
+            var go = Object.Instantiate(part.gameObject, part.position, part.rotation, parent);
+            go.name = "piece_" + part.name;
+            go.transform.localScale = part.lossyScale;
+            // the body's copy brings its head and arms along: those are thrown on their own
+            for (int i = go.transform.childCount - 1; i >= 0; i--)
+            {
+                var child = go.transform.GetChild(i);
+                if (!child.name.StartsWith("prop_")) continue;
+                child.SetParent(null, false);
+                Object.Destroy(child.gameObject);
+            }
+            // a box collider round whatever meshes the piece has, in its own space
+            bool any = false;
+            Bounds b = new Bounds();
+            foreach (var mf in go.GetComponentsInChildren<MeshFilter>())
+            {
+                if (mf.sharedMesh == null) continue;
+                Bounds mb = mf.sharedMesh.bounds;
+                for (int k = 0; k < 8; k++)
+                {
+                    Vector3 corner = mb.center + Vector3.Scale(mb.extents, new Vector3((k & 1) == 0 ? -1f : 1f, (k & 2) == 0 ? -1f : 1f, (k & 4) == 0 ? -1f : 1f));
+                    Vector3 local = go.transform.InverseTransformPoint(mf.transform.TransformPoint(corner));
+                    if (!any) { b = new Bounds(local, Vector3.zero); any = true; } else b.Encapsulate(local);
+                }
+            }
+            var box = go.AddComponent<BoxCollider>();
+            if (any) { box.center = b.center; box.size = b.size * 0.92f; }
+            else box.size = Vector3.one * 0.3f;
+            if (ignore != null) Physics.IgnoreCollision(box, ignore);
+            var rb = go.AddComponent<Rigidbody>();
+            rb.mass = 2f;
+            rb.interpolation = RigidbodyInterpolation.Interpolate;
+            rb.collisionDetectionMode = CollisionDetectionMode.Continuous;
+            Vector3 dir = part.position - from; dir.y = 0f;
+            dir = dir.sqrMagnitude > 0.01f ? dir.normalized : new Vector3(Random.Range(-1f, 1f), 0f, Random.Range(-1f, 1f)).normalized;
+            dir = (dir + new Vector3(Random.Range(-0.5f, 0.5f), 0f, Random.Range(-0.5f, 0.5f))).normalized;
+            rb.linearVelocity = dir * force * Random.Range(0.55f, 1.1f) + Vector3.up * Random.Range(3.5f, 6.5f);
+            rb.angularVelocity = Random.insideUnitSphere * 11f;
+            pieces.Add(go);
+        }
+        return pieces;
+    }
+
     // ------------------------------------------------------------------ the animation
     static float Smooth(float t) { t = Mathf.Clamp01(t); return t * t * (3f - 2f * t); }
     static float OutCubic(float t) { t = 1f - Mathf.Clamp01(t); return 1f - t * t * t; }
