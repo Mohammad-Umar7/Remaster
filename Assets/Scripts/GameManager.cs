@@ -746,7 +746,7 @@ public class GameManager : MonoBehaviour
                 sound.PlayAt("guard_say_hyah", wp + Vector3.up * 1.5f, 0.95f, 0.04f, 1f, 0.25f);
                 // from now on it is after you: it remembers where it left its patrol, and comes
                 if (g.mode == 0) { g.trail.Clear(); g.trail.Add(g.pos); }
-                if (g.mode != 1) hud.Toast("the guard is after you!     RUN");
+                if (g.mode != 1 && !firstChase) { firstChase = true; hud.Toast("the guard is after you!     RUN"); }
                 g.mode = 1;
                 g.chaseClock = 0f;
             }
