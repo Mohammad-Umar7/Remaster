@@ -64,7 +64,7 @@ A gamepad also works (left stick move, right stick look).
 ## Tests
 
 - `MapValidator.RunAll()` checks every room can be finished and really needs its trick, that its key can be reached, and that guards only walk on real floor and never over the spawn point.
-- `Remaster.exe -autopilot` plays the whole game by itself and logs `[AUTOPILOT] DONE ...`. It fetches each key and then leaves, planning in space and time (every hazard follows a fixed pattern), so it also proves the guard, slime, flicker and laser timings are beatable. Add `-batchmode` to run it without a window.
+- `Remaster.exe -autopilot` plays the whole game by itself and logs `[AUTOPILOT] DONE ...`. It fetches each key and then leaves, planning in space and time (every hazard follows a fixed pattern), so it also proves the guard, slime, flicker and laser timings are beatable. It sidesteps while it turns, so a corner costs it no time and its half-second-a-tile plan holds in the tightest windows. Add `-batchmode` to run it without a window.
 - `tools/pt.sh` drives the same checks inside the open Unity Editor.
 
 See [CREDITS.md](CREDITS.md) for every tool and asset used.
