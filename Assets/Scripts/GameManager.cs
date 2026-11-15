@@ -816,7 +816,7 @@ public class GameManager : MonoBehaviour
         return d;
     }
 
-    void Hurt(string firstTimeText, ref bool firstFlag)
+    void Hurt(string firstTimeText, ref bool firstFlag, float stop = 0.06f)
     {
         hearts--;
         hits++;
@@ -826,7 +826,7 @@ public class GameManager : MonoBehaviour
         SketchCamera.Flash(0.42f, Pal.Red);
         pixel.Shake(10);
         hud.HurtFlash();
-        StartCoroutine(HitStop(0.06f));
+        StartCoroutine(HitStop(stop));
         if (firstTimeText != null && !firstFlag) { firstFlag = true; hud.Popup(firstTimeText, 3.4f); }
         if (hearts <= 0)
         {
