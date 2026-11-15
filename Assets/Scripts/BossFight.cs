@@ -1024,4 +1024,106 @@ public class BossFight
         hero.Apply(h);
     }
 
+    // ------------------------------------------------------------------ the camera
+    /// <summary>Which set-up the camera is on: -1 the fight camera, 0 and up the shots of the scene.</summary>
+    int ShotNow()
+    {
+        if (st == St.Drop) return 0;
+        if (st == St.Talk) return 1 + Mathf.Clamp(line, 0, Lines.Length - 1);
+        if (st == St.Dying && saidLast) return 6;
+        return -1;
+    }
+
+    void Cameras(float dt, bool here)
+    {
+        var pl = gm.player;
+        Transform ct = pl.cam.transform;
+        // out of your head from the moment he appears until his last word
+        bool want = here && Visible;
+        tp = Mathf.MoveTowards(tp, want ? 1f : 0f, dt / 0.75f);
+        if (tp <= 0f)
+        {
+            if (camHeld) { ct.localPosition = Vector3.zero; ct.localRotation = Quaternion.identity; camHeld = false; shot = -99; }
+            return;
+        }
+
+        Vector3 you = pl.transform.position;
+        Vector3 g = Ground;
+        Vector3 toBoss = g - you; toBoss.y = 0f;
+        float d = toBoss.magnitude;
+        Vector3 fwd = d > 0.2f ? toBoss / d : Dir(pl.yaw);
+        Vector3 side = Vector3.Cross(Vector3.up, fwd);              // to the right of the line from you to him
+        Vector3 up = Vector3.up;
+        Vector3 wantPos, focus;
+        float zoom = 0f;
+        int now = ShotNow();
+        switch (now)
+        {
+            case 0:     // he lands: from behind you, low, looking up at where he comes down
+                wantPos = you - fwd * 3.4f + side * 1.5f + up * 1.2f;
+                focus = Vector3.Lerp(you + up * 1.4f, home + up * 2.4f, 0.8f);
+                break;
+            case 1:     // HALT!  low and close, up his spear at his face
+                wantPos = g - fwd * (4.4f - 0.5f * Out(talkT / 3f)) + side * 1.25f + up * 1.0f;
+                focus = HeadPos - up * 0.3f; zoom = 12f;
+                break;
+            case 2:     // you, from in front
+                wantPos = you + fwd * (3.0f - 0.25f * Out(talkT / 3f)) + side * 1.0f + up * 1.55f;
+                focus = you + up * 0.7f; zoom = 10f;
+                break;
+            case 3:     // he laughs: both of you from the side, small you and enormous him
+                wantPos = (you + g) * 0.5f - side * (d * 0.55f + 4.6f) + up * 1.3f;
+                focus = (you + g) * 0.5f + up * 1.9f; zoom = 2f;
+                break;
+            case 4:     // you draw the old sword: from low down, looking up at it
+                wantPos = you + fwd * 3.3f - side * 1.1f + up * 0.55f;
+                focus = you + up * 1.25f; zoom = 0f;
+                break;
+            case 5:     // TAKE your build!  his face again, from the other side, closer
+                wantPos = g - fwd * 3.8f - side * 1.2f + up * 0.9f;
+                focus = HeadPos - up * 0.25f; zoom = 14f;
+                break;
+            case 6:     // his head, on the floor, has the last word
+                {
+                    Vector3 head = debris.Count > 1 && debris[1] != null ? debris[1].transform.position : g;
+                    head.y = room.FloorY;
+                    Vector3 away = you - head; away.y = 0f;
+                    away = away.sqrMagnitude > 0.05f ? away.normalized : Vector3.back;
+                    wantPos = head + away * 2.7f + Vector3.Cross(up, away) * 0.7f + up * 0.85f;
+                    focus = head + up * 0.3f; zoom = 14f;
+                    break;
+                }
+            default:    // the fight: over your shoulder, far enough back to keep both of you in the picture
+                {
+                    float far = Mathf.InverseLerp(3f, 13f, d);
+                    wantPos = you - fwd * Mathf.Lerp(5.2f, 7.4f, far) + side * 2.6f + up * Mathf.Lerp(4.3f, 5.2f, far);
+                    focus = Vector3.Lerp(you + up * 1.0f, new Vector3(pos.x, Mathf.Lerp(room.FloorY, pos.y, 0.5f) + 1.7f, pos.z), 0.55f);
+                    break;
+                }
+        }
+        // keep the camera inside the walls
+        float m = Maps.TS + 0.45f;
+        wantPos.x = Mathf.Clamp(wantPos.x, room.MinX + m, room.MaxX - m);
+        wantPos.z = Mathf.Clamp(wantPos.z, room.MinZ + m, room.MaxZ - m);
+
+        if (!camHeld || now != shot)
+        {
+            // a new set-up is a cut (the fight camera eases in from wherever the scene left it)
+            if (now >= 0 || !camHeld) camPos = wantPos;
+            shot = now;
+        }
+        camPos = Vector3.Lerp(camPos, wantPos, 1f - Mathf.Exp(-(now < 0 ? 6f : 3f) * dt));
+        camHeld = true;
+        if (InScene || st == St.Drop) pl.zoom = zoom; else if (Fighting) pl.zoom = 0f;
+
+        Quaternion rot = Quaternion.LookRotation((focus - camPos).normalized, up);
+        // hits shake this camera too
+        float sh = pl.trauma * pl.trauma;
+        float n = Time.unscaledTime * 28f;
+        rot *= Quaternion.Euler((Mathf.PerlinNoise(n, 1.3f) - 0.5f) * sh * 7f, (Mathf.PerlinNoise(n, 7.7f) - 0.5f) * sh * 7f, (Mathf.PerlinNoise(n, 13.1f) - 0.5f) * sh * 5f);
+        float e = Smooth(tp);
+        ct.position = Vector3.Lerp(pl.pivot.position, camPos, e);
+        ct.rotation = Quaternion.Slerp(pl.pivot.rotation, rot, e);
+    }
+
 }
