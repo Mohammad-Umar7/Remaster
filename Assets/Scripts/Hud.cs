@@ -49,6 +49,15 @@ public class Hud : MonoBehaviour
     bool fightUi;
     // (what the fight hides: the room title, the checklist, the hearts and the sticky note)
     readonly System.Collections.Generic.List<GameObject> exploreUi = new System.Collections.Generic.List<GameObject>();
+    // ...and the talking box for the scene before it: words arrive one by one, in time with the voice
+    RectTransform talkRect, talkTag;
+    Text talkName, talkText;
+    Image talkTagBack;
+    string[] talkWords;
+    int talkShown;
+    float talkT = -1f, talkDur = 1f, talkKick;
+    bool talkAngry;
+    const string ControlsHint = "WASD  move      mouse  look      Shift  run      Tab  resize the old game      Esc  pause";
     // start menu: two sticky notes, START and QUIT
     public int menuIndex;
     RectTransform[] menuNotes;
@@ -287,6 +296,23 @@ public class Hud : MonoBehaviour
         var ct = Rect("CaptionText", cb, Vector2.zero, Vector2.one, new Vector2(30, 10), new Vector2(-30, -10));
         captionText = Txt(ct, "", 46, Pal.Ink, TextAnchor.MiddleCenter);
         cb.gameObject.AddComponent<Boil>().degrees = 0.3f;
+
+        // the talking box (the scene before the last fight): a name tag on the speaker's side, the line in the middle
+        talkRect = Box("Talk", root, new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(0, 150), new Vector2(1320, 230));
+        var tki = Rect("Inner", talkRect, Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
+        Img(tki, TexLib.panelSprite, Pal.Paper, true);
+        var tkt = Rect("Text", tki, Vector2.zero, Vector2.one, new Vector2(50, 20), new Vector2(-50, -40));
+        talkText = Txt(tkt, "", 52, Pal.Ink, TextAnchor.MiddleCenter);
+        talkText.lineSpacing = 0.95f;
+        tki.gameObject.AddComponent<Boil>().degrees = 0.3f;
+        talkTag = Box("Tag", talkRect, new Vector2(0, 1), new Vector2(0, 0.5f), new Vector2(44, 0), new Vector2(340, 68));
+        talkTagBack = Img(talkTag, TexLib.panelSprite, Pal.Purple, true);
+        var tkn = Rect("Name", talkTag, Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
+        talkName = Txt(tkn, "", 42, Pal.White, TextAnchor.MiddleCenter, TexLib.title);
+        var tks = Box("Skip", talkRect, new Vector2(1, 0), new Vector2(1, 1), new Vector2(-16, -8), new Vector2(600, 36));
+        var tkst = Txt(tks, "Enter  or  click   next", 26, Pal.Paper, TextAnchor.MiddleRight);
+        Halo(tkst, Pal.A(Pal.Ink, 0.85f), 2f);
+        talkRect.gameObject.SetActive(false);
 
         BuildTitle();
         BuildPause();
@@ -574,6 +600,77 @@ public class Hud : MonoBehaviour
         if (fullscreen) return;
         playUi.SetActive(!on);
         if (pixelFloat.activeSelf == on) { pixelFloat.SetActive(!on); if (!on) floatIn = 0f; }
+    }
+
+    /// <summary>
+    /// Somebody says a line. The words arrive one at a time over <paramref name="seconds"/> (the length of
+    /// the voice clip), SHOUTED words in red, and an angry speaker rattles the whole box.
+    /// </summary>
+    public void Dialogue(string speaker, Color color, string text, bool angry, float seconds)
+    {
+        talkRect.gameObject.SetActive(true);
+        talkName.text = speaker;
+        talkTagBack.color = color;
+        // the Captain's name tag hangs on the left, yours on the right
+        bool you = speaker == "YOU";
+        float side = you ? 1f : 0f;
+        talkTag.anchorMin = talkTag.anchorMax = new Vector2(side, 1f);
+        talkTag.pivot = new Vector2(side, 0.5f);
+        talkTag.anchoredPosition = new Vector2(you ? -44f : 44f, 0f);
+        talkTag.localRotation = Quaternion.Euler(0, 0, you ? -2f : 2.5f);
+        talkWords = text.Split(' ');
+        talkShown = -1; talkT = 0f; talkAngry = angry; talkKick = 1f;
+        talkDur = Mathf.Max(0.5f, seconds * 0.8f);
+        talkRect.localScale = new Vector3(1.16f, 0.7f, 1f);
+    }
+
+    public void HideDialogue()
+    {
+        if (talkRect == null) return;
+        talkRect.gameObject.SetActive(false);
+        talkT = -1f;
+    }
+
+    static bool IsShout(string word)
+    {
+        int letters = 0;
+        foreach (char c in word)
+        {
+            if (!char.IsLetter(c)) continue;
+            if (!char.IsUpper(c)) return false;
+            letters++;
+        }
+        return letters >= 2;
+    }
+
+    void UpdateTalk(float dt)
+    {
+        if (talkT < 0f || !talkRect.gameObject.activeSelf) return;
+        talkT += dt;
+        int n = talkWords.Length;
+        int want = Mathf.Clamp(Mathf.CeilToInt(talkT / talkDur * n), 1, n);
+        if (want != talkShown)
+        {
+            talkShown = want;
+            // words that have not been said yet are there but invisible, so the line never jumps about
+            var sb = new System.Text.StringBuilder();
+            for (int i = 0; i < n; i++)
+            {
+                string w = talkWords[i];
+                if (i >= want) sb.Append("<color=#00000000>").Append(w).Append("</color>");
+                else if (IsShout(w)) sb.Append("<color=#d8343f><b>").Append(w).Append("</b></color>");
+                else sb.Append(w);
+                if (i < n - 1) sb.Append(' ');
+            }
+            talkText.text = sb.ToString();
+            if (IsShout(talkWords[want - 1])) talkKick = 1f;
+        }
+        talkKick = Mathf.Max(0f, talkKick - dt * 3f);
+        talkRect.localScale = Vector3.Lerp(talkRect.localScale, Vector3.one, 1f - Mathf.Exp(-14f * dt));
+        float tt = Time.unscaledTime;
+        float rattle = talkAngry ? 1.2f + talkKick * talkKick * 9f : 0f;
+        talkRect.anchoredPosition = new Vector2(Mathf.Sin(tt * 61f) * rattle, 150f + Mathf.Cos(tt * 53f) * rattle);
+        talkRect.localRotation = Quaternion.Euler(0, 0, talkAngry ? Mathf.Sin(tt * 37f) * (0.25f + talkKick * 1.2f) : 0f);
     }
 
     public void ShowRoomTitle(int i)
