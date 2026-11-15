@@ -365,6 +365,14 @@ public class GameManager : MonoBehaviour
         hud.ShowRoomTitle(i);
     }
 
+    void SkipTo(int room, string say)
+    {
+        if (paused) SetPaused(false);
+        JumpToRoom(room);
+        sound.Play("ui_ok", 0.7f);
+        hud.Toast(say);
+    }
+
     // ------------------------------------------------------------------ frame
     void Update()
     {
@@ -377,6 +385,15 @@ public class GameManager : MonoBehaviour
         int num = GameInput.NumberPressed;
         if (num > 0 && num <= rooms.Length && (state == State.Title || (state == State.Playing && paused))) { if (paused) SetPaused(false); JumpToRoom(num - 1); }
         else num = 0;
+
+        // skip keys, for anyone who is stuck (a judge has three minutes): N goes to the next room,
+        // B straight to the last fight. Both work while playing and from the pause menu; B from the title too.
+        if (num == 0)
+        {
+            bool playing = state == State.Playing;
+            if (playing && GameInput.SkipRoomPressed && cur < rooms.Length - 1) { SkipTo(cur + 1, "skipped to the next room"); num = -1; }
+            else if (GameInput.SkipToBossPressed && bossRoom >= 0 && (state == State.Title || (playing && cur != bossRoom))) { SkipTo(bossRoom, "skipped to the last fight"); num = -1; }
+        }
 
         switch (state)
         {
