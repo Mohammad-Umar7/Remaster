@@ -307,7 +307,7 @@ public class IntroDirector : MonoBehaviour
     {
         yield return new WaitForSeconds(0.5f);
         gm.hud.SetCaption("I'm INSIDE my unfinished game.   The 1989 original is still in my hand:   trust it.");
-        yield return new WaitForSeconds(5.5f);
+        yield return new WaitForSeconds(3.5f);
         gm.hud.SetCaption(null);
         captionRoutine = null;
     }
