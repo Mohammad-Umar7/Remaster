@@ -236,6 +236,8 @@ public class GameManager : MonoBehaviour
         hud.Build(this);
         intro = new GameObject("Intro").AddComponent<IntroDirector>();
         intro.Build(this);
+        for (int i = 0; i < rooms.Length; i++) if (rooms[i].def.boss) bossRoom = i;
+        if (bossRoom >= 0) { boss = new BossFight(); boss.Build(this, rooms[bossRoom]); }
 
         if (Boot.skipIntro) StartGame(Boot.startRoom);
         else GoTitle();
@@ -315,6 +317,7 @@ public class GameManager : MonoBehaviour
         if (roomIndex == 0) { time = 0f; coins = 0; falls = 0; hits = 0; }
         clearedCount = roomIndex;
         for (int i = 0; i < rooms.Length; i++) { rs[i].cleared = i < roomIndex; rs[i].keyTaken = i < roomIndex; }
+        if (boss != null) boss.NewRun();
         world.SnapDoors(this);
         hearts = MaxHearts;
         player.controlEnabled = true;
@@ -352,6 +355,8 @@ public class GameManager : MonoBehaviour
         if (state != State.Playing) { intro.Abort(); StartGame(i); return; }
         clearedCount = i;
         for (int k = 0; k < rooms.Length; k++) { rs[k].cleared = k < i; rs[k].keyTaken = k < i; }
+        if (boss != null) boss.NewRun();
+        player.controlEnabled = true;
         world.SnapDoors(this);
         sound.SetLayers(LayersFor(clearedCount));
         hearts = MaxHearts;
@@ -401,6 +406,7 @@ public class GameManager : MonoBehaviour
     void LateUpdate()
     {
         if (world != null && state != State.Boot) world.Animate(this, Time.deltaTime);
+        if (boss != null && state != State.Boot) boss.Animate(Time.deltaTime);
         if (pixel != null) pixel.Render(this, Time.deltaTime);
     }
 
@@ -441,6 +447,9 @@ public class GameManager : MonoBehaviour
         else corridorFrom = -1;
 
         if (p.y < room.FloorY - 5f) { Fall(); return; }
+
+        // the last room: the Captain (he keeps going even if you back out into the doorway)
+        if (room.def.boss && boss != null) boss.Tick(dt, p);
 
         bool inRoom = p.z >= room.MinZ && p.z < room.MaxZ;
         if (!inRoom)
@@ -1087,6 +1096,7 @@ public class GameManager : MonoBehaviour
         Room room = rooms[i];
         foreach (var sl in s.slimes) sl.Reset();
         foreach (var g in s.guards) g.Reset();
+        if (room.def.boss && boss != null) boss.Reset();
         s.clock = 0f;
         s.flickerPhase = -1;
         s.warnTicks = 0;
