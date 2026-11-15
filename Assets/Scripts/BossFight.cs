@@ -697,4 +697,194 @@ public class BossFight
             gm.fx.Star(pos + Vector3.up * (1f + i * 0.25f) + Dir(i * 36f) * 1.2f, i % 2 == 0 ? (Color)Pal.Yellow : (Color)Pal.White, 0.8f, 0.7f);
     }
 
+    // ------------------------------------------------------------------ how it looks (every frame)
+    public void Animate(float dt)
+    {
+        if (rig == null) return;
+        float clock = Time.time;
+        var pl = gm.player;
+        bool here = gm.state == GameManager.State.Playing && gm.cur == room.index;
+        if (st == St.Dying && t > 1.2f && gm.hud != null) { gm.hud.ShowBoss(false); gm.hud.SetFightUi(false); }
+
+        // ---- the camera goes first: everything that faces the viewer needs to know where it is
+        Cameras(dt, here);
+        Vector3 eye = pl.cam.transform.position;
+
+        // ---- him
+        if (Visible && st != St.Dying)
+        {
+            var p = new GuardPose();
+            p.visible = true; p.squash = 1f; p.feet = pos; p.yaw = yaw;
+            float stride = Mathf.Cos(walk / 1.25f * Mathf.PI);
+            float rise = 1f - Mathf.Abs(stride);
+            // on guard by default: spear levelled at you, shield up
+            p.legL = stride * -30f; p.legR = stride * 30f; p.bob = rise * 0.05f; p.roll = stride * 3f; p.twist = stride * 6f;
+            p.spear = 40f; p.shield = -20f; p.shieldOut = 14f; p.lean = 6f;
+            float e, roar = 0f;
+            bool hisLine = st == St.Talk && line >= 0 && line < Lines.Length && Lines[line].captain;
+            switch (st)
+            {
+                case St.Drop:
+                    p.squash = 1.15f; p.spear = -40f; p.legL = -20f; p.legR = -20f;
+                    break;
+                case St.Talk:
+                    Act(ref p, hisLine);
+                    break;
+                case St.ThrustWind:
+                    e = Out(t / ThrustWindup); roar = 0.7f;
+                    p.squash = 1f - 0.2f * e; p.lean = -18f * e; p.spear = Mathf.Lerp(40f, -70f, e); p.shieldOut = -8f;
+                    p.bang = t < 0.12f ? t / 0.12f : (t < 0.5f ? 1f : Mathf.Clamp01(1f - (t - 0.5f) / 0.12f));
+                    break;
+                case St.ThrustDash:
+                    roar = 1f;
+                    p.squash = 1.18f; p.lean = 16f; p.spear = 82f; p.spearAim = 20f; p.legL = 26f; p.legR = -30f; p.shieldOut = 34f;
+                    break;
+                case St.Recover:
+                    p.squash = 0.9f + 0.04f * Mathf.Sin(t * 14f); p.lean = 30f; p.spear = 100f; p.headPitch = 22f; p.legL = 14f; p.legR = -14f; p.bob = 0f;
+                    break;
+                case St.SpinWind:
+                    e = Out(t / 0.7f); roar = 0.7f;
+                    p.squash = 1f - 0.14f * e; p.spear = Mathf.Lerp(40f, 92f, e); p.spearAim = -70f * e; p.shieldOut = 60f * e; p.bob = 0.2f * e;
+                    p.bang = t < 0.12f ? t / 0.12f : 1f;
+                    break;
+                case St.Spin:
+                    roar = 1f;
+                    p.squash = 1.06f; p.spear = 92f; p.spearAim = -70f; p.shieldOut = 60f; p.lean = 0f; p.legL = 20f; p.legR = -20f; p.bob = 0.12f;
+                    break;
+                case St.LeapWind:
+                    e = Out(t / 0.6f); roar = 0.7f;
+                    p.squash = 1f - 0.3f * e; p.lean = 12f * e; p.spear = Mathf.Lerp(40f, -45f, e); p.legL = -25f * e; p.legR = -25f * e;
+                    p.bang = t < 0.12f ? t / 0.12f : 1f;
+                    break;
+                case St.LeapAir:
+                    {
+                        float u = Mathf.Clamp01(t / 0.9f); roar = 1f;
+                        p.squash = 1.16f; p.lean = Mathf.Lerp(-22f, 38f, u); p.spear = Mathf.Lerp(-72f, 70f, u); p.legL = -42f; p.legR = -42f; p.bob = 0f;
+                        break;
+                    }
+                case St.Dizzy:
+                    p.squash = 1f - 0.3f * Mathf.Exp(-7f * t) * Mathf.Cos(t * 18f) - 0.05f;
+                    p.roll = Mathf.Sin(t * 6f) * 12f; p.lean = 10f + Mathf.Sin(t * 4.3f) * 6f; p.headYaw = Mathf.Sin(t * 7f) * 38f; p.headPitch = 12f;
+                    p.spear = 18f; p.shield = 10f; p.shieldOut = 40f; p.bob = 0f;
+                    roar = 0.35f + 0.25f * Mathf.Sin(t * 9f);
+                    break;
+            }
+            if (flinch > 0f)
+            {
+                float k = flinch / 0.3f;
+                p.squash *= 1f - 0.24f * k; p.lean -= 28f * k; p.roll += 11f * k; p.headPitch -= 24f * k;
+                p.shieldOut += 40f * k; p.spear -= 30f * k;
+                roar = 1f;
+            }
+            if (blockT > 0f)
+            {
+                float k = blockT / 0.35f;
+                p.shieldOut = Mathf.Lerp(p.shieldOut, -34f, k); p.shield = Mathf.Lerp(p.shield, -50f, k); p.lean -= 6f * k;
+            }
+            rig.Apply(p, Vector3.zero, eye);
+
+            // his mouth: it follows the sound of his own voice while he talks, and gapes when he roars
+            float want = hisLine ? Mathf.Clamp01(gm.sound.VoiceLevel() * 1.6f) : roar;
+            mouthOpen = Mathf.Lerp(mouthOpen, want, 1f - Mathf.Exp(-(want > mouthOpen ? 40f : 16f) * dt));
+            float mh = 0.03f + mouthOpen * 0.085f;
+            mouth.localScale = new Vector3(0.2f - mouthOpen * 0.03f, mh, 0.03f);
+            mouth.localPosition = new Vector3(0f, 0.115f - mh * 0.5f, 0.352f);
+
+            // steam: he is so angry it comes out of his ears (while he shouts, and when he changes gear)
+            steamClock += dt;
+            bool steaming = hisLine || (Fighting && Phase > 1 && steamClock < 1.6f);
+            if (steaming && ((int)(steamClock / 0.16f)) != ((int)((steamClock - dt) / 0.16f)))
+            {
+                float side = ((int)(steamClock / 0.16f)) % 2 == 0 ? 1f : -1f;
+                Vector3 right = Quaternion.Euler(0f, yaw, 0f) * Vector3.right;
+                gm.fx.Puff(HeadPos + right * (side * 0.75f) + Vector3.up * 0.45f, Pal.A(Pal.Red, 0.85f), 0.5f, 0.5f);
+            }
+
+            // stars round his head while he can be hurt
+            if (Open)
+            {
+                starClock -= dt;
+                if (starClock <= 0f)
+                {
+                    starClock = 0.11f;
+                    gm.fx.Star(HeadPos + Dir(clock * 420f) * 1.1f + Vector3.up * 0.8f, Pal.Yellow, 0.6f, 0.45f);
+                }
+            }
+        }
+
+        Marks(dt, clock);
+        Hero(dt, clock, here);
+        if (gm.hud != null && Fighting) gm.hud.SetBoss(hp, maxHp);
+    }
+
+    /// <summary>Red on the floor where his next blow will land, the ring of his landing, and the sweep of your sword.</summary>
+    void Marks(float dt, float clock)
+    {
+        float pulse = 0.75f + 0.25f * Mathf.Sin(clock * 22f);
+        Vector3 g = Ground;
+
+        // the charge: a lane from him along the line he has chosen (it swings with him until he commits)
+        bool showLane = st == St.ThrustWind || st == St.ThrustDash;
+        if (lane.gameObject.activeSelf != showLane) lane.gameObject.SetActive(showLane);
+        if (showLane)
+        {
+            Vector3 along = st == St.ThrustDash ? dashDir : Dir(yaw);
+            float len = st == St.ThrustDash ? Mathf.Max(0.5f, DashLength * (1f - t / 0.3f)) + 1.2f : DashLength + 1.2f;
+            lane.position = g + along * (len * 0.5f) + Vector3.up * 0.04f;
+            lane.rotation = Quaternion.LookRotation(along, Vector3.up);
+            lane.localScale = new Vector3(DashHit * 2f, 1f, len);
+            bool committed = st == St.ThrustDash || t >= ThrustLock;
+            laneMat.color = Pal.A(Pal.Red, (committed ? 0.42f : 0.2f) * pulse);
+        }
+
+        // the spin and the leap: a circle
+        bool spin = st == St.SpinWind || st == St.Spin, leap = st == St.LeapWind || st == St.LeapAir;
+        bool showDisc = spin || leap;
+        if (disc.gameObject.activeSelf != showDisc) { disc.gameObject.SetActive(showDisc); ring.gameObject.SetActive(showDisc); }
+        if (showDisc)
+        {
+            float radius = spin ? SpinHit : ShockRadius;
+            Vector3 at = spin ? g : (st == St.LeapAir ? leapTo : gm.player.transform.position);
+            at.y = room.FloorY;
+            // while he is still winding up the circle grows in, so you see it coming
+            float grow = st == St.SpinWind ? Out(t / 0.7f) : (st == St.LeapWind ? Out(t / 0.6f) : 1f);
+            disc.position = at + Vector3.up * 0.04f;
+            ring.position = at + Vector3.up * 0.045f;
+            float ds = radius * 2f * grow, rs = radius / 0.42f * grow;
+            disc.localScale = new Vector3(ds, 1f, ds);
+            ring.localScale = new Vector3(rs, 1f, rs);
+            ring.rotation = Quaternion.Euler(0f, Mathf.Floor(clock * 8f) * 19f, 0f);
+            discMat.color = Pal.A(Pal.Red, 0.3f * pulse);
+            ringMat.color = Pal.A(Pal.Red, 0.95f);
+        }
+
+        // the shockwave ring races outward and fades
+        if (shockT >= 0f)
+        {
+            shockT += dt;
+            float u = Mathf.Clamp01(shockT / 0.5f);
+            float size = Mathf.Lerp(1f, ShockRadius / 0.42f, 1f - (1f - u) * (1f - u));
+            shock.localScale = new Vector3(size, 1f, size);
+            shockMat.color = Pal.A(Pal.Red, 1f - u);
+            if (u >= 1f) { shockT = -1f; shock.gameObject.SetActive(false); }
+        }
+
+        // your sword's sweep hangs in the air for a moment
+        bool showSlash = slashT >= 0f;
+        if (slash.gameObject.activeSelf != showSlash) slash.gameObject.SetActive(showSlash);
+        if (showSlash)
+        {
+            slashT += dt;
+            float u = Mathf.Clamp01(slashT / 0.2f);
+            Vector3 at = gm.player.transform.position + Vector3.up * 1.15f;
+            slash.position = at;
+            if (slashKind == 3) slash.rotation = Quaternion.Euler(0f, heroYaw, 0f) * Quaternion.Euler(0f, 0f, 90f);
+            else slash.rotation = Quaternion.Euler(0f, heroYaw, slashKind == 1 ? -16f : 16f);
+            float s = (slashKind == 3 ? 1.25f : 1f) * (0.85f + 0.3f * u);
+            slash.localScale = new Vector3(slashKind == 2 ? -s : s, s, s);
+            slashMat.color = Pal.A(Color.Lerp(Pal.White, Pal.Teal, u), 0.95f * (1f - u * u));
+            if (u >= 1f) slashT = -1f;
+        }
+    }
+
 }
