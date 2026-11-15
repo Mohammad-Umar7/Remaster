@@ -14,6 +14,8 @@ public class PlayerController : MonoBehaviour
     public float speedNow;
     public float distanceWalked;
     public System.Action<bool> onStep;  // bool = sprinting
+    public Vector3 knock;               // extra speed from being hit; it dies away in a quarter of a second
+    public System.Func<Vector3, bool> canStand;     // is there floor at this spot? (a hit never throws you into a pit)
 
     public const float WalkSpeed = 4.6f, SprintSpeed = 7.4f, EyeHeight = 1.62f;
     const float Accel = 46f, Decel = 40f, Gravity = 26f;
@@ -56,6 +58,7 @@ public class PlayerController : MonoBehaviour
         transform.position = feet + Vector3.up * 0.05f;
         cc.enabled = true;
         yaw = newYaw; pitch = 4f; velocity = Vector3.zero; stepAccum = 0f;
+        knock = Vector3.zero;
         ApplyRotation();
     }
 
@@ -65,6 +68,13 @@ public class PlayerController : MonoBehaviour
         cc.enabled = false;
         transform.position += delta;
         cc.enabled = true;
+    }
+
+    /// <summary>Knocked back by a hit: a shove along the floor and a little hop.</summary>
+    public void Knock(Vector3 push, float hop)
+    {
+        knock = new Vector3(push.x, 0f, push.z);
+        if (cc.isGrounded) velocity.y = hop;
     }
 
     void ApplyRotation()
@@ -104,7 +114,13 @@ public class PlayerController : MonoBehaviour
         grounded = cc.isGrounded;
         if (grounded && velocity.y < 0f) velocity.y = -3f; else velocity.y -= Gravity * dt;
         velocity.x = horiz.x; velocity.z = horiz.z;
-        cc.Move(velocity * dt);
+        if (knock.sqrMagnitude > 0.01f)
+        {
+            // the shove stops where the floor ends, so being hit never costs you a fall as well
+            if (canStand != null && !canStand(transform.position + knock.normalized * 0.6f)) knock = Vector3.zero;
+        }
+        cc.Move((velocity + knock) * dt);
+        knock = Vector3.MoveTowards(knock, Vector3.zero, 28f * dt);
         grounded = cc.isGrounded;
 
         speedNow = new Vector3(cc.velocity.x, 0, cc.velocity.z).magnitude;
