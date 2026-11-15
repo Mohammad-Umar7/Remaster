@@ -393,6 +393,14 @@ public class World3D
                 var ring = Quad(holder, "keyring", TexLib.QuadUp, kp + off + new Vector3(0, 0.035f, 0), Quaternion.identity, new Vector3(1.5f, 1f, 1.5f),
                     TexLib.DecalMat(TexLib.ring, Pal.A(Pal.Hex("d19a00"), 0.9f)));
                 d.rings.Add(ring.transform);
+                // a yellow key on pale paper is easy to miss, so it floats in front of a purple badge
+                // with a comic burst round it; both always face you
+                var disc = Quad(holder, "keydisc", TexLib.QuadUp, d.keyBase[d.keyBase.Count - 1], Quaternion.identity, new Vector3(1.35f, 1f, 1.35f),
+                    TexLib.DecalMat(TexLib.keyDisc, Pal.A(Pal.Purple, 0.92f)));
+                var burst = Quad(holder, "keyburst", TexLib.QuadUp, d.keyBase[d.keyBase.Count - 1], Quaternion.identity, new Vector3(2.1f, 1f, 2.1f),
+                    TexLib.DecalMat(TexLib.burst, Pal.A(Pal.Hex("e0a400"), 0.95f)));
+                disc.GetComponent<Renderer>().receiveShadows = false; burst.GetComponent<Renderer>().receiveShadows = false;
+                d.discs.Add(disc.transform); d.bursts.Add(burst.transform);
             }
         }
     }
