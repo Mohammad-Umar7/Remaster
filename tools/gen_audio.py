@@ -1038,6 +1038,17 @@ def sfx_guard_step():
     return finish(thump + 0.45 * knock + 0.40 * clink, out_ms=12.0)
 
 
+def sfx_guard_alert():
+    """A guard has noticed you: a quick surprised 'bwip-ding!' (the retro '!' sound). Friendly, not scary."""
+    out = np.zeros(int(0.44 * SR))
+    n = int(0.085 * SR)
+    place(out, osc_pulse(glide(520.0, 1250.0, n), 0.25) * ramp_out(ramp_in(np.ones(n), 2.0), 14.0), 0.0, 0.8)
+    m = int(0.31 * SR)
+    for name, duty, g in (('E7', 0.25, 0.8), ('B6', 0.125, 0.4)):
+        place(out, osc_pulse(const(hz(name), m), duty) * expdecay(m, 0.10, 1.5), 0.095, g)
+    return finish(out, out_ms=20.0)
+
+
 def sfx_ui_move():
     n = int(0.050 * SR)
     return finish(osc_pulse(const(hz('G5'), n), 0.25) * expdecay(n, 0.018, 1.0), out_ms=5.0)
