@@ -887,4 +887,141 @@ public class BossFight
         }
     }
 
+    // ------------------------------------------------------------------ you (every frame)
+    void Hero(float dt, float clock, bool here)
+    {
+        var pl = gm.player;
+        var h = new HeroPose();
+        // you only see yourself once the camera is far enough out of your head; hurt, you blink
+        bool blink = hurtT > 0f && dodgeT < 0f && ((int)(Time.unscaledTime * 16f)) % 2 == 0;
+        h.visible = here && tp > 0.3f && !blink;
+        if (gm.hits != lastHits) { lastHits = gm.hits; hurtT = 0.9f; atkT = -1f; atkQueued = false; combo = 0; }
+        if (hurtT > 0f) hurtT -= dt;
+        if (swordDrawn && swordShow < 1f) swordShow = Mathf.Min(1f, swordShow + dt / 0.22f);
+        if (winT >= 0f) winT += dt;
+        if (!h.visible) { hero.Apply(h); return; }
+
+        Vector3 hp3 = pl.transform.position;
+        Vector3 toBoss = Ground - hp3; toBoss.y = 0f;
+        float bossYaw = toBoss.sqrMagnitude > 0.01f ? Mathf.Atan2(toBoss.x, toBoss.z) * Mathf.Rad2Deg : pl.yaw;
+        heroYaw = Mathf.MoveTowardsAngle(heroYaw, st == St.Gone ? pl.yaw : bossYaw, 720f * dt);
+        h.feet = new Vector3(hp3.x, hp3.y - 0.04f, hp3.z);
+        h.yaw = heroYaw;
+        h.squash = 1f;
+
+        // --- running: one stride per 1.9 m, arms and legs in opposite pairs
+        float speed = pl.speedNow;
+        float run = Mathf.Clamp01(speed / 3.2f);
+        runPhase += speed * dt / 1.9f * Mathf.PI * 2f;
+        float sw = Mathf.Sin(runPhase);
+        h.legL = sw * 44f * run; h.legR = -sw * 44f * run;
+        h.armL = -sw * 36f * run; h.armLOut = 8f;
+        h.bob = Mathf.Abs(Mathf.Cos(runPhase)) * 0.06f * run + Mathf.Sin(clock * 2.3f) * 0.012f * (1f - run);
+        h.lean = 10f * run;
+        h.roll = sw * 3f * run;
+        // --- on guard: the sword upright in front of him
+        float readyArm = -40f + sw * 7f * run, readyYaw = 14f, readySword = 58f;
+        h.armR = readyArm; h.armRYaw = readyYaw; h.sword = readySword;
+        h.swordShow = swordShow;
+        h.headPitch = -6f;       // he looks up at the Captain
+
+        // --- a swing
+        if (atkT >= 0f)
+        {
+            float a = atkT, hitAt = AttackHitAt, len = AttackLength;
+            float wind = Mathf.Clamp01(a / (hitAt * 0.55f));
+            float cut = a < hitAt * 0.55f ? 0f : Out((a - hitAt * 0.55f) / (hitAt * 0.9f));
+            float back = Smooth((a - hitAt * 1.5f) / Mathf.Max(0.01f, len - hitAt * 1.5f));
+            float arm, armYaw, swordTilt, twist, lean;
+            if (combo == 3)
+            {
+                // the smash: both feet off the ground, the sword from behind his head down to the floor
+                arm = Mathf.Lerp(Mathf.Lerp(readyArm, -182f, wind), -22f, cut); armYaw = 0f; swordTilt = Mathf.Lerp(150f, 178f, cut);
+                twist = 0f; lean = Mathf.Lerp(-14f * wind, 30f, cut);
+                h.bob += Mathf.Sin(Mathf.Clamp01(a / (hitAt * 1.3f)) * Mathf.PI) * 0.42f;
+                h.squash = 1f + 0.14f * wind * (1f - cut) - 0.2f * cut * (1f - back);
+                h.legL = Mathf.Lerp(h.legL, -34f, 1f - back); h.legR = Mathf.Lerp(h.legR, 30f, 1f - back);
+            }
+            else
+            {
+                // a flat cut, right to left, then back again
+                float dir = combo == 1 ? 1f : -1f;
+                armYaw = Mathf.Lerp(Mathf.Lerp(readyYaw, 96f * dir, wind), -84f * dir, cut);
+                arm = -86f; swordTilt = 176f;
+                twist = armYaw * 0.5f; lean = 13f;
+                h.legL = Mathf.Lerp(h.legL, 24f * dir, 1f - back); h.legR = Mathf.Lerp(h.legR, -24f * dir, 1f - back);
+            }
+            h.armR = Mathf.Lerp(arm, readyArm, back);
+            h.armRYaw = Mathf.Lerp(armYaw, readyYaw, back);
+            h.sword = Mathf.Lerp(swordTilt, readySword, back);
+            h.twist = twist * (1f - back);
+            h.lean = Mathf.Lerp(lean, h.lean, back);
+            h.armL = Mathf.Lerp(30f, h.armL, back); h.armLOut = Mathf.Lerp(34f, 8f, back);
+        }
+
+        // --- the dodge: tucked up, one whole forward roll
+        if (dodgeT >= 0f)
+        {
+            float u = Mathf.Clamp01(dodgeT / 0.45f);
+            h.tumble = 360f * Out(u);
+            h.squash = 0.72f + 0.28f * Smooth((u - 0.7f) / 0.3f);
+            h.legL = -70f * (1f - u); h.legR = -70f * (1f - u);
+            h.armL = -60f; h.armR = -60f; h.sword = 120f;
+            h.bob = -0.12f * Mathf.Sin(u * Mathf.PI);
+        }
+
+        // --- hit: thrown back on his heels for a moment
+        if (hurtT > 0.55f)
+        {
+            float k = (hurtT - 0.55f) / 0.35f;
+            h.lean = Mathf.Lerp(h.lean, -30f, k); h.squash *= 1f - 0.16f * k;
+            h.armL = Mathf.Lerp(h.armL, -70f, k); h.armLOut = Mathf.Lerp(h.armLOut, 60f, k);
+            h.armR = Mathf.Lerp(h.armR, -70f, k); h.headPitch = -22f * k;
+        }
+
+        // --- the scene: he acts too
+        if (st == St.Drop)
+        {
+            // something very large is coming down: he looks up and takes a step back
+            float k = Smooth(t / 0.5f);
+            h.headPitch = -30f * k; h.lean = -10f * k; h.armL = -20f * k; h.armLOut = 40f * k; h.armR = -20f * k; h.armRYaw = 40f * k;
+        }
+        else if (st == St.Talk)
+        {
+            bool mine = line >= 0 && line < Lines.Length && !Lines[line].captain;
+            float talk = mine ? Mathf.Clamp01(gm.sound.VoiceLevel() * 1.6f) : 0f;
+            h.headPitch = -14f + talk * 8f;
+            h.squash = 1f + talk * 0.03f;
+            if (line == 0) { h.lean = -8f; h.armLOut = 26f; }                                   // HALT: he leans away from the spear
+            else if (line == 1)
+            {
+                // "I'm shipping it": a tired shrug
+                float k = Smooth(talkT / 0.4f) * (1f - Smooth((talkT - 2.6f) / 0.5f));
+                h.armL = -24f * k; h.armLOut = 46f * k; h.armR = -24f * k; h.armRYaw = 48f * k; h.roll = 5f * k; h.headYaw = 12f * k; h.headPitch = -4f;
+            }
+            else if (line == 2) { h.headPitch = -18f; h.roll = Mathf.Sin(talkT * 3f) * 2f; }       // being laughed at
+            else if (line == 3)
+            {
+                // he reaches up, and the old game's sword is in his hand
+                float up = Smooth((talkT - 0.5f) / 0.5f), down = Smooth((talkT - 2.6f) / 0.7f);
+                h.armR = Mathf.Lerp(Mathf.Lerp(readyArm, -176f, up), readyArm, down);
+                h.armRYaw = Mathf.Lerp(readyYaw, 0f, up * (1f - down));
+                h.sword = Mathf.Lerp(readySword, 176f, up * (1f - down));
+                h.headPitch = Mathf.Lerp(-10f, -34f, up * (1f - down));
+                h.bob += 0.06f * up * (1f - down);
+            }
+            else if (line == 4) { h.lean = 8f; h.armLOut = 20f; h.legL = 14f; h.legR = -14f; }   // TAKE your build: he sets his feet
+        }
+
+        // --- he won
+        if (winT >= 0f && st != St.Gone)
+        {
+            float k = Smooth((winT - 0.3f) / 0.4f);
+            h.armR = Mathf.Lerp(h.armR, -176f, k); h.armRYaw = Mathf.Lerp(h.armRYaw, 0f, k); h.sword = Mathf.Lerp(h.sword, 176f, k);
+            h.bob += Mathf.Abs(Mathf.Sin(winT * 6f)) * 0.14f * k * Mathf.Clamp01(2.2f - winT);
+            h.armL = Mathf.Lerp(h.armL, -150f, k * 0.8f); h.armLOut = Mathf.Lerp(h.armLOut, 30f, k);
+        }
+        hero.Apply(h);
+    }
+
 }
