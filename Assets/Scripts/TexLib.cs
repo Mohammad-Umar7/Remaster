@@ -507,10 +507,22 @@ public static class TexLib
     public static Shader DecalShader { get { if (decal == null) decal = Shader.Find("Remaster/Decal"); return decal; } }
     public static Shader WorldTextShader { get { if (worldText == null) worldText = Shader.Find("Remaster/WorldText"); return worldText; } }
 
+    /// <summary>A unique id for a texture, used in material cache keys ("0" for none).
+    /// Newer Unity 6 releases turned GetInstanceID into a compile error, so they use GetEntityId instead.</summary>
+    public static string TexKey(Texture tex)
+    {
+        if (!tex) return "0";
+#if UNITY_6000_4_OR_NEWER
+        return tex.GetEntityId().ToString();
+#else
+        return tex.GetInstanceID().ToString();
+#endif
+    }
+
     /// <summary>mode 0 = marker colour, 1 = grey-box grid, 2 = flat unlit. flag 0 = ink lines, 0.5 = blue pencil, 1 = none.</summary>
     public static Material Mat(Color color, int mode = 0, float flag = 0f, Texture tex = null, bool dissolve = false, bool ghost = false, float hatchScale = 0.35f)
     {
-        string key = ColorUtility.ToHtmlStringRGB(color) + "|" + mode + "|" + flag + "|" + (tex ? tex.GetInstanceID() : 0) + "|" + dissolve + "|" + ghost + "|" + hatchScale;
+        string key = ColorUtility.ToHtmlStringRGB(color) + "|" + mode + "|" + flag + "|" + TexKey(tex) + "|" + dissolve + "|" + ghost + "|" + hatchScale;
         Material m;
         if (cache.TryGetValue(key, out m) && m != null) return m;
         m = new Material(SketchShader);
