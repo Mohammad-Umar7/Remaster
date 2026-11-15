@@ -714,6 +714,11 @@ public class GameManager : MonoBehaviour
                 striking = true;
                 sound.PlayAt("guard_windup", wp + Vector3.up * 1.2f, 0.7f, 0.04f, 1f, 0.3f);
                 sound.PlayAt("guard_say_hyah", wp + Vector3.up * 1.5f, 0.95f, 0.04f, 1f, 0.25f);
+                // from now on it is after you: it remembers where it left its patrol, and comes
+                if (g.mode == 0) { g.trail.Clear(); g.trail.Add(g.pos); }
+                if (g.mode != 1) hud.Toast("the guard is after you!     RUN");
+                g.mode = 1;
+                g.chaseClock = 0f;
             }
             if (g.attackT >= 0f)
             {
