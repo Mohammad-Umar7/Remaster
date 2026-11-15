@@ -14,7 +14,7 @@ It is 3:47 AM. You are remaking a 1989 pixel game, TINY KEEP, in 3D. You fall as
 | The screen-wrap bug | space just repeats | exit left, appear right |
 | **Keys and guards** (new in the remake) | there, in plain sight | the old game has never heard of them |
 
-Neither world is enough on its own. The old game knows everything that is **old**: where the floor really is, where the slimes are, when a laser is coming. The remake knows everything that is **new**: every exit is locked until you find that room's key, and guards patrol the rooms. Keys and guards are never drawn in the pixel window, so you find the key and dodge the guards with your own eyes, in 3D. A guard notices you when you come close: it chirps and shouts "HALT!" in a crunchy 1989 speech sample, a "!" pops over its head, it turns its face to you and lowers its spear, and its footsteps get louder the nearer it is. Step inside the red ring at its feet and it strikes: it cocks the spear back, lunges, and you are knocked back with a BONK and lose a heart. The shove never pushes you into a pit. Your hearts are shown in the 3D view too, next to the room checklist, so you never have to look away from a guard to see how many are left.
+Neither world is enough on its own. The old game knows everything that is **old**: where the floor really is, where the slimes are, which planks are about to blink out. The remake knows everything that is **new**: every exit is locked until you find that room's key, and guards patrol the rooms. Keys and guards are never drawn in the pixel window, so you find the key and dodge the guards with your own eyes, in 3D. A guard notices you when you come close: it chirps and shouts "HALT!" in a crunchy 1989 speech sample, a "!" pops over its head, it turns its face to you and lowers its spear, and its footsteps get louder the nearer it is. Step inside the red ring at its feet and it strikes: it cocks the spear back, lunges, and you are knocked back with a BONK and lose a heart. The shove never pushes you into a pit. And from then on it is after you: it leaves its patrol and follows you for a few tiles, striking again if it catches up. Get far enough away and it gives up, walks back the way it came and carries on guarding. Sprint out from under the spear and it misses. Your hearts are shown in the 3D view too, next to the room checklist, so you never have to look away from a guard to see how many are left.
 
 You walk in first person through eight short rooms. Each room has one note from your past self and one thing the remake gets wrong.
 
@@ -23,9 +23,9 @@ You walk in first person through eight short rooms. Each room has one note from 
 3. **Unmodelled Enemies** - slimes you can only see in the old game.
 4. **Screen Wrap** - use the 1989 bug to get behind a gate.
 5. **Sprite Flicker** - two groups of planks take turns existing. You can hear the beat.
-6. **Three Seconds Late** - the old game is three seconds ahead: it shows each laser before the remake fires it.
-7. **One-Way Maze** - old planks snap after one step. Three ways in, one true route, and every dead end is final, so solve the maze in the old game before you walk it.
-8. **Ship It** - the unfinished floor deletes itself behind you. Run.
+6. **One-Way Maze** - old planks snap after one step. Three ways in, one true route, and every dead end is final, so solve the maze in the old game before you walk it.
+7. **Ship It** - the unfinished floor deletes itself behind you. Run.
+8. **The Captain** - the last room is a fight. The Captain of the guards is new in the remake, so the old game shows an empty hall.
 
 The keys get harder to reach and the guards get faster as you go: in room 1 the key hangs in plain sight with one slow guard circling it; by room 6 it sits inside a guard's ring under the lasers, and in the last room it is a detour while the floor is deleting itself.
 
