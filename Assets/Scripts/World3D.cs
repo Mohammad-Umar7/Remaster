@@ -378,9 +378,9 @@ public class World3D
         for (int k = 0; k < copies; k++) d.copyOffset.Add(room.def.wrap ? (k - 1) * Maps.W * TS : 0f);
 
         d.gatePos = room.TileCenter(room.exit) + new Vector3(0, 0, -TS * 0.5f + 0.78f);
-        if (room.HasKey)
+        if (room.HasKey || room.def.boss)
         {
-            Vector3 kp = room.TileCenter(room.def.key);
+            Vector3 kp = room.HasKey ? room.TileCenter(room.def.key) : Vector3.zero;
             foreach (float ox in d.copyOffset)
             {
                 Vector3 off = new Vector3(ox, 0, 0);
@@ -388,6 +388,8 @@ public class World3D
                 var gate = Props.Spawn("gate", holder, d.gatePos + off, 0f, 1f);
                 var padlock = Props.Spawn("padlock", gate.transform, d.gatePos + off + new Vector3(0, 1.3f, -0.16f), 180f, 1.35f);
                 d.gates.Add(gate.transform); d.gateBase.Add(d.gatePos + off); d.padlocks.Add(padlock);
+                // the Captain's arena has the gate but no key: beating him is what opens it
+                if (!room.HasKey) continue;
                 // the key turns slowly above a pencilled ring, so it catches the eye from across the room
                 var key = Props.Spawn("key", holder, kp + off + new Vector3(0, KeyHeight, 0), 0f, KeyScale);
                 d.keys.Add(key.transform); d.keyBase.Add(kp + off + new Vector3(0, KeyHeight, 0));
@@ -459,9 +461,9 @@ public class World3D
             Room room = rooms[i];
             RoomState s = gm.rs[i];
 
-            if (room.HasKey)
+            if (room.HasKey || room.def.boss)
             {
-                bool open = s.keyTaken;
+                bool open = gm.ExitOpen(i);
                 d.open = Mathf.MoveTowards(d.open, open ? 1f : 0f, dt / 0.8f);
                 d.keyGone = open ? Mathf.Min(1f, d.keyGone + dt / 0.4f) : 0f;
                 if (d.rattle > 0f) d.rattle = Mathf.Max(0f, d.rattle - dt);
@@ -474,6 +476,7 @@ public class World3D
                     // unlocked bars sink into the floor
                     d.gates[k].position = d.gateBase[k] + new Vector3(shake, -3.15f * e, 0);
                     if (d.padlocks[k].activeSelf == open) d.padlocks[k].SetActive(!open);
+                    if (!room.HasKey) continue;
                     bool keyShow = d.keyGone < 0.999f;
                     if (d.keys[k].gameObject.activeSelf != keyShow) d.keys[k].gameObject.SetActive(keyShow);
                     if (d.rings[k].gameObject.activeSelf == open) d.rings[k].gameObject.SetActive(!open);
