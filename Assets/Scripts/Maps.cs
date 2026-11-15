@@ -508,6 +508,14 @@ public static class MapValidator
             bool needsWrap = room.FindPath(from, room.exit, true, true, false) == null;
             int coinsReach = 0;
             foreach (var cn in room.coins) if (room.FindPath(from, cn) != null) coinsReach++;
+            if (d.boss)
+            {
+                // the Captain's arena: an open hall with no coins, key or patrols (the fight is the room)
+                if (room.coins.Count != 0 || room.HasKey || d.guards.Length != 0) { sb.AppendLine("FAIL room " + (i + 1) + ": a boss room has no coins, key or guards"); ok = false; }
+                if (i != Maps.Defs.Length - 1) { sb.AppendLine("FAIL room " + (i + 1) + ": the boss room has to be the last one"); ok = false; }
+                sb.AppendLine("room " + (i + 1) + " '" + d.title + "': boss arena, path " + full.Count + " steps");
+                continue;
+            }
             if (room.coins.Count != 3 || coinsReach != 3) { sb.AppendLine("FAIL room " + (i + 1) + ": coins " + coinsReach + "/" + room.coins.Count + " reachable (want 3)"); ok = false; }
             if (d.wrap)
             {
