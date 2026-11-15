@@ -1049,6 +1049,14 @@ def sfx_guard_alert():
     return finish(out, out_ms=20.0)
 
 
+def sfx_guard_windup():
+    """The guard cocks its spear back: a short rising 'hup' with a creak of armour."""
+    n = int(0.19 * SR)
+    hup = osc_tri(glide(150.0, 330.0, n), drive=1.3) * ramp_out(ramp_in(np.ones(n), 6.0), 30.0)
+    creak = bp(white(n, rng('guard_windup')), 1800.0, 4200.0) * np.linspace(0.0, 1.0, n) ** 2 * 0.35
+    return finish(hup + creak, out_ms=10.0)
+
+
 def sfx_ui_move():
     n = int(0.050 * SR)
     return finish(osc_pulse(const(hz('G5'), n), 0.25) * expdecay(n, 0.018, 1.0), out_ms=5.0)
