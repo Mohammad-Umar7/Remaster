@@ -23,9 +23,9 @@ Deadline: **Sunday 15 November 2026, 14:45**, on the jam's itch.io page. Late en
 >
 > Step inside a guard's red ring and it strikes, then comes after you; get far enough away and it gives up and walks back to its post.
 >
-> Seven short rooms, about eight minutes: invisible bridges, fake walls, slimes only the old game can see, the screen-wrap bug, flickering planks, planks that snap after one step, and a last fight. The Captain of the guards blocks the way to BUILD & RUN: the camera pulls out and you see yourself, the old game's little hero in 3D. A short voiced scene, then a third-person sword fight with the old game's sword: a three-hit combo, a dodge roll, a health bar each. Red on the floor shows where his charge, his spin and his leap will land. Every coin from the old game makes him weaker. Clearing rooms adds remastered instruments to the chip-tune soundtrack.
+> Six short rooms, about six minutes: an invisible bridge whose planks snap behind you, fake walls, slimes only the old game can see, the screen-wrap bug, flickering planks, and a last fight. The Captain of the guards blocks the way to BUILD & RUN: the camera pulls out and you see yourself, the old game's little hero in 3D. A short voiced scene, then a third-person sword fight with the old game's sword: a three-hit combo, a dodge roll, a health bar each. Red on the floor shows where his charge, his spin and his leap will land. Every coin from the old game makes him weaker. Clearing rooms adds remastered instruments to the chip-tune soundtrack.
 >
-> **Controls:** on the start screen pick START or QUIT with W / S and Enter, or click a note. In the game: WASD move, mouse look, Shift run, Tab raise or lower the handheld, Esc pause. In the last room: left click sword (keep clicking for the combo), Space dodge roll. Stuck? N skips to the next room and B goes straight to the last fight. In the pause menu: R restarts the room, 1 to 7 jump to a room.
+> **Controls:** on the start screen pick START or QUIT with W / S and Enter, or click a note. In the game: WASD move, mouse look, Shift run, Tab raise or lower the handheld, Esc pause. In the last room: left click sword (keep clicking for the combo), Space dodge roll. Stuck? N skips to the next room and B goes straight to the last fight. In the pause menu: R restarts the room, 1 to 6 jump to a room.
 
 ## The 3-minute slot
 
