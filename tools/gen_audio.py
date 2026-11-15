@@ -1317,7 +1317,11 @@ SOUNDS = [
     ('plank_break',     sfx_plank_break, 2.0, 'A one-use plank snaps after you step off it.'),
     ('key_get',         sfx_key_get,     5.0, 'Key picked up. Keys are new in the remake: only the 3D world has them.'),
     ('door_unlock',     sfx_door_unlock, 4.0, 'The locked exit opens once you hold the key.'),
-    ('guard_step',      sfx_guard_step,  1.0, 'A guard hops nearby. Guards are new in the remake: the old game cannot see them.'),
+    ('guard_alert',     sfx_guard_alert, 3.0, 'A guard has noticed you (you came close): the retro "!" chirp.'),
+    ('guard_windup',    sfx_guard_windup, 0.0, 'A guard cocks its spear back, a moment before it strikes.'),
+    ('guard_swing',     sfx_guard_swing, 0.0, 'The spear swings: whoosh.'),
+    ('guard_bonk',      sfx_guard_bonk,  5.0, 'The spear lands on you: a big comic bonk.'),
+    ('guard_step',      sfx_guard_step,  3.0, 'A guard hops nearby. Guards are new in the remake: the old game cannot see them.'),
 ]
 SFX_PEAK_CEILING_DB = -3.0   # no sound effect peaks above this
 # Very short or very low sounds would need silly peaks to hit a loudness target; cap them.
