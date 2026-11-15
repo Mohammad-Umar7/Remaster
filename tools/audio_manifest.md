@@ -75,9 +75,13 @@ Levels are set by loudness, not by peak: each sound is placed a fixed number of 
 | plank_break.wav | 1 | 0.202 | -3.0 | -19.3 | -19.4 | -0.2 | A one-use plank snaps after you step off it. |
 | key_get.wav | 1 | 0.772 | -4.7 | -18.6 | -14.2 | +5.0 | Key picked up. Keys are new in the remake: only the 3D world has them. |
 | door_unlock.wav | 1 | 0.744 | -4.8 | -18.9 | -15.2 | +4.0 | The locked exit opens once you hold the key. |
-| guard_step.wav | 1 | 0.140 | -5.0 | -21.0 | -27.8 | -8.6 | A guard hops nearby. Guards are new in the remake: the old game cannot see them. |
+| guard_alert.wav | 1 | 0.417 | -7.0 | -20.6 | -16.2 | +3.0 | A guard has noticed you (you came close): the retro "!" chirp. |
+| guard_windup.wav | 1 | 0.190 | -5.5 | -10.8 | -19.2 | +0.0 | A guard cocks its spear back, a moment before it strikes. |
+| guard_swing.wav | 1 | 0.160 | -5.1 | -20.8 | -19.2 | +0.0 | The spear swings: whoosh. |
+| guard_bonk.wav | 1 | 0.420 | -3.0 | -19.4 | -21.6 | -2.4 | The spear lands on you: a big comic bonk. |
+| guard_step.wav | 1 | 0.140 | -3.5 | -19.5 | -26.3 | -7.1 | A guard hops nearby. Guards are new in the remake: the old game cannot see them. |
 
-Held at a peak cap (so a little under their loudness target): jingle_boot, jingle_room, jingle_win, ui_move, gate, step_paper_1, step_paper_4, key_1, key_2, key_3, yawn_whoosh, flick_warn, plank_break, guard_step.
+Held at a peak cap (so a little under their loudness target): jingle_boot, jingle_room, jingle_win, ui_move, gate, step_paper_1, step_paper_4, key_1, key_2, key_3, yawn_whoosh, flick_warn, plank_break, guard_bonk, guard_step.
 
 ## Loop points
 
