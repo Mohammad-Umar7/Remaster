@@ -57,6 +57,10 @@ public class RoomDef
     public LaserVolley[] lasers;            // null when the room has no lasers
     public float laserPeriod = 12f;         // length of the laser loop in seconds
     public bool needBridge, needFake, needWrap;   // what the map checker expects the room to require
+
+    // NEW in the remake: the old game has never heard of these, so only the 3D world shows them.
+    public Vector2Int key = new Vector2Int(-1, -1);     // tile the key floats over; the exit stays locked until you hold it
+    public SlimeDef[] guards = new SlimeDef[0];         // patrols (tiles per second, start offset, loop of waypoints)
 }
 
 public static class Maps
@@ -69,8 +73,12 @@ public static class Maps
     public const float LaserLead = 3.0f;    // the old game shows a laser this long before the remake fires it
     public const float LaserHot = 0.35f;    // how long a fired beam can hurt
     public const int LaserLobbyRow = 8;     // rows from here down are never hit by column beams
+    public const float GuardHit = 0.5f;     // a guard catches you within this many tiles (one metre)
+    public const float GuardClear = 0.74f;  // what the auto-walker keeps away from a guard (it is not always dead centre)
+    public const float KeyReach = 0.95f;    // metres: how close you have to get to pick the key up
 
     static int[] L(params int[] v) { return v; }
+    static Vector2Int K(int x, int r) { return new Vector2Int(x, r); }
 
     public static readonly RoomDef[] Defs =
     {
@@ -375,6 +383,9 @@ public class Room
     }
 
     public Vector2Int SpawnTile => new Vector2Int(start.x, start.y - 1);
+    public bool HasKey => def.key.x >= 0;
+    /// <summary>Real floor that the remake draws and a guard may walk on (no notes, doors, planks or fake walls).</summary>
+    public bool GuardFloor(int x, int r) { return In(x, r) && (c[x, r] == '.' || c[x, r] == 'C'); }
 
     // ---------- path finding (used by the map checker) ----------
     public struct Step { public Vector2Int tile; public bool wrapped; }
