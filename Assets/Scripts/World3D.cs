@@ -420,6 +420,122 @@ public class World3D
                     TexLib.DecalMat(TexLib.ring, Pal.A(Pal.Red, 0.6f)));
                 rings.Add(ring.transform);
             }
+            d.guards.Add(list);
+            d.guardRings.Add(rings);
+            d.guardYaw.Add(float.NaN);
+        }
+    }
+
+    /// <summary>Where the locked exit's gate stands (also when the room has no key).</summary>
+    public Vector3 GatePos(int room) { return dyn[room].gatePos; }
+
+    /// <summary>The gate shakes when you walk into it without the key.</summary>
+    public void RattleGate(int room) { dyn[room].rattle = 0.45f; }
+
+    /// <summary>Put every gate straight into its right state (new run, room jump): no opening animation.</summary>
+    public void SnapDoors(GameManager gm)
+    {
+        for (int i = 0; i < rooms.Length; i++)
+        {
+            bool open = gm.ExitOpen(i);
+            dyn[i].open = open ? 1f : 0f;
+            dyn[i].keyGone = open ? 1f : 0f;
+            dyn[i].rattle = 0f;
+        }
+        Animate(gm, 0f);
+    }
+
+    /// <summary>Every frame: keys turn and bob, gates sink once unlocked, guards hop along their patrols.</summary>
+    public void Animate(GameManager gm, float dt)
+    {
+        if (dyn == null) return;
+        float t = Time.time;
+        Vector3 eye = (gm.player != null && gm.player.cam != null) ? gm.player.cam.transform.position : Vector3.zero;
+        for (int i = 0; i < rooms.Length; i++)
+        {
+            var d = dyn[i];
+            if (d == null) continue;
+            Room room = rooms[i];
+            RoomState s = gm.rs[i];
+
+            if (room.HasKey)
+            {
+                bool open = s.keyTaken;
+                d.open = Mathf.MoveTowards(d.open, open ? 1f : 0f, dt / 0.8f);
+                d.keyGone = open ? Mathf.Min(1f, d.keyGone + dt / 0.4f) : 0f;
+                if (d.rattle > 0f) d.rattle = Mathf.Max(0f, d.rattle - dt);
+                float e = d.open * d.open * (3f - 2f * d.open);
+                float shake = d.rattle > 0f ? Mathf.Sin(t * 70f) * 0.035f * (d.rattle / 0.45f) : 0f;
+                for (int k = 0; k < d.gates.Count; k++)
+                {
+                    bool show = d.open < 0.999f;
+                    if (d.gates[k].gameObject.activeSelf != show) d.gates[k].gameObject.SetActive(show);
+                    // unlocked bars sink into the floor
+                    d.gates[k].position = d.gateBase[k] + new Vector3(shake, -3.15f * e, 0);
+                    if (d.padlocks[k].activeSelf == open) d.padlocks[k].SetActive(!open);
+                    bool keyShow = d.keyGone < 0.999f;
+                    if (d.keys[k].gameObject.activeSelf != keyShow) d.keys[k].gameObject.SetActive(keyShow);
+                    if (d.rings[k].gameObject.activeSelf == open) d.rings[k].gameObject.SetActive(!open);
+                    if (d.discs[k].gameObject.activeSelf != keyShow) { d.discs[k].gameObject.SetActive(keyShow); d.bursts[k].gameObject.SetActive(keyShow); }
+                    if (keyShow)
+                    {
+                        // picked up: it shoots upward, spins fast and shrinks away
+                        float g = d.keyGone;
+                        d.keys[k].position = d.keyBase[k] + new Vector3(0, Mathf.Sin(t * 2.3f + i) * 0.13f + g * 1.3f, 0);
+                        d.keys[k].rotation = Quaternion.Euler(0, t * 130f + g * 720f, Mathf.Sin(t * 1.7f + i) * 8f);
+                        d.keys[k].localScale = Vector3.one * (KeyScale * (1f - g));
+                        // the badge sits just behind the key as seen from where you stand
+                        Vector3 kp = d.keys[k].position;
+                        Vector3 toEye = eye - kp;
+                        if (toEye.sqrMagnitude < 0.01f) toEye = Vector3.back;
+                        toEye.Normalize();
+                        Quaternion face = Quaternion.FromToRotation(Vector3.up, toEye);
+                        float fade = 1f - g;
+                        d.discs[k].position = kp - toEye * 0.42f;
+                        d.discs[k].rotation = face * Quaternion.AngleAxis(Mathf.Sin(t * 0.9f + i) * 12f, Vector3.up);
+                        d.discs[k].localScale = new Vector3(1.35f, 1f, 1.35f) * fade;
+                        d.bursts[k].position = kp - toEye * 0.5f;
+                        d.bursts[k].rotation = face * Quaternion.AngleAxis(Mathf.Floor(t * 6f) * 17f, Vector3.up);
+                        float bs = 2.1f * (1f + 0.07f * Mathf.Sin(t * 5f)) * fade;
+                        d.bursts[k].localScale = new Vector3(bs, 1f, bs);
+                    }
+                    if (!open)
+                    {
+                        float pulse = 1.5f * (1f + 0.09f * Mathf.Sin(t * 3.1f));
+                        d.rings[k].localScale = new Vector3(pulse, 1f, pulse);
+                        d.rings[k].rotation = Quaternion.Euler(0, t * 25f, 0);
+                    }
+                }
+                if (d.gateCol != null) d.gateCol.enabled = d.open < 0.55f;
+            }
+
+            for (int g = 0; g < s.guards.Count && g < d.guards.Count; g++)
+            {
+                Slime gs = s.guards[g];
+                Vector3 wp = room.TileFToWorld(gs.pos);
+                // tile space has y pointing down the screen, which is -Z in the world
+                float yawTarget = Mathf.Atan2(gs.dir.x, -gs.dir.y) * Mathf.Rad2Deg;
+                float yaw = float.IsNaN(d.guardYaw[g]) ? yawTarget : Mathf.MoveTowardsAngle(d.guardYaw[g], yawTarget, 520f * dt);
+                d.guardYaw[g] = yaw;
+                float hop = Mathf.Sin(Mathf.Clamp01(gs.hopClock / gs.hopPeriod) * Mathf.PI);
+                float side = (gs.steps % 2 == 0) ? 1f : -1f;
+                float bump = gs.hitFlash > 0f ? gs.hitFlash / 0.4f : 0f;
+                var list = d.guards[g];
+                var rings = d.guardRings[g];
+                for (int k = 0; k < list.Count; k++)
+                {
+                    bool show = !gs.gone;
+                    if (list[k].gameObject.activeSelf != show) { list[k].gameObject.SetActive(show); rings[k].gameObject.SetActive(show); }
+                    if (!show) continue;
+                    rings[k].position = wp + new Vector3(d.copyOffset[k], 0.03f, 0);
+                    rings[k].rotation = Quaternion.Euler(0, Mathf.Floor(t * 6f) * 23f + g * 40f, 0);
+                    // a toy-soldier waddle: hop, rock from foot to foot, lean into the walk
+                    list[k].position = wp + new Vector3(d.copyOffset[k], hop * 0.15f, 0);
+                    list[k].rotation = Quaternion.Euler(4f + hop * 3f, yaw, side * hop * 6f);
+                    float sy = GuardScale * (1f + hop * 0.05f + bump * 0.18f), sxz = GuardScale * (1f - hop * 0.03f + bump * 0.10f);
+                    list[k].localScale = new Vector3(sxz, sy, sxz);
+                }
+            }
         }
     }
 

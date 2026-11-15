@@ -120,6 +120,8 @@ public class GameManager : MonoBehaviour
     public const float WaveInterval = 1.8f, CrumbleTime = 0.75f, PlankBreakDelay = 0.32f;
     int lastTileX = -99, lastTileR = -99;
     bool firstBridge, firstFake, firstWrap, firstCoin, firstSlime, firstFall, firstBreak, firstFlicker, firstLaser, chipFoot;
+    bool firstKey, firstLocked, firstGuardSeen, firstGuardHit;
+    float lockedCooldown;
     int hitStopId;
     bool[] hasOneUse;
     static readonly string[] LayerNames = { "drums", "bass", "strings", "bells" };
@@ -235,7 +237,8 @@ public class GameManager : MonoBehaviour
         hud.ShowPlayUi(true);
         if (roomIndex == 0) { time = 0f; coins = 0; falls = 0; hits = 0; }
         clearedCount = roomIndex;
-        for (int i = 0; i < rooms.Length; i++) rs[i].cleared = i < roomIndex;
+        for (int i = 0; i < rooms.Length; i++) { rs[i].cleared = i < roomIndex; rs[i].keyTaken = i < roomIndex; }
+        world.SnapDoors(this);
         hearts = MaxHearts;
         player.controlEnabled = true;
         Respawn(roomIndex, false);
@@ -271,7 +274,8 @@ public class GameManager : MonoBehaviour
         if (state == State.Results || state == State.Ending) return;
         if (state != State.Playing) { intro.Abort(); StartGame(i); return; }
         clearedCount = i;
-        for (int k = 0; k < rooms.Length; k++) rs[k].cleared = k < i;
+        for (int k = 0; k < rooms.Length; k++) { rs[k].cleared = k < i; rs[k].keyTaken = k < i; }
+        world.SnapDoors(this);
         sound.SetLayers(LayersFor(clearedCount));
         hearts = MaxHearts;
         Respawn(i, true);
@@ -319,6 +323,7 @@ public class GameManager : MonoBehaviour
 
     void LateUpdate()
     {
+        if (world != null && state != State.Boot) world.Animate(this, Time.deltaTime);
         if (pixel != null) pixel.Render(this, Time.deltaTime);
     }
 
@@ -394,6 +399,7 @@ public class GameManager : MonoBehaviour
             if (new Vector2(p.x - c.x, p.z - c.z).magnitude < Maps.TS * 0.45f) Collect(room, s, tileX, tileR);
         }
 
+        TickKey(room, s, p, dt);
         TickSlimes(room, s, p, dt);
         TickWave(room, s, dt);
         TickFlicker(room, s);
@@ -430,6 +436,7 @@ public class GameManager : MonoBehaviour
             hud.ShowRoomTitle(i);
         }
         else hud.ShowRoomTitle(i);
+        hud.RefreshKey();
     }
 
     void OnLeaveTile(Room room, RoomState s, int x, int r)
@@ -471,6 +478,50 @@ public class GameManager : MonoBehaviour
         fx.Star(c + Vector3.up * 0.55f, Pal.Yellow, 0.55f, 0.7f);
         hud.CoinPulse();
         if (!firstCoin) { firstCoin = true; hud.Popup("A coin! They only exist in the old game.", 2.8f); }
+    }
+
+    // ------------------------------------------------------------------ new in the remake: keys and guards
+    /// <summary>Is this room's exit open? It is locked until you hold the room's key.</summary>
+    public bool ExitOpen(int ri) { return !rooms[ri].HasKey || rs[ri].keyTaken; }
+
+    /// <summary>
+    /// The key exists only in the 3D remake: the old game has no idea, so you have to look for it.
+    /// It also keeps the exit shut, and a locked exit says so when you walk into it.
+    /// </summary>
+    void TickKey(Room room, RoomState s, Vector3 p, float dt)
+    {
+        if (!room.HasKey) return;
+        if (lockedCooldown > 0f) lockedCooldown -= dt;
+        if (s.keyTaken) return;
+
+        Vector3 kc = room.TileCenter(room.def.key);
+        if (new Vector2(p.x - kc.x, p.z - kc.z).magnitude < Maps.KeyReach && Mathf.Abs(p.y - room.FloorY) < 1.2f)
+        {
+            s.keyTaken = true;
+            sound.Play("key_get", 0.85f);
+            StartCoroutine(After(0.5f, () => sound.Play("door_unlock", 0.8f)));
+            fx.Star(kc + Vector3.up * 1.15f, Pal.Yellow, 0.9f, 0.7f);
+            fx.Star(kc + Vector3.up * 1.15f, Pal.White, 0.5f, 0.45f);
+            SketchCamera.Flash(0.22f, Pal.Yellow);
+            hud.KeyPulse();
+            hud.RefreshKey();
+            if (!firstKey) { firstKey = true; hud.Popup("Got the key! The exit is open. Keys are NEW: the old game has none.", 4.0f); }
+            else hud.Toast("key found!     the exit is open");
+            return;
+        }
+
+        // walking into the locked exit
+        Vector3 gate = world.GatePos(room.index);
+        if (lockedCooldown <= 0f && Mathf.Abs(p.x - gate.x) < Maps.TS * 0.5f && p.z > gate.z - 1.5f && p.z < gate.z + 0.4f)
+        {
+            lockedCooldown = 2.6f;
+            sound.Play("gate", 0.8f);
+            player.AddTrauma(0.25f);
+            world.RattleGate(room.index);
+            hud.KeyPulse();
+            if (!firstLocked) { firstLocked = true; hud.Popup("Locked! The key is NEW in the remake: look for it in the 3D world.", 4.2f); }
+            else hud.Popup("Locked. Find the key first: only the 3D world shows it.", 2.6f);
+        }
     }
 
     // ------------------------------------------------------------------ hazards
