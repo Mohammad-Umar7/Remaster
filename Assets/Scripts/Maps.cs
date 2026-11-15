@@ -61,6 +61,7 @@ public class RoomDef
     // NEW in the remake: the old game has never heard of these, so only the 3D world shows them.
     public Vector2Int key = new Vector2Int(-1, -1);     // tile the key floats over; the exit stays locked until you hold it
     public SlimeDef[] guards = new SlimeDef[0];         // patrols (tiles per second, start offset, loop of waypoints)
+    public bool boss;                                   // the Captain's arena: the exit opens when he is beaten (see BossFight)
 }
 
 public static class Maps
@@ -268,7 +269,7 @@ public static class Maps
         {
             title = "SHIP IT",
             todo = "ship it",
-            note = "FIXME: unfinished floor\ngets deleted. RUN!\nExit = BUILD & RUN.",
+            note = "FIXME: unfinished floor\ngets deleted. RUN!\nBUILD & RUN is close.",
             wrap = true,
             deleteWave = true,
             finish = 0.25f, needBridge = true, needFake = true, needWrap = true,
@@ -293,6 +294,32 @@ public static class Maps
                 "#~~~BB~~~~~~#",
                 "#......N....#",
                 "#...........#",
+                "######S######",
+            }
+        },
+        new RoomDef
+        {
+            // The last room is a fight, not a puzzle. The Captain of the guards is NEW in the remake,
+            // so the old game shows an empty hall. No key here: the exit opens when he is beaten.
+            // The remake never modelled a sword, so you fight with the old game's one, and every coin
+            // from the old game takes a little off his health (see BossFight).
+            title = "THE CAPTAIN",
+            todo = "beat the Captain",
+            note = "BOSS (new in the remake).\nLEFT CLICK sword, SPACE dodge.\nDodge first, then hit him.",
+            finish = 0.95f,
+            boss = true,
+            rows = new[]
+            {
+                "######X######",
+                "#...........#",
+                "#...........#",
+                "#...........#",
+                "#...........#",
+                "#...........#",
+                "#...........#",
+                "#...........#",
+                "#...........#",
+                "#N..........#",
                 "######S######",
             }
         },
