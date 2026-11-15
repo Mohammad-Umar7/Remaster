@@ -149,8 +149,8 @@ public class GameManager : MonoBehaviour
 
     public const float WaveInterval = 1.8f, CrumbleTime = 0.75f, PlankBreakDelay = 0.32f;
     int lastTileX = -99, lastTileR = -99;
-    bool firstBridge, firstFake, firstWrap, firstCoin, firstSlime, firstFall, firstBreak, firstFlicker, firstLaser, chipFoot;
-    bool firstKey, firstLocked, firstGuardSeen, firstGuardHit, firstChase;
+    bool firstBridge, firstFake, firstWrap, firstSlime, firstFall, firstBreak, firstFlicker, firstLaser, chipFoot;
+    bool firstGuardHit, firstChase;
     float lockedCooldown;
     int hitStopId;
     bool[] hasOneUse;
@@ -581,7 +581,6 @@ public class GameManager : MonoBehaviour
         Vector3 c = room.TileCenter(x, r);
         fx.Star(c + Vector3.up * 0.55f, Pal.Yellow, 0.55f, 0.7f);
         hud.CoinPulse();
-        if (!firstCoin) { firstCoin = true; hud.Popup("A coin! They only exist in the old game.", 2.8f); }
     }
 
     // ------------------------------------------------------------------ new in the remake: keys and guards
@@ -614,8 +613,7 @@ public class GameManager : MonoBehaviour
             SketchCamera.Flash(0.22f, Pal.Yellow);
             hud.KeyPulse();
             hud.RefreshKey();
-            if (!firstKey) { firstKey = true; hud.Popup("Got the key! The exit is open. Keys are NEW: the old game has none.", 4.0f); }
-            else hud.Toast("key found!     the exit is open");
+            hud.Toast("key found!     the exit is open");
             return;
         }
 
@@ -629,8 +627,7 @@ public class GameManager : MonoBehaviour
             world.RattleGate(room.index);
             hud.KeyPulse();
             if (room.def.boss) hud.Popup("Locked! No key for this one: beat the Captain.", 3f);
-            else if (!firstLocked) { firstLocked = true; hud.Popup("Locked! The key is NEW in the remake: look for it in the 3D world.", 4.2f); }
-            else hud.Popup("Locked. Find the key first: only the 3D world shows it.", 2.6f);
+            else hud.Popup("Locked. Find the key: only the 3D world shows it.", 2.2f);
         }
     }
 
@@ -723,7 +720,6 @@ public class GameManager : MonoBehaviour
                     guardBarkCooldown = 4.5f;
                     sound.PlayAt(GuardBarks[guardBarkCount++ % GuardBarks.Length], wp + Vector3.up * 1.6f, 1f, 0.03f, 1f, 0.3f);
                 }
-                if (!firstGuardSeen) { firstGuardSeen = true; hud.Popup("A guard! Guards are NEW too: the old game cannot see them. Watch the 3D world.", 4.4f); }
             }
             else if (g.alerted && g.mode != 1 && dist > Maps.GuardCalm) g.alerted = false;
             g.alertT = Mathf.MoveTowards(g.alertT, g.alerted ? 1f : 0f, dt / 0.22f);
@@ -807,7 +803,7 @@ public class GameManager : MonoBehaviour
         hud.Bonk(side);
         // it gloats, unless that was your last heart (the game-over jingle has the floor then)
         if (hearts > 1) StartCoroutine(After(0.55f, () => sound.Play("guard_say_gotcha", 0.9f)));
-        Hurt("Caught by a guard! The old game cannot see them: keep an eye on the 3D world.", ref firstGuardHit, 0.11f);
+        Hurt(null, ref firstGuardHit, 0.11f);
     }
 
     /// <summary>Can a chasing guard stand here (tile units)? Only on plain floor that still exists, a step clear of anything else.</summary>
