@@ -21,9 +21,11 @@ Deadline: **Sunday 15 November 2026, 14:45**, on the jam's itch.io page. Late en
 >
 > But the remake has things the old game never had: every exit is locked until you find the room's key, and guards patrol the rooms. The old game cannot see either, so you need both worlds at once: the pixel window for where the floor really is, your own eyes for the key and the guards.
 >
-> Eight short rooms, about ten minutes: invisible bridges, fake walls, slimes only the old game can see, the screen-wrap bug, flickering planks, lasers the old game shows three seconds early, planks that snap after one step, and a floor that deletes itself. Clearing rooms adds remastered instruments to the chip-tune soundtrack.
+> Step inside a guard's red ring and it strikes, then comes after you; get far enough away and it gives up and walks back to its post.
 >
-> **Controls:** on the start screen pick START or QUIT with W / S and Enter, or click a note. In the game: WASD move, mouse look, Shift run, Tab resize the old-game window, Esc pause. In the pause menu: R restarts the room, 1 to 8 jump to a room.
+> Eight short rooms, about ten minutes: invisible bridges, fake walls, slimes only the old game can see, the screen-wrap bug, flickering planks, planks that snap after one step, a floor that deletes itself, and a last fight. The Captain of the guards blocks the way to BUILD & RUN: the camera pulls out and you see yourself, the old game's little hero in 3D. A short voiced scene, then a third-person sword fight with the old game's sword: a three-hit combo, a dodge roll, a health bar each. Red on the floor shows where his charge, his spin and his leap will land. Every coin from the old game makes him weaker. Clearing rooms adds remastered instruments to the chip-tune soundtrack.
+>
+> **Controls:** on the start screen pick START or QUIT with W / S and Enter, or click a note. In the game: WASD move, mouse look, Shift run, Tab resize the old-game window, Esc pause. In the last room: left click sword (keep clicking for the combo), Space dodge roll. In the pause menu: R restarts the room, 1 to 8 jump to a room.
 
 ## The 3-minute slot
 
@@ -36,11 +38,11 @@ Deadline: **Sunday 15 November 2026, 14:45**, on the jam's itch.io page. Late en
 1. On the start screen press Enter on START. Let the 8-second opening play (desk, falling asleep, pulled into the monitor).
 2. Room 1: point at the pixel window ("there is a bridge here"), then walk across thin air. The bridge is sketched in under your feet. Walk into the locked exit, then point at the key and the guard: "these are only in the 3D world". Slip past the guard, take the key, and the gate drops. (For a laugh, walk into the guard once: it winds up and bonks you back.)
 3. Press **Esc, then 2**: walk straight through the fancy wall.
-4. Press **Esc, then 6**: stand in the safe zone, point at the red lines in the old game, and let the lasers fire three seconds later.
-5. If there is time, **Esc, then 4** (walk off the left edge, appear behind the gate) or **Esc, then 8** (run from the deleting floor).
+4. Press **Esc, then 8**: the Captain. Walk forward and let the scene play (Enter skips a line). Then fight: step or roll (Space) out of the red lane of his charge, and click three times while he is bent over or dizzy (stars round his head): slash, slash, smash. He blocks everything else. Three full combos finish him, and he falls to pieces.
+5. If there is time, **Esc, then 4** (walk off the left edge, appear behind the gate) or **Esc, then 7** (run from the deleting floor).
 
 **Scoring (1 min)** - answer questions. Useful facts:
-- Theme: two worlds on screen at once, and neither is enough alone. The old one knows the floor, the slimes and the lasers; the new one has the keys and the guards.
+- Theme: two worlds on screen at once, and neither is enough alone. The old one knows the floor, the slimes and the coins; the new one has the keys, the guards and the Captain. The last fight uses both: the remake never modelled a sword, so you fight its boss with the old game's sword, and the old game's coins make him weaker.
 - The soundtrack is "remastered" one layer per room.
 - All art, audio and code were made during the jam; every tool is listed in the credits.
 
