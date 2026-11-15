@@ -580,6 +580,18 @@ public class Hud : MonoBehaviour
             keyRect.localRotation = Quaternion.Euler(0, 0, 1.3f + Mathf.Sin(Time.unscaledTime * 38f) * 5f * kp);
         }
         UpdateHearts(dt);
+        if (bonkT >= 0f)
+        {
+            // pops in with a bounce, holds for a beat, then fades (on real time, so the hit-stop does not freeze it)
+            bonkT += dt;
+            float pop = EaseOutBack(Mathf.Clamp01(bonkT / 0.13f));
+            float fadeOut = Mathf.Clamp01((bonkT - 0.42f) / 0.22f);
+            float sc = pop * (1f + fadeOut * 0.25f);
+            bonkRect.localScale = new Vector3(sc, sc, 1f);
+            float a = 1f - fadeOut;
+            bonkFill.color = Pal.A(Pal.Yellow, a); bonkLine.color = Pal.A(Pal.Ink, a); bonkText.color = Pal.A(Pal.Red, a);
+            if (bonkT > 0.66f) { bonkT = -1f; bonkRect.gameObject.SetActive(false); }
+        }
         if (checkPulse > 0f && pulseIndex >= 0)
         {
             checkPulse = Mathf.Max(0f, checkPulse - dt * 2.2f);
